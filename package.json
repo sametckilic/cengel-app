@@ -7,6 +7,10 @@
   ],
   "scripts": {
     "start": "npm --workspace @cengel/mobile run start --",
+    "api:build": "npm --workspace @cengel/api run build",
+    "api:dev": "npm --workspace @cengel/api run dev",
+    "api:start": "npm --workspace @cengel/api run start",
+    "api:test": "npm --workspace @cengel/api run test",
     "reset-project": "npm --workspace @cengel/mobile run reset-project --",
     "dataset:check": "node ./packages/generator/bin/prepare-clue-catalog.js --check",
     "dataset:build": "node ./packages/generator/bin/prepare-clue-catalog.js --output ./apps/mobile/data/generated/clue-catalog.json",
@@ -25,7 +29,9 @@
     "web": "npm --workspace @cengel/mobile run web --",
     "server:build": "npm --workspace @cengel/mobile run server:build --",
     "server:serve": "npm --workspace @cengel/mobile run server:serve --",
-    "lint": "npm --workspace @cengel/mobile run lint --"
+    "lint": "npm run lint:mobile && npm run lint:api",
+    "lint:api": "npm --workspace @cengel/api run lint",
+    "lint:mobile": "npm --workspace @cengel/mobile run lint --"
   },
   "private": true
 }
