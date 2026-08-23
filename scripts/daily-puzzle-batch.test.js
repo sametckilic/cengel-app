@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const catalog = require('../data/generated/clue-catalog.json');
+const catalog = require('../apps/mobile/data/generated/clue-catalog.json');
 const { createPublicationBatch, parseArguments } = require('./publish-daily-puzzles');
 const {
   createDailyPublicationSchedule,

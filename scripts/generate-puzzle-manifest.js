@@ -9,11 +9,14 @@ const {
   getDateKeyInTimeZone,
 } = require('./lib/daily-puzzle-schedule');
 
-const CATALOG_PATH = path.resolve(process.cwd(), 'data/generated/clue-catalog.json');
-const RECIPES_PATH = path.resolve(process.cwd(), 'data/puzzle-recipes.json');
+const CATALOG_PATH = path.resolve(
+  process.cwd(),
+  'apps/mobile/data/generated/clue-catalog.json',
+);
+const RECIPES_PATH = path.resolve(process.cwd(), 'apps/mobile/data/puzzle-recipes.json');
 const DAILY_PUBLICATIONS_DIRECTORY = path.resolve(
   process.cwd(),
-  'data/generated/daily',
+  'apps/mobile/data/generated/daily',
 );
 
 function parseArguments(argumentsList) {

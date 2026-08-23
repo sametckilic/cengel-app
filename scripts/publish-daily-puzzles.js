@@ -16,10 +16,19 @@ const {
 } = require('./lib/daily-puzzle-schedule');
 const { buildPuzzleManifest } = require('./lib/puzzle-manifest');
 
-const CATALOG_PATH = path.resolve(process.cwd(), 'data/generated/clue-catalog.json');
-const RECIPES_PATH = path.resolve(process.cwd(), 'data/puzzle-recipes.json');
-const DEFAULT_OUTPUT_DIRECTORY = path.resolve(process.cwd(), 'data/generated/daily');
-const DEFAULT_MANIFEST_PATH = path.resolve(process.cwd(), 'data/generated/puzzles.json');
+const CATALOG_PATH = path.resolve(
+  process.cwd(),
+  'apps/mobile/data/generated/clue-catalog.json',
+);
+const RECIPES_PATH = path.resolve(process.cwd(), 'apps/mobile/data/puzzle-recipes.json');
+const DEFAULT_OUTPUT_DIRECTORY = path.resolve(
+  process.cwd(),
+  'apps/mobile/data/generated/daily',
+);
+const DEFAULT_MANIFEST_PATH = path.resolve(
+  process.cwd(),
+  'apps/mobile/data/generated/puzzles.json',
+);
 
 function parseArguments(argumentsList) {
   const options = {

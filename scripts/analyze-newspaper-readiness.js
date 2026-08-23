@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-const catalog = require('../data/generated/clue-catalog.json');
-const manifest = require('../data/generated/puzzles.json');
-const recipes = require('../data/puzzle-recipes.json');
+const catalog = require('../apps/mobile/data/generated/clue-catalog.json');
+const manifest = require('../apps/mobile/data/generated/puzzles.json');
+const recipes = require('../apps/mobile/data/puzzle-recipes.json');
 const {
   analyzeCatalogReadiness,
   analyzeNewspaperPuzzle,

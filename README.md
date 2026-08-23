@@ -11,6 +11,8 @@ npm install
 npm start
 ```
 
+Komutlar repository kökünden çalıştırılır; Expo uygulaması npm workspace olarak `apps/mobile` altında bulunur.
+
 Temel kontroller:
 
 ```bash
@@ -35,7 +37,7 @@ npm run puzzles:build
 Tek bir günlük yayın üretmek:
 
 ```bash
-npm run daily:generate -- --date 2026-08-23 --profile easy-mixed-wide --revision v1 --output data/generated/daily/gunun-2026-08-23.json
+npm run daily:generate -- --date 2026-08-23 --profile easy-mixed-wide --revision v1 --output apps/mobile/data/generated/daily/gunun-2026-08-23.json
 ```
 
 Yarından başlayarak yedi günlük kalite onaylı tamponu tamamlamak:
@@ -67,6 +69,8 @@ API ETag, `304 Not Modified`, `404` ve cache başlıklarını destekler. Web ayn
 EXPO_PUBLIC_PUZZLE_API_URL=https://your-cengel-api.example.com
 ```
 
+Yerel mobil ortam değerleri `apps/mobile/.env.local` içinde tutulur; örnek dosya `apps/mobile/.env.example` konumundadır.
+
 Native katalog önbelleği Expo SQLite’ta, web önbelleği `localStorage` içinde tutulur. Ağ yoksa önbellek; önbellek de yoksa uygulamayla gelen manifest kullanılır.
 
 ## Server build
@@ -78,4 +82,4 @@ npm run server:build
 npm run server:serve
 ```
 
-Üretim çıktısı `dist/client` ve `dist/server` altında oluşur. Bu paket EAS Hosting veya Expo server adapter destekleyen başka bir sunucuya dağıtılabilir. Gerçek deployment için seçilen hosting projesinin kimliği/hesabı ve gerekiyorsa `EXPO_TOKEN` yapılandırılmalıdır.
+Üretim çıktısı `apps/mobile/dist/client` ve `apps/mobile/dist/server` altında oluşur. Bu paket EAS Hosting veya Expo server adapter destekleyen başka bir sunucuya dağıtılabilir. Gerçek deployment için seçilen hosting projesinin kimliği/hesabı ve gerekiyorsa `EXPO_TOKEN` yapılandırılmalıdır.

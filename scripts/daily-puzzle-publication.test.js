@@ -4,7 +4,7 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
-const catalog = require('../data/generated/clue-catalog.json');
+const catalog = require('../apps/mobile/data/generated/clue-catalog.json');
 const { parseArguments } = require('./generate-daily-puzzle');
 const {
   createDailyPuzzlePublication,

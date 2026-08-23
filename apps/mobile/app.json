@@ -44,6 +44,7 @@
       "expo-sqlite"
     ],
     "experiments": {
+      "autolinkingModuleResolution": true,
       "typedRoutes": true,
       "reactCompiler": true
     }

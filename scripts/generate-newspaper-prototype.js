@@ -6,7 +6,10 @@ const path = require('node:path');
 const { fillNewspaperTopology } = require('./lib/newspaper-fill');
 const { createNewspaperPrototypeTopology } = require('./lib/newspaper-topology');
 
-const CATALOG_PATH = path.resolve(process.cwd(), 'data/generated/clue-catalog.json');
+const CATALOG_PATH = path.resolve(
+  process.cwd(),
+  'apps/mobile/data/generated/clue-catalog.json',
+);
 const PROTOTYPE_REQUEST = {
   id: 'newspaper-prototype-8x8',
   title: 'Günün 8×8 Çengel Bulmacası',

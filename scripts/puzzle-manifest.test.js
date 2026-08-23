@@ -1,9 +1,9 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const catalog = require('../data/generated/clue-catalog.json');
-const dailyPublication = require('../data/generated/daily/gunun-2026-08-23.json');
-const recipes = require('../data/puzzle-recipes.json');
+const catalog = require('../apps/mobile/data/generated/clue-catalog.json');
+const dailyPublication = require('../apps/mobile/data/generated/daily/gunun-2026-08-23.json');
+const recipes = require('../apps/mobile/data/puzzle-recipes.json');
 const {
   buildPuzzleManifest,
   validateDailyPublication,

@@ -1,29 +1,29 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const puzzle = require('../data/generated/newspaper-prototype-8x8.json');
+const puzzle = require('../apps/mobile/data/generated/newspaper-prototype-8x8.json');
 const {
   prototypeAnswerRevealAccessProvider,
-} = require('../services/hint-access.ts');
+} = require('../apps/mobile/services/hint-access.ts');
 const {
   backspacePuzzleEntry,
   beginPuzzleWordEntry,
   enterPuzzleLetter,
   normalizePuzzleLetter,
-} = require('../utils/puzzle-input.ts');
-const { revealSelectedWord } = require('../utils/puzzle-hint.ts');
+} = require('../apps/mobile/utils/puzzle-input.ts');
+const { revealSelectedWord } = require('../apps/mobile/utils/puzzle-hint.ts');
 const {
   createInitialPuzzleSelection,
   getSelectedWord,
   getWordsAtCell,
   selectPuzzleCell,
-} = require('../utils/puzzle-selection.ts');
+} = require('../apps/mobile/utils/puzzle-selection.ts');
 const {
   getLockedCellIndices,
   getLockedWordPattern,
   isPuzzleComplete,
   validateSelectedWord,
-} = require('../utils/puzzle-validation.ts');
+} = require('../apps/mobile/utils/puzzle-validation.ts');
 
 test('keeps the active word while moving within it', () => {
   const initialSelection = createInitialPuzzleSelection(puzzle);

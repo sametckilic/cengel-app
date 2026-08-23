@@ -8,7 +8,10 @@ const {
   writeImmutablePublication,
 } = require('./lib/daily-puzzle-publication');
 
-const CATALOG_PATH = path.resolve(process.cwd(), 'data/generated/clue-catalog.json');
+const CATALOG_PATH = path.resolve(
+  process.cwd(),
+  'apps/mobile/data/generated/clue-catalog.json',
+);
 
 function parseArguments(argumentsList) {
   const options = {

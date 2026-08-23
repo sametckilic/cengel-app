@@ -1,6 +1,7 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "baseUrl": "./apps/mobile",
     "strict": true,
     "paths": {
       "@/*": [
@@ -9,9 +10,9 @@
     }
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "apps/mobile/**/*.ts",
+    "apps/mobile/**/*.tsx",
+    "apps/mobile/.expo/types/**/*.ts",
+    "apps/mobile/expo-env.d.ts"
   ]
 }
