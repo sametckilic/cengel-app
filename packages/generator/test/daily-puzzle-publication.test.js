@@ -4,12 +4,12 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
-const catalog = require('../apps/mobile/data/generated/clue-catalog.json');
-const { parseArguments } = require('./generate-daily-puzzle');
+const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
+const { parseArguments } = require('../bin/generate-daily-puzzle');
 const {
   createDailyPuzzlePublication,
   writeImmutablePublication,
-} = require('./lib/daily-puzzle-publication');
+} = require('../src/daily-puzzle-publication');
 
 const publicationRequest = {
   date: '2026-08-23',

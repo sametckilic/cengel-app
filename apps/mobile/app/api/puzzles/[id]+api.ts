@@ -2,7 +2,7 @@ import { BUNDLED_PUZZLE_MANIFEST } from '@/data/puzzle-catalog';
 import {
   createPuzzleApiResponse,
   createPuzzleCatalogApiResponse,
-} from '@/services/puzzle-api-contract';
+} from '@cengel/contracts/puzzle-api';
 
 const catalogResponse = createPuzzleCatalogApiResponse(BUNDLED_PUZZLE_MANIFEST);
 const entityTag = `"${catalogResponse.catalogVersion}"`;

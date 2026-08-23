@@ -28,31 +28,31 @@ import {
   getPuzzleSizeLabel,
 } from '@/data/puzzle-catalog';
 import { NEWSPAPER_PROTOTYPE } from '@/data/newspaper-prototype';
-import { prototypeAnswerRevealAccessProvider } from '@/services/hint-access';
+import { prototypeAnswerRevealAccessProvider } from '@cengel/puzzle-core/hint-access';
 import {
   createPuzzleProgressSnapshot,
   restorePuzzleProgress,
-} from '@/services/puzzle-progress';
+} from '@cengel/puzzle-core/puzzle-progress';
 import { puzzleProgressStore } from '@/services/puzzle-progress-store';
-import { revealPuzzleWord } from '@/utils/puzzle-hint';
+import { revealPuzzleWord } from '@cengel/puzzle-core/puzzle-hint';
 import {
   backspacePuzzleEntry,
   beginPuzzleWordEntry,
   enterPuzzleLetter,
   type PuzzleInputState,
-} from '@/utils/puzzle-input';
+} from '@cengel/puzzle-core/puzzle-input';
 import {
   createInitialPuzzleSelection,
   getSelectedWord,
   selectPuzzleCell,
-} from '@/utils/puzzle-selection';
+} from '@cengel/puzzle-core/puzzle-selection';
 import {
   getLockedCellIndices,
   getLockedWordPattern,
   isPuzzleComplete,
   validateSelectedWord,
-} from '@/utils/puzzle-validation';
-import type { PuzzleDefinition } from '@/types/puzzle';
+} from '@cengel/puzzle-core/puzzle-validation';
+import type { PuzzleDefinition } from '@cengel/puzzle-core/puzzle';
 
 type NewspaperPuzzleScreenProps = {
   puzzle?: PuzzleDefinition;

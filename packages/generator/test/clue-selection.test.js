@@ -1,11 +1,11 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const catalog = require('../apps/mobile/data/generated/clue-catalog.json');
+const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
 const {
   selectClueCandidates,
   validateGenerationRequest,
-} = require('./lib/clue-selection');
+} = require('../src/clue-selection');
 
 const baseRequest = {
   categories: ['turkce'],

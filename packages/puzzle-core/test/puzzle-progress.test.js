@@ -9,17 +9,17 @@ const {
   parsePuzzleProgress,
   restorePuzzleProgress,
   serializePuzzleProgress,
-} = require('../apps/mobile/services/puzzle-progress.ts');
+} = require('../src/puzzle-progress.ts');
 const {
   beginPuzzleWordEntry,
   enterPuzzleLetter,
-} = require('../apps/mobile/utils/puzzle-input.ts');
+} = require('../src/puzzle-input.ts');
 const {
   getLockedCellIndices,
   isPuzzleComplete,
   validateSelectedWord,
-} = require('../apps/mobile/utils/puzzle-validation.ts');
-const puzzle = require('../apps/mobile/data/generated/newspaper-prototype-8x8.json');
+} = require('../src/puzzle-validation.ts');
+const puzzle = require('../../../apps/mobile/data/generated/newspaper-prototype-8x8.json');
 
 function createProgress(overrides = {}) {
   return {

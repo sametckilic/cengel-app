@@ -1,9 +1,9 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const catalog = require('../apps/mobile/data/generated/clue-catalog.json');
-const { selectClueCandidates } = require('./lib/clue-selection');
-const { generatePuzzleLayout } = require('./lib/puzzle-layout');
+const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
+const { selectClueCandidates } = require('../src/clue-selection');
+const { generatePuzzleLayout } = require('../src/puzzle-layout');
 
 function createLayout(request, candidateCount) {
   const candidates = selectClueCandidates(catalog.entries, {

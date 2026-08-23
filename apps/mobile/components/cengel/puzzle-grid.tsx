@@ -7,7 +7,7 @@ import type {
   PuzzleDefinition,
   PuzzleDirection,
   PuzzleEntries,
-} from '@/types/puzzle';
+} from '@cengel/puzzle-core/puzzle';
 
 function getDirectionIcon(direction: PuzzleDirection) {
   return direction === 'right' ? 'arrow-right-alt' : 'arrow-downward';

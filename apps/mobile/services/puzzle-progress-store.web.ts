@@ -4,7 +4,7 @@ import {
   type PuzzleProgressSnapshot,
   type PuzzleProgressStore,
   serializePuzzleProgress,
-} from '@/services/puzzle-progress';
+} from '@cengel/puzzle-core/puzzle-progress';
 
 const STORAGE_KEY = 'cengel:puzzle-progress:v1';
 const memoryStore = createMemoryPuzzleProgressStore();

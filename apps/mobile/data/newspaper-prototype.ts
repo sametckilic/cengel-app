@@ -1,5 +1,5 @@
 import generatedPrototype from '@/data/generated/newspaper-prototype-8x8.json';
-import type { NewspaperPuzzleDefinition } from '@/types/puzzle';
+import type { NewspaperPuzzleDefinition } from '@cengel/puzzle-core/puzzle';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;

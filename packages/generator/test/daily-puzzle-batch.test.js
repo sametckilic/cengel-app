@@ -1,14 +1,14 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const catalog = require('../apps/mobile/data/generated/clue-catalog.json');
-const { createPublicationBatch, parseArguments } = require('./publish-daily-puzzles');
+const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
+const { createPublicationBatch, parseArguments } = require('../bin/publish-daily-puzzles');
 const {
   createDailyPublicationSchedule,
   filterPublicationsAvailableOn,
   getDateKeyInTimeZone,
   resolveScheduleDate,
-} = require('./lib/daily-puzzle-schedule');
+} = require('../src/daily-puzzle-schedule');
 
 test('resolves schedule dates in the Istanbul calendar', () => {
   assert.equal(

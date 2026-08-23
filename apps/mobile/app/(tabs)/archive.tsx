@@ -15,7 +15,7 @@ import {
 } from '@/data/puzzle-catalog';
 import { usePuzzleProgressCatalog } from '@/hooks/use-puzzle-progress-catalog';
 import { usePuzzleCatalog } from '@/providers/puzzle-catalog-provider';
-import type { PuzzleProgressSummary } from '@/services/puzzle-progress';
+import type { PuzzleProgressSummary } from '@cengel/puzzle-core/puzzle-progress';
 
 type ArchiveItem = {
   detail: string;

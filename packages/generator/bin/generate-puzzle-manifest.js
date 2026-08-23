@@ -3,11 +3,11 @@
 const { readFile, mkdir, readdir, writeFile } = require('node:fs/promises');
 const path = require('node:path');
 
-const { buildPuzzleManifest } = require('./lib/puzzle-manifest');
+const { buildPuzzleManifest } = require('../src/puzzle-manifest');
 const {
   filterPublicationsAvailableOn,
   getDateKeyInTimeZone,
-} = require('./lib/daily-puzzle-schedule');
+} = require('../src/daily-puzzle-schedule');
 
 const CATALOG_PATH = path.resolve(
   process.cwd(),

@@ -1,16 +1,16 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const catalog = require('../apps/mobile/data/generated/clue-catalog.json');
-const { fillNewspaperTopology } = require('./lib/newspaper-fill');
-const { validateNewspaperPuzzle } = require('./lib/newspaper-grid');
+const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
+const { fillNewspaperTopology } = require('../src/newspaper-fill');
+const { validateNewspaperPuzzle } = require('../src/newspaper-grid');
 const {
   createNewspaper9x10Topology,
   createNewspaperBeginner7x7Topology,
   createNewspaperMedium8x8Topology,
   createNewspaperPrototypeTopology,
   validateNewspaperTopology,
-} = require('./lib/newspaper-topology');
+} = require('../src/newspaper-topology');
 
 const request = {
   id: 'newspaper-prototype-8x8',

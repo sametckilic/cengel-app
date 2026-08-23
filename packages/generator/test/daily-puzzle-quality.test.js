@@ -1,12 +1,12 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const catalog = require('../apps/mobile/data/generated/clue-catalog.json');
-const { createDailyPuzzleRecipe } = require('./lib/daily-puzzle-recipe');
+const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
+const { createDailyPuzzleRecipe } = require('../src/daily-puzzle-recipe');
 const {
   buildDailyPuzzleCandidate,
   resolveQualityPolicy,
-} = require('./lib/daily-puzzle-quality');
+} = require('../src/daily-puzzle-quality');
 
 const recipe = createDailyPuzzleRecipe({
   date: '2026-08-23',

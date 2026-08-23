@@ -14,10 +14,10 @@ import {
   findLatestDailyPuzzle,
   mergePuzzleManifests,
 } from '@/data/puzzle-catalog';
-import { createPuzzleCatalogApiResponse } from '@/services/puzzle-api-contract';
+import { createPuzzleCatalogApiResponse } from '@cengel/contracts/puzzle-api';
 import { fetchPuzzleCatalog } from '@/services/puzzle-catalog-client';
 import { puzzleCatalogStore } from '@/services/puzzle-catalog-store';
-import type { PuzzleDefinition, PuzzleManifest } from '@/types/puzzle';
+import type { PuzzleDefinition, PuzzleManifest } from '@cengel/puzzle-core/puzzle';
 
 type PuzzleCatalogSource = 'bundled' | 'cache' | 'remote';
 

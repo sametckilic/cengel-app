@@ -20,8 +20,8 @@ import {
 } from '@/data/puzzle-catalog';
 import { usePuzzleProgressCatalog } from '@/hooks/use-puzzle-progress-catalog';
 import { usePuzzleCatalog } from '@/providers/puzzle-catalog-provider';
-import type { PuzzleProgressSummary } from '@/services/puzzle-progress';
-import type { PuzzleDefinition } from '@/types/puzzle';
+import type { PuzzleProgressSummary } from '@cengel/puzzle-core/puzzle-progress';
+import type { PuzzleDefinition } from '@cengel/puzzle-core/puzzle';
 
 type PackItem = {
   category: string;

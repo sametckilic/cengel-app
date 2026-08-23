@@ -1,0 +1,18 @@
+{
+  "name": "@cengel/generator",
+  "version": "1.0.0",
+  "private": true,
+  "exports": {
+    "./clue-selection": "./src/clue-selection.js",
+    "./daily-puzzle-profiles": "./src/daily-puzzle-profiles.js",
+    "./daily-puzzle-publication": "./src/daily-puzzle-publication.js",
+    "./daily-puzzle-quality": "./src/daily-puzzle-quality.js",
+    "./daily-puzzle-recipe": "./src/daily-puzzle-recipe.js",
+    "./daily-puzzle-schedule": "./src/daily-puzzle-schedule.js",
+    "./newspaper-fill": "./src/newspaper-fill.js",
+    "./newspaper-grid": "./src/newspaper-grid.js",
+    "./newspaper-topology": "./src/newspaper-topology.js",
+    "./puzzle-layout": "./src/puzzle-layout.js",
+    "./puzzle-manifest": "./src/puzzle-manifest.js"
+  }
+}

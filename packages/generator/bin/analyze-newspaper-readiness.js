@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
-const catalog = require('../apps/mobile/data/generated/clue-catalog.json');
-const manifest = require('../apps/mobile/data/generated/puzzles.json');
-const recipes = require('../apps/mobile/data/puzzle-recipes.json');
+const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
+const manifest = require('../../../apps/mobile/data/generated/puzzles.json');
+const recipes = require('../../../apps/mobile/data/puzzle-recipes.json');
 const {
   analyzeCatalogReadiness,
   analyzeNewspaperPuzzle,
   estimateDenseWordDemand,
-} = require('./lib/newspaper-grid');
+} = require('../src/newspaper-grid');
 
 const REFERENCE_GRID_SIZES = [
   { rowCount: 8, columnCount: 8 },

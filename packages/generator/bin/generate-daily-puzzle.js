@@ -6,7 +6,7 @@ const path = require('node:path');
 const {
   createDailyPuzzlePublication,
   writeImmutablePublication,
-} = require('./lib/daily-puzzle-publication');
+} = require('../src/daily-puzzle-publication');
 
 const CATALOG_PATH = path.resolve(
   process.cwd(),

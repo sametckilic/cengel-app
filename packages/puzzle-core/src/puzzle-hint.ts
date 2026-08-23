@@ -1,5 +1,5 @@
-import type { PuzzleDefinition } from '@/types/puzzle';
-import type { PuzzleInputState } from '@/utils/puzzle-input';
+import type { PuzzleDefinition } from './puzzle';
+import type { PuzzleInputState } from './puzzle-input';
 
 export type RevealedWordResult = {
   inputState: PuzzleInputState;

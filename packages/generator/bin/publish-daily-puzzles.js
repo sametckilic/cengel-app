@@ -6,15 +6,15 @@ const path = require('node:path');
 const {
   getImmutablePublicationStatus,
   writeImmutablePublication,
-} = require('./lib/daily-puzzle-publication');
+} = require('../src/daily-puzzle-publication');
 const {
   addDaysToIsoDate,
   createScheduledDailyPublication,
   filterPublicationsAvailableOn,
   getDateKeyInTimeZone,
   resolveScheduleDate,
-} = require('./lib/daily-puzzle-schedule');
-const { buildPuzzleManifest } = require('./lib/puzzle-manifest');
+} = require('../src/daily-puzzle-schedule');
+const { buildPuzzleManifest } = require('../src/puzzle-manifest');
 
 const CATALOG_PATH = path.resolve(
   process.cwd(),

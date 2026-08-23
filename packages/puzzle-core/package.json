@@ -1,0 +1,17 @@
+{
+  "name": "@cengel/puzzle-core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./clue-catalog": "./src/clue-catalog.ts",
+    "./hint-access": "./src/hint-access.ts",
+    "./puzzle": "./src/puzzle.ts",
+    "./puzzle-hint": "./src/puzzle-hint.ts",
+    "./puzzle-input": "./src/puzzle-input.ts",
+    "./puzzle-progress": "./src/puzzle-progress.ts",
+    "./puzzle-schema": "./src/puzzle-schema.ts",
+    "./puzzle-selection": "./src/puzzle-selection.ts",
+    "./puzzle-validation": "./src/puzzle-validation.ts"
+  }
+}

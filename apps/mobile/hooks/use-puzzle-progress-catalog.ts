@@ -6,7 +6,7 @@ import {
   getPuzzleProgressSummary,
   type PuzzleProgressSnapshot,
   type PuzzleProgressSummary,
-} from '@/services/puzzle-progress';
+} from '@cengel/puzzle-core/puzzle-progress';
 import { puzzleProgressStore } from '@/services/puzzle-progress-store';
 
 type PuzzleProgressCatalog = {

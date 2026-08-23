@@ -1,4 +1,4 @@
-import type { GameplayDifficulty } from '@/types/clue-catalog';
+import type { GameplayDifficulty } from './clue-catalog';
 
 export type PuzzleDirection = 'down' | 'right';
 

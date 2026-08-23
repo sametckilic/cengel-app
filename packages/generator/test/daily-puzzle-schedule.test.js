@@ -1,14 +1,14 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const catalog = require('../apps/mobile/data/generated/clue-catalog.json');
-const { createDailyPuzzlePublication } = require('./lib/daily-puzzle-publication');
+const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
+const { createDailyPuzzlePublication } = require('../src/daily-puzzle-publication');
 const {
   addDaysToIsoDate,
   createDailyPublicationSchedule,
   createScheduledDailyPublication,
   getRotatedProfileIds,
-} = require('./lib/daily-puzzle-schedule');
+} = require('../src/daily-puzzle-schedule');
 
 test('rotates daily size, difficulty, and category profiles deterministically', () => {
   assert.deepEqual(getRotatedProfileIds('2026-08-24'), [

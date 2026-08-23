@@ -20,7 +20,7 @@ import Animated, {
 
 import { fonts, layout, palette, spacing, typography } from '@/constants/design';
 import { useKeyboardFeedback } from '@/hooks/use-keyboard-feedback';
-import type { PuzzleClueSummary } from '@/types/puzzle';
+import type { PuzzleClueSummary } from '@cengel/puzzle-core/puzzle';
 
 const KEY_HEIGHT = 48;
 const KEY_GAP = 4;

@@ -25,7 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { fonts, layout, palette, spacing } from '@/constants/design';
-import type { PuzzleClueSummary } from '@/types/puzzle';
+import type { PuzzleClueSummary } from '@cengel/puzzle-core/puzzle';
 
 const SUPPORTED_INPUT_CHARACTER = /^[A-Za-zÇĞİÖŞÜçğıöşü]$/;
 

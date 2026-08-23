@@ -1,4 +1,4 @@
-import type { PuzzleDefinition, PuzzleWord } from '@/types/puzzle';
+import type { PuzzleDefinition, PuzzleWord } from './puzzle';
 
 export type PuzzleSelection = {
   cellIndex: number;

@@ -1,5 +1,5 @@
-import type { PuzzleDefinition, PuzzleEntries, PuzzleWord } from '@/types/puzzle';
-import type { PuzzleSelection } from '@/utils/puzzle-selection';
+import type { PuzzleDefinition, PuzzleEntries, PuzzleWord } from './puzzle';
+import type { PuzzleSelection } from './puzzle-selection';
 
 const SUPPORTED_LETTER_PATTERN = /^[A-ZÇĞİÖŞÜ]$/;
 

@@ -1,5 +1,5 @@
-import { isPuzzleCatalogApiResponse } from '@/services/puzzle-api-contract';
-import type { PuzzleCatalogApiResponse } from '@/services/puzzle-api-contract';
+import { isPuzzleCatalogApiResponse } from '@cengel/contracts/puzzle-api';
+import type { PuzzleCatalogApiResponse } from '@cengel/contracts/puzzle-api';
 
 export type PuzzleCatalogCacheSnapshot = PuzzleCatalogApiResponse & {
   cachedAt: string;

@@ -17,7 +17,7 @@ import type {
   PuzzleDefinition,
   PuzzleDirection,
   PuzzleEntries,
-} from '@/types/puzzle';
+} from '@cengel/puzzle-core/puzzle';
 
 const MINIMUM_ZOOM_SCALE = 0.65;
 const MAXIMUM_ZOOM_SCALE = 2.5;

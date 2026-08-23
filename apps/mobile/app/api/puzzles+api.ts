@@ -1,5 +1,5 @@
 import { BUNDLED_PUZZLE_MANIFEST } from '@/data/puzzle-catalog';
-import { createPuzzleCatalogApiResponse } from '@/services/puzzle-api-contract';
+import { createPuzzleCatalogApiResponse } from '@cengel/contracts/puzzle-api';
 
 const responseBody = createPuzzleCatalogApiResponse(BUNDLED_PUZZLE_MANIFEST);
 const entityTag = `"${responseBody.catalogVersion}"`;

@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import {
   isPuzzleCatalogApiResponse,
   type PuzzleCatalogApiResponse,
-} from '@/services/puzzle-api-contract';
+} from '@cengel/contracts/puzzle-api';
 
 export type PuzzleCatalogFetchResult =
   | { status: 'not-modified' }

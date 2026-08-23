@@ -6,7 +6,7 @@ const {
   analyzeNewspaperPuzzle,
   estimateDenseWordDemand,
   validateNewspaperPuzzle,
-} = require('./lib/newspaper-grid');
+} = require('../src/newspaper-grid');
 
 function createDenseFixture() {
   const cells = Array.from({ length: 36 }, () => ({ type: 'letter' }));

@@ -3,8 +3,8 @@
 const { mkdir, readFile, writeFile } = require('node:fs/promises');
 const path = require('node:path');
 
-const { fillNewspaperTopology } = require('./lib/newspaper-fill');
-const { createNewspaperPrototypeTopology } = require('./lib/newspaper-topology');
+const { fillNewspaperTopology } = require('../src/newspaper-fill');
+const { createNewspaperPrototypeTopology } = require('../src/newspaper-topology');
 
 const CATALOG_PATH = path.resolve(
   process.cwd(),

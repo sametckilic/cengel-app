@@ -1,14 +1,14 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const catalog = require('../apps/mobile/data/generated/clue-catalog.json');
-const dailyPublication = require('../apps/mobile/data/generated/daily/gunun-2026-08-23.json');
-const recipes = require('../apps/mobile/data/puzzle-recipes.json');
+const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
+const dailyPublication = require('../../../apps/mobile/data/generated/daily/gunun-2026-08-23.json');
+const recipes = require('../../../apps/mobile/data/puzzle-recipes.json');
 const {
   buildPuzzleManifest,
   validateDailyPublication,
   validateGeneratedPuzzle,
-} = require('./lib/puzzle-manifest');
+} = require('../src/puzzle-manifest');
 
 test('builds every configured puzzle recipe into a valid definition', () => {
   const manifest = buildPuzzleManifest(catalog, recipes);

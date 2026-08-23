@@ -1,0 +1,12 @@
+{
+  "name": "@cengel/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@cengel/puzzle-core": "*"
+  },
+  "exports": {
+    "./puzzle-api": "./src/puzzle-api.ts"
+  }
+}

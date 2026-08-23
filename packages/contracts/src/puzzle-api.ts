@@ -1,8 +1,11 @@
 import {
   isPuzzleDefinition,
   isPuzzleManifest,
-} from '@/data/puzzle-catalog';
-import type { PuzzleDefinition, PuzzleManifest } from '@/types/puzzle';
+} from '@cengel/puzzle-core/puzzle-schema';
+import type {
+  PuzzleDefinition,
+  PuzzleManifest,
+} from '@cengel/puzzle-core/puzzle';
 
 export const PUZZLE_API_VERSION = 1 as const;
 

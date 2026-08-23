@@ -1,4 +1,4 @@
-import type { PuzzleDefinition } from '@/types/puzzle';
+import type { PuzzleDefinition } from '@cengel/puzzle-core/puzzle';
 
 export const DAILY_PUZZLE = {
   id: 'daily-2023-10-24',
