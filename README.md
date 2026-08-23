@@ -2,6 +2,8 @@
 
 Expo SDK 54 ile geliştirilen, yerel ilerleme kaydı ve sunucudan yayınlanan sabit günlük bulmacalar kullanan çengel bulmaca uygulaması.
 
+Bağımsız API, generator worker, kullanıcı verisi ve abonelik mimarisinin aşamalı uygulama planı için [BACKEND_ARCHITECTURE.md](BACKEND_ARCHITECTURE.md) belgesine bakın.
+
 ## Geliştirme
 
 ```bash
