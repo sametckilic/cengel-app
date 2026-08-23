@@ -1,50 +1,79 @@
-# Welcome to your Expo app 👋
+# Çengel
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo SDK 54 ile geliştirilen, yerel ilerleme kaydı ve sunucudan yayınlanan sabit günlük bulmacalar kullanan çengel bulmaca uygulaması.
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Geliştirme
 
 ```bash
-npm run reset-project
+npm install
+npm start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Temel kontroller:
 
-## Learn more
+```bash
+npm run lint
+npx tsc --noEmit
+npm run dataset:check
+npm run test:generator
+npm run puzzles:check
+npm run test:engine
+npm run test:progress
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## İçerik üretimi
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Ham JSONL yalnızca build araçları tarafından okunur; Expo runtime içine alınmaz.
 
-## Join the community
+```bash
+npm run dataset:build
+npm run puzzles:build
+```
 
-Join our community of developers creating universal apps.
+Tek bir günlük yayın üretmek:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npm run daily:generate -- --date 2026-08-23 --profile easy-mixed-wide --revision v1 --output data/generated/daily/gunun-2026-08-23.json
+```
+
+Yarından başlayarak yedi günlük kalite onaylı tamponu tamamlamak:
+
+```bash
+npm run daily:publish -- --start tomorrow --days 7 --revision schedule-v1 --publish
+```
+
+Komut mevcut tarih dosyalarını değiştirmez. Eksik günleri deterministik olarak üretir, kalite kapısından geçirir ve ana manifesti İstanbul tarihine göre yeniler. Gelecek tarihli dosyalar önceden hazırlanır ancak tarihleri gelmeden manifest veya API üzerinden sunulmaz.
+
+Profil rotasyonu:
+
+- `beginner-geography-compact`: 7×7, başlangıç, coğrafya ağırlıklı
+- `easy-mixed-wide`: 9×10, kolay, Türkçe ve genel kültür ağırlıklı
+- `medium-literature-balanced`: 8×8, orta, edebiyat ağırlıklı
+
+Üretim otomasyonu [.github/workflows/publish-daily-puzzles.yml](.github/workflows/publish-daily-puzzles.yml) içinde her gün `21:10 UTC` (`00:10 Europe/Istanbul`) çalışır. Aynı workflow elle de başlatılabilir.
+
+## API ve çevrimdışı çalışma
+
+Salt-okunur endpointler:
+
+- `GET /api/puzzles`
+- `GET /api/puzzles/:id`
+
+API ETag, `304 Not Modified`, `404` ve cache başlıklarını destekler. Web aynı origin üzerindeki API’yi kullanır. Android ve iOS için üretim origin’i tanımlanmalıdır:
+
+```bash
+EXPO_PUBLIC_PUZZLE_API_URL=https://your-cengel-api.example.com
+```
+
+Native katalog önbelleği Expo SQLite’ta, web önbelleği `localStorage` içinde tutulur. Ağ yoksa önbellek; önbellek de yoksa uygulamayla gelen manifest kullanılır.
+
+## Server build
+
+Expo Router API Routes nedeniyle web çıktısı `server` modundadır; yalnızca statik hosting yeterli değildir.
+
+```bash
+npm run server:build
+npm run server:serve
+```
+
+Üretim çıktısı `dist/client` ve `dist/server` altında oluşur. Bu paket EAS Hosting veya Expo server adapter destekleyen başka bir sunucuya dağıtılabilir. Gerçek deployment için seçilen hosting projesinin kimliği/hesabı ve gerekiyorsa `EXPO_TOKEN` yapılandırılmalıdır.

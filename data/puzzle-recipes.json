@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "recipes": [
+    {
+      "id": "gunun-2026-08-19",
+      "title": "Günün Bulmacası",
+      "rowCount": 8,
+      "columnCount": 8,
+      "difficulty": "easy",
+      "categories": ["turkce", "genel_kultur"],
+      "categoryWeight": 0.6,
+      "seed": "gunun-2026-08-19-v1",
+      "targetWordCount": 6
+    },
+    {
+      "id": "gazete-genis-kolay-001",
+      "title": "Geniş Gazete: Kolay",
+      "format": "newspaper-arrowword",
+      "topologyId": "newspaper-9x10-v1",
+      "rowCount": 9,
+      "columnCount": 10,
+      "difficulty": "easy",
+      "categories": ["turkce", "genel_kultur"],
+      "categoryWeight": 0.6,
+      "seed": "gazete-genis-kolay-001-v1",
+      "targetWordCount": 25
+    },
+    {
+      "id": "edebiyat-orta-002",
+      "title": "Edebiyat: Orta",
+      "format": "newspaper-arrowword",
+      "topologyId": "newspaper-medium-8x8-v1",
+      "rowCount": 8,
+      "columnCount": 8,
+      "difficulty": "medium",
+      "categories": ["edebiyat"],
+      "categoryWeight": 0.53,
+      "seed": "edebiyat-orta-002-v1",
+      "targetWordCount": 13
+    },
+    {
+      "id": "karma-zor-001",
+      "title": "Karma: Zor",
+      "rowCount": 10,
+      "columnCount": 10,
+      "difficulty": "hard",
+      "categories": ["turkce", "genel_kultur", "cografya", "bilim", "tarih", "edebiyat", "sanat"],
+      "categoryWeight": 0.6,
+      "seed": "karma-zor-001-v1",
+      "targetWordCount": 6
+    },
+    {
+      "id": "cografya-baslangic-002",
+      "title": "Coğrafya: Başlangıç",
+      "format": "newspaper-arrowword",
+      "topologyId": "newspaper-beginner-7x7-v1",
+      "rowCount": 7,
+      "columnCount": 7,
+      "difficulty": "beginner",
+      "categories": ["cografya"],
+      "categoryWeight": 0.58,
+      "seed": "cografya-baslangic-002-v1",
+      "targetWordCount": 12
+    }
+  ]
+}
