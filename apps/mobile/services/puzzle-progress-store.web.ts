@@ -5,6 +5,10 @@ import {
   type PuzzleProgressStore,
   serializePuzzleProgress,
 } from '@cengel/puzzle-core/puzzle-progress';
+import {
+  enqueueWebProgressEvent,
+  getOrCreateWebProgressDeviceId,
+} from '@/services/progress-sync-web-storage';
 
 const STORAGE_KEY = 'cengel:puzzle-progress:v1';
 const memoryStore = createMemoryPuzzleProgressStore();
@@ -67,6 +71,14 @@ export const puzzleProgressStore: PuzzleProgressStore = {
     const progressByPuzzleId = readProgressByPuzzleId();
     delete progressByPuzzleId[puzzleId];
     writeProgressByPuzzleId(progressByPuzzleId);
+    const clientUpdatedAt = new Date().toISOString();
+    enqueueWebProgressEvent({
+      clientUpdatedAt,
+      deviceId: getOrCreateWebProgressDeviceId(),
+      eventId: randomUUID(),
+      operation: 'delete',
+      puzzleId,
+    });
   },
   async save(progress) {
     if (typeof window === 'undefined') {
@@ -78,5 +90,14 @@ export const puzzleProgressStore: PuzzleProgressStore = {
       serializePuzzleProgress(progress),
     ) as PuzzleProgressSnapshot;
     writeProgressByPuzzleId(progressByPuzzleId);
+    enqueueWebProgressEvent({
+      clientUpdatedAt: progress.updatedAt,
+      deviceId: getOrCreateWebProgressDeviceId(),
+      eventId: randomUUID(),
+      operation: 'upsert',
+      puzzleId: progress.puzzleId,
+      snapshot: progress,
+    });
   },
 };
+import { randomUUID } from 'expo-crypto';
