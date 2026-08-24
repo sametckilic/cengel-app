@@ -18,6 +18,7 @@ import type {
   PuzzleDirection,
   PuzzleEntries,
 } from '@cengel/puzzle-core/puzzle';
+import { getWordsAtCell } from '@cengel/puzzle-core/puzzle-selection';
 
 const MINIMUM_ZOOM_SCALE = 0.65;
 const MAXIMUM_ZOOM_SCALE = 2.5;
@@ -175,6 +176,7 @@ type NewspaperPreviewGridProps = {
   onLetterCellPress: (cellIndex: number) => void;
   onZoomOverflowChange: (verticalOverflow: number) => void;
   puzzle: PuzzleDefinition;
+  solvedWordIds: ReadonlySet<string>;
 };
 
 export function NewspaperPreviewGrid({
@@ -188,6 +190,7 @@ export function NewspaperPreviewGrid({
   onLetterCellPress,
   onZoomOverflowChange,
   puzzle,
+  solvedWordIds,
 }: NewspaperPreviewGridProps) {
   const { width } = useWindowDimensions();
   const viewportWidth = width > spacing.tight * 2 ? width : 390;
@@ -375,13 +378,20 @@ export function NewspaperPreviewGrid({
               }
 
               const letterFontSize = Math.max(18, cellSize * 0.45);
+              const isPlayable = getWordsAtCell(puzzle, cellIndex).some(
+                ({ id }) => !solvedWordIds.has(id),
+              );
 
               return (
                 <Pressable
                   ref={cellIndex === activeCellIndex ? activeCellRef : undefined}
                   accessibilityLabel={`${Math.floor(cellIndex / puzzle.columnCount) + 1}. satır, ${(cellIndex % puzzle.columnCount) + 1}. sütun${entries[cellIndex] ? `, ${entries[cellIndex]}` : ', boş'}${isLocked ? ', kilitli' : ''}`}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: cellIndex === activeCellIndex }}
+                  accessibilityState={{
+                    disabled: !isPlayable,
+                    selected: cellIndex === activeCellIndex,
+                  }}
+                  disabled={!isPlayable}
                   key={cellIndex}
                   onPress={() => onLetterCellPress(cellIndex)}
                   style={({ pressed }) => [

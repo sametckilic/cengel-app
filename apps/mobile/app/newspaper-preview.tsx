@@ -261,19 +261,30 @@ export function NewspaperPuzzleScreen({
         return;
       }
 
+      const nextSelection = selectPuzzleCell(
+        puzzle,
+        inputState.selection,
+        cellIndex,
+        solvedWordIds,
+      );
+
+      if (nextSelection === inputState.selection) {
+        return;
+      }
+
       if (!keyboardVisibleRef.current) {
         preKeyboardScrollOffsetY.current = scrollOffsetY.current;
       }
 
       setInputState((currentState) => ({
         ...currentState,
-        selection: selectPuzzleCell(puzzle, currentState.selection, cellIndex),
+        selection: nextSelection,
       }));
       restartWordOnNextLetter.current = true;
       setCheckStatus('idle');
       systemInputRef.current?.open();
     },
-    [progressHydrated, puzzle],
+    [inputState.selection, progressHydrated, puzzle, solvedWordIds],
   );
   const handleActiveCellPositionChange = useCallback(
     (cellCenterY: number, cellBottomY: number) => {
@@ -527,6 +538,7 @@ export function NewspaperPuzzleScreen({
             onLetterCellPress={handleLetterCellPress}
             onZoomOverflowChange={setZoomOverflowY}
             puzzle={puzzle}
+            solvedWordIds={solvedWordIds}
           />
         </View>
       </ScrollView>

@@ -85,6 +85,66 @@ test('ignores clue cells', () => {
   assert.equal(selectPuzzleCell(puzzle, initialSelection, 0), initialSelection);
 });
 
+test('ignores cells that belong only to solved words', () => {
+  const selection = createInitialPuzzleSelection(puzzle);
+  const solvedWord = getSelectedWord(puzzle, selection);
+  const solvedOnlyCellIndex = solvedWord.cellIndices.find(
+    (cellIndex) => getWordsAtCell(puzzle, cellIndex).length === 1,
+  );
+
+  assert.ok(solvedOnlyCellIndex !== undefined);
+  assert.equal(
+    selectPuzzleCell(
+      puzzle,
+      selection,
+      solvedOnlyCellIndex,
+      new Set([solvedWord.id]),
+    ),
+    selection,
+  );
+});
+
+test('selects the unsolved direction at a solved-word intersection', () => {
+  const intersectionCellIndex = puzzle.cells.findIndex(
+    (cell, index) => cell.type === 'letter' && getWordsAtCell(puzzle, index).length === 2,
+  );
+  const [solvedWord, unsolvedWord] = getWordsAtCell(puzzle, intersectionCellIndex);
+  const selection = {
+    cellIndex: solvedWord.cellIndices[0],
+    wordId: solvedWord.id,
+  };
+  const nextSelection = selectPuzzleCell(
+    puzzle,
+    selection,
+    intersectionCellIndex,
+    new Set([solvedWord.id]),
+  );
+
+  assert.equal(nextSelection.cellIndex, intersectionCellIndex);
+  assert.equal(nextSelection.wordId, unsolvedWord.id);
+});
+
+test('does not select either direction when both intersection words are solved', () => {
+  const intersectionCellIndex = puzzle.cells.findIndex(
+    (cell, index) => cell.type === 'letter' && getWordsAtCell(puzzle, index).length === 2,
+  );
+  const intersectionWords = getWordsAtCell(puzzle, intersectionCellIndex);
+  const selection = {
+    cellIndex: intersectionWords[0].cellIndices[0],
+    wordId: intersectionWords[0].id,
+  };
+
+  assert.equal(
+    selectPuzzleCell(
+      puzzle,
+      selection,
+      intersectionCellIndex,
+      new Set(intersectionWords.map(({ id }) => id)),
+    ),
+    selection,
+  );
+});
+
 test('normalizes Turkish letters and advances inside the active word', () => {
   const state = {
     entries: {},

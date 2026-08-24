@@ -44,8 +44,11 @@ export function selectPuzzleCell(
   puzzle: Pick<PuzzleDefinition, 'words'>,
   currentSelection: PuzzleSelection,
   cellIndex: number,
+  solvedWordIds: ReadonlySet<string> = new Set(),
 ): PuzzleSelection {
-  const candidateWords = getWordsAtCell(puzzle, cellIndex);
+  const candidateWords = getWordsAtCell(puzzle, cellIndex).filter(
+    ({ id }) => !solvedWordIds.has(id),
+  );
 
   if (candidateWords.length === 0) {
     return currentSelection;
