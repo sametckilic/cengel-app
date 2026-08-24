@@ -13,6 +13,7 @@ const {
 const SOURCE_FILE = 'datasets/crossword_clues_gameplay_ready.jsonl';
 const SOURCE_PATH = path.resolve(process.cwd(), SOURCE_FILE);
 const ALLOWED_SCREEN_FITS = new Set(['acceptable', 'ideal']);
+const SOURCE_DIFFICULTIES = new Set(['beginner', 'easy', 'medium', 'hard', 'expert']);
 const DISALLOWED_FLAGS = new Set([
   'ambiguous_clue',
   'answer_leaked',
@@ -109,6 +110,13 @@ function validateRecord(record, lineNumber) {
   }
 
   if (
+    typeof record.gameplay_difficulty === 'string' &&
+    !SOURCE_DIFFICULTIES.has(record.gameplay_difficulty)
+  ) {
+    errors.push('gameplay_difficulty is unsupported');
+  }
+
+  if (
     typeof record.answer_normalized === 'string' &&
     !isSupportedSourceGridAnswer(record.answer_normalized)
   ) {
@@ -127,12 +135,15 @@ function validateRecord(record, lineNumber) {
 }
 
 function normalizeRecord(record) {
-  return typeof record.answer_normalized === 'string'
-    ? {
-        ...record,
-        answer_normalized: normalizeGridAnswer(record.answer_normalized),
-      }
-    : record;
+  return {
+    ...record,
+    answer_normalized:
+      typeof record.answer_normalized === 'string'
+        ? normalizeGridAnswer(record.answer_normalized)
+        : record.answer_normalized,
+    gameplay_difficulty:
+      record.gameplay_difficulty === 'expert' ? 'hard' : record.gameplay_difficulty,
+  };
 }
 
 function isQualityCandidate(record) {

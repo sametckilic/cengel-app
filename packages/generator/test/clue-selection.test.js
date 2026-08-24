@@ -65,6 +65,19 @@ test('folds Turkish circumflex letters into system-keyboard grid letters', () =>
   assert.equal(normalizeGridAnswer('KÂĞIT MİLLÎ SÜKÛNET'), 'KAĞIT MİLLİ SÜKUNET');
 });
 
+test('catalog maps source expert difficulty to the product hard tier', () => {
+  const sourceExpertEntry = catalog.entries.find(
+    ({ id }) => id === 'cc_0648b1572486d3d19ec7a006',
+  );
+
+  assert.equal(sourceExpertEntry?.difficulty, 'hard');
+  assert.ok(
+    catalog.entries.every(({ difficulty }) =>
+      ['beginner', 'easy', 'medium', 'hard'].includes(difficulty),
+    ),
+  );
+});
+
 test('a different seed changes the deterministic candidate order', () => {
   const first = selectClueCandidates(catalog.entries, baseRequest).map(({ id }) => id);
   const second = selectClueCandidates(catalog.entries, {
