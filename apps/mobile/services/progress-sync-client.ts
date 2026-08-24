@@ -6,10 +6,16 @@ import {
   type ProgressSyncEvent,
 } from '@/services/progress-sync';
 import { progressSyncOutboxStore } from '@/services/progress-sync-store';
+import { puzzleProgressStore } from '@/services/puzzle-progress-store';
 
 const BATCH_SIZE = 50;
 
 type SyncPlatform = 'android' | 'ios' | 'web';
+
+type AuthenticatedAccess = {
+  accessToken: string;
+  userId: string;
+};
 
 function getSyncPlatform(): SyncPlatform | null {
   return Platform.OS === 'android' || Platform.OS === 'ios' || Platform.OS === 'web'
@@ -61,4 +67,13 @@ export async function synchronizeProgress(
   await progressSyncOutboxStore.acknowledge(result.acknowledgedEventIds);
 
   return { sentEventCount: events.length, status: 'synced' };
+}
+
+export async function synchronizeAuthenticatedProgress(access: AuthenticatedAccess) {
+  await progressSyncOutboxStore.prepareForUser(
+    access.userId,
+    await puzzleProgressStore.list(),
+  );
+
+  return synchronizeProgress(access.accessToken);
 }

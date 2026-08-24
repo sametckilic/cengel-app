@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -11,12 +12,17 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { AchievementApiItem } from '@cengel/contracts/achievement-api';
 
+import { AchievementList } from '@/components/cengel/achievement-list';
 import { EditorialHeader } from '@/components/cengel/editorial-header';
 import { EditorialIcon } from '@/components/cengel/editorial-icon';
 import { SectionLabel } from '@/components/cengel/section-label';
 import { fonts, layout, palette, spacing, typography } from '@/constants/design';
 import { useAuth } from '@/providers/auth-provider';
+import { fetchUserAchievements } from '@/services/achievement-client';
+import { synchronizeAuthenticatedProgress } from '@/services/progress-sync-client';
+import { getAuthenticatedAccess } from '@/services/supabase-client';
 
 type FormMode = 'login' | 'register';
 
@@ -27,6 +33,43 @@ export default function ProfileScreen() {
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [achievements, setAchievements] = useState<readonly AchievementApiItem[] | null>(null);
+  const [achievementsLoading, setAchievementsLoading] = useState(false);
+  const [achievementsError, setAchievementsError] = useState<string | null>(null);
+
+  const loadAchievements = useCallback(async () => {
+    setAchievementsLoading(true);
+    setAchievementsError(null);
+
+    try {
+      const access = await getAuthenticatedAccess();
+
+      if (!access) {
+        throw new Error('Authenticated session is unavailable.');
+      }
+
+      await synchronizeAuthenticatedProgress(access);
+      const response = await fetchUserAchievements(access.accessToken);
+      setAchievements(response.items);
+    } catch {
+      setAchievementsError('Başarımlar şu anda yüklenemedi. Yerel ilerlemen güvende.');
+    } finally {
+      setAchievementsLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (status !== 'authenticated' || !account?.userId) {
+        setAchievements(null);
+        setAchievementsError(null);
+        setAchievementsLoading(false);
+        return;
+      }
+
+      void loadAchievements();
+    }, [account?.userId, loadAchievements, status]),
+  );
 
   async function run(action: () => Promise<void>) {
     setSubmitting(true);
@@ -211,6 +254,14 @@ export default function ProfileScreen() {
           showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
             {content}
+            {status === 'authenticated' ? (
+              <AchievementList
+                error={achievementsError}
+                items={achievements}
+                loading={achievementsLoading}
+                onRetry={() => void loadAchievements()}
+              />
+            ) : null}
             {error ? (
               <View accessibilityLiveRegion="polite" style={styles.errorMessage}>
                 <EditorialIcon color={palette.error} name="error-outline" size={18} />
