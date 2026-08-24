@@ -25,6 +25,7 @@ npm run test:engine
 npm run test:progress
 npm run test:sync
 npm run test:auth
+npm run test:catalog
 ```
 
 ## İçerik üretimi

@@ -1,4 +1,5 @@
 import generatedManifest from '@/data/generated/puzzles.json';
+import { composeCatalogWithFallback } from '@/data/catalog-composition';
 import { NEWSPAPER_PROTOTYPE } from '@/data/newspaper-prototype';
 import { isPuzzleManifest } from '@cengel/puzzle-core/puzzle-schema';
 import type { GameplayDifficulty } from '@cengel/puzzle-core/clue-catalog';
@@ -43,20 +44,12 @@ if (!isPuzzleManifest(manifest)) {
   throw new Error('Generated puzzle manifest is invalid. Run `npm run puzzles:build`.');
 }
 
-if (manifest.puzzles.some(({ id }) => id === NEWSPAPER_PROTOTYPE.id)) {
-  throw new Error(`Duplicate puzzle id in shared catalog: "${NEWSPAPER_PROTOTYPE.id}".`);
-}
-
 export const BUNDLED_PUZZLE_MANIFEST: PuzzleManifest = manifest;
 
 export function createPuzzleCatalog(
   puzzleManifest: PuzzleManifest,
 ): readonly PuzzleDefinition[] {
-  if (puzzleManifest.puzzles.some(({ id }) => id === NEWSPAPER_PROTOTYPE.id)) {
-    throw new Error(`Duplicate puzzle id in shared catalog: "${NEWSPAPER_PROTOTYPE.id}".`);
-  }
-
-  return [NEWSPAPER_PROTOTYPE, ...puzzleManifest.puzzles];
+  return composeCatalogWithFallback(NEWSPAPER_PROTOTYPE, puzzleManifest.puzzles);
 }
 
 export function mergePuzzleManifests(

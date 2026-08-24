@@ -44,6 +44,7 @@ jobs:
           npm run test:progress
           npm run test:sync
           npm run test:auth
+          npm run test:catalog
 
       - name: Export deployable Expo server bundle
         run: npm run server:build
