@@ -9,7 +9,7 @@ import { fonts, palette, typography } from '@/constants/design';
 const tabs: { icon: EditorialIconName; label: string; routeName?: string }[] = [
   { icon: 'today', label: 'Bugün', routeName: 'index' },
   { icon: 'auto-stories', label: 'Arşiv', routeName: 'archive' },
-  { icon: 'person', label: 'Profil' },
+  { icon: 'person', label: 'Profil', routeName: 'profile' },
 ];
 
 function EditorialTabBar({ state, navigation }: BottomTabBarProps) {
@@ -91,6 +91,12 @@ export default function TabLayout() {
         name="archive"
         options={{
           title: 'Arşiv',
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profil',
         }}
       />
     </Tabs>

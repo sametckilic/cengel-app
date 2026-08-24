@@ -200,6 +200,7 @@ export default function HomeScreen() {
         leftLabel="Menü"
         rightIcon="account-circle"
         rightLabel="Profil"
+        onRightPress={() => router.push('/profile')}
         title="ÇENGEL"
         variant="brand"
       />

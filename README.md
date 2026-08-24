@@ -23,6 +23,8 @@ npm run test:generator
 npm run puzzles:check
 npm run test:engine
 npm run test:progress
+npm run test:sync
+npm run test:auth
 ```
 
 ## İçerik üretimi
@@ -86,7 +88,7 @@ EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
-Supabase projesinde **Authentication → Sign In / Providers → Anonymous Sign-Ins** etkin olmalıdır. API tarafında aynı proje URL'si `SUPABASE_URL` olarak tanımlanır; erişim tokenları Supabase JWKS üzerinden doğrulanır. Service-role veya JWT secret mobil uygulamaya eklenmez.
+Supabase projesinde **Authentication → Sign In / Providers** altında hem **Anonymous Sign-Ins** hem de **Allow manual linking** etkin olmalıdır. Profil sekmesi anonim kullanıcıya e-posta doğrulama kodu gönderir ve kod doğrulandığında mevcut Supabase kullanıcı UUID'sini değiştirmeden kalıcı e-posta kimliğini bağlar. API tarafında aynı proje URL'si `SUPABASE_URL` olarak tanımlanır; erişim tokenları Supabase JWKS üzerinden doğrulanır. Service-role veya JWT secret mobil uygulamaya eklenmez.
 
 ## Server build
 

@@ -91,6 +91,7 @@ function ArchiveSection({
 }
 
 export default function ArchiveScreen() {
+  const router = useRouter();
   const { puzzles } = usePuzzleCatalog();
   const { getSummary } = usePuzzleProgressCatalog();
   const archiveItems = useMemo<readonly ArchiveItem[]>(
@@ -111,6 +112,7 @@ export default function ArchiveScreen() {
         leftLabel="Menü"
         rightIcon="account-circle"
         rightLabel="Profil"
+        onRightPress={() => router.push('/profile')}
         title="ÇENGEL"
         variant="brand"
       />
