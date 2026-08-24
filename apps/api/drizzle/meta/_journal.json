@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1787559656437,
+      "tag": "0000_powerful_ted_forrester",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787559662211,
+      "tag": "0001_protect_published_puzzles",
+      "breakpoints": true
+    }
+  ]
+}

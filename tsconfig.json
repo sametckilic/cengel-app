@@ -12,7 +12,9 @@
     }
   },
   "include": [
-    "apps/api/**/*.ts",
+    "apps/api/*.mts",
+    "apps/api/src/**/*.ts",
+    "apps/api/test/**/*.ts",
     "apps/mobile/**/*.ts",
     "apps/mobile/**/*.tsx",
     "apps/mobile/.expo/types/**/*.ts",
