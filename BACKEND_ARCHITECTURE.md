@@ -91,12 +91,12 @@ Yanıtlar `apiVersion`, kaynak sürümü, ETag ve cache başlıkları taşır. H
 Sonraki kullanıcı API'leri:
 
 - `GET /v1/me` ve `PATCH /v1/me`
-- `POST /v1/me/progress/sync`
+- `POST /v1/progress/sync`
 - `GET /v1/me/achievements`
 - `GET /v1/me/entitlements`
 - `POST /v1/webhooks/revenuecat`
 
-Progress sync, cihazdaki SQLite snapshot'ına ek olarak idempotent bir outbox kullanır. Her olay `eventId`, `deviceId`, cihaz sırası ve puzzle kimliği taşır. Sunucu çözülmüş/gösterilmiş kelimeleri monoton birleştirir; çözülmemiş hücre çakışmalarında son kabul edilen sunucu olayı geçerlidir. Yanıt, onaylanan event ID'lerini, canonical snapshot'ı ve yeni sync cursor'ını döndürür.
+Progress sync, cihazdaki SQLite snapshot'ına ek olarak idempotent bir outbox kullanır. Her olay `eventId`, `deviceId`, `clientUpdatedAt` ve puzzle kimliği taşır. Sunucu aynı kullanıcı için olayları transaction ve advisory lock altında işler; çakışmalarda önce `clientUpdatedAt`, eşitlikte `eventId` sırası belirleyicidir. Yanıt, onaylanan event ID'lerini ve kullanıcının canonical snapshot/tombstone kayıtlarını döndürür.
 
 ## Cevap güveni ve premium içerik
 
@@ -143,6 +143,8 @@ Supabase anonim kullanıcı UUID'si RevenueCat `app_user_id` olarak kullanılır
 - Android, iOS ve web doğrulandıktan sonra proxy'yi kaldır; web UI artık backend ile aynı deployment'a bağımlı olmasın.
 
 ### 5. Kimlik ve progress sync
+
+Durum: anonim Supabase oturumu, native güvenli session saklama, JWT/JWKS doğrulaması, profile/device provisioning, SQLite/localStorage outbox, batch sync, idempotency ve deterministik conflict çözümü tamamlandı. Staging'de gerçek anonim JWT ile upsert, duplicate event ve tombstone akışları doğrulandı. Kalıcı hesaba bağlama ayrı increment olarak sıradadır.
 
 - Uygulama ilk açılışında Supabase anonim oturum oluştur; session'ı güvenli yerel storage'da sürdür.
 - API'de Supabase JWT/JWKS doğrulaması ve profile/device provisioning ekle.

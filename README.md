@@ -75,6 +75,19 @@ Yerel mobil ortam değerleri `apps/mobile/.env.local` içinde tutulur; örnek do
 
 Native katalog önbelleği Expo SQLite’ta, web önbelleği `localStorage` içinde tutulur. Ağ yoksa önbellek; önbellek de yoksa uygulamayla gelen manifest kullanılır.
 
+## Kimlik ve ilerleme senkronizasyonu
+
+Uygulama ilk açılışta Supabase Auth üzerinden anonim bir kullanıcı oluşturur. Native session Expo SecureStore'da, web session `localStorage` içinde saklanır. Yerel puzzle ilerlemesi çevrimdışıyken outbox'a yazılır ve bağlantı geldiğinde bağımsız API'ye idempotent batch olarak gönderilir.
+
+Mobil istemci yalnızca public değerleri kullanır:
+
+```bash
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
+
+Supabase projesinde **Authentication → Sign In / Providers → Anonymous Sign-Ins** etkin olmalıdır. API tarafında aynı proje URL'si `SUPABASE_URL` olarak tanımlanır; erişim tokenları Supabase JWKS üzerinden doğrulanır. Service-role veya JWT secret mobil uygulamaya eklenmez.
+
 ## Server build
 
 Expo Router API Routes nedeniyle web çıktısı `server` modundadır; yalnızca statik hosting yeterli değildir.
