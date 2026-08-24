@@ -1,0 +1,11 @@
+import { Module } from '@nestjs/common';
+
+import { ContentController } from './content.controller';
+import { ContentCacheInterceptor } from './content-cache.interceptor';
+import { ContentService } from './content.service';
+
+@Module({
+  controllers: [ContentController],
+  providers: [ContentCacheInterceptor, ContentService],
+})
+export class ContentModule {}
