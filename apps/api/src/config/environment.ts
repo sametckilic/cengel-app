@@ -18,6 +18,7 @@ const environmentSchema = z.object({
   HOST: z.string().min(1).default('0.0.0.0'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
+  SUPABASE_URL: z.url().optional(),
 });
 
 export type ApiEnvironment = z.infer<typeof environmentSchema>;
