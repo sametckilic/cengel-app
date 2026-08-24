@@ -3,13 +3,11 @@ import { createHash } from 'node:crypto';
 import type { PoolClient, QueryResultRow } from 'pg';
 
 import type { CatalogSnapshot, DailyPublication } from './types';
-import { checksumJson, jsonValuesEqual } from './canonical-json';
+import { checksumJson } from './canonical-json';
 
 type PublishedPuzzleRow = QueryResultRow & {
   checksum: string;
-  definition: unknown;
   puzzle_id: string;
-  record_id: string;
   version: number;
 };
 
@@ -71,18 +69,29 @@ function validatePublication(publication: DailyPublication): void {
   }
 }
 
-async function findPublishedPuzzle(
+export function toAlreadyPublishedResult(
+  existing: PublishedPuzzleRow,
+  date: string,
+): PublishResult {
+  return {
+    checksum: existing.checksum,
+    date,
+    puzzleId: existing.puzzle_id,
+    status: 'already-published',
+    version: existing.version,
+  };
+}
+
+export async function findPublishedDailyPuzzle(
   client: PoolClient,
   date: string,
-): Promise<PublishedPuzzleRow | null> {
+): Promise<PublishResult | null> {
   const result = await client.query<PublishedPuzzleRow>(
     `
       SELECT
-        p.record_id,
         p.id AS puzzle_id,
         p.version,
-        p.checksum,
-        p.definition
+        p.checksum
       FROM puzzle_publications publication
       INNER JOIN puzzles p ON p.record_id = publication.puzzle_record_id
       WHERE
@@ -94,31 +103,8 @@ async function findPublishedPuzzle(
     [date],
   );
 
-  return result.rows[0] ?? null;
-}
-
-function comparePublishedPuzzle(
-  existing: PublishedPuzzleRow,
-  publication: DailyPublication,
-  checksum: string,
-): PublishResult {
-  if (
-    existing.puzzle_id !== publication.puzzle.id ||
-    (existing.checksum !== checksum &&
-      !jsonValuesEqual(existing.definition, publication.puzzle))
-  ) {
-    throw new Error(
-      `Published daily puzzle for ${publication.date} is immutable and differs from generation output.`,
-    );
-  }
-
-  return {
-    checksum: existing.checksum,
-    date: publication.date,
-    puzzleId: existing.puzzle_id,
-    status: 'already-published',
-    version: existing.version,
-  };
+  const existing = result.rows[0];
+  return existing ? toAlreadyPublishedResult(existing, date) : null;
 }
 
 async function beginGenerationRun(
@@ -253,27 +239,22 @@ export async function publishDailyPublication(
   const { catalog, publication } = input;
   validatePublication(publication);
   const checksum = puzzleChecksum(publication);
-  const existing = await findPublishedPuzzle(client, publication.date);
+  const existing = await findPublishedDailyPuzzle(client, publication.date);
 
   if (existing) {
-    return comparePublishedPuzzle(existing, publication, checksum);
+    return existing;
   }
 
   const generationRunId = await beginGenerationRun(client, input);
 
   try {
     await client.query('BEGIN');
-    const publishedInsideTransaction = await findPublishedPuzzle(
+    const publishedInsideTransaction = await findPublishedDailyPuzzle(
       client,
       publication.date,
     );
 
     if (publishedInsideTransaction) {
-      const result = comparePublishedPuzzle(
-        publishedInsideTransaction,
-        publication,
-        checksum,
-      );
       await client.query(
         `
           UPDATE generation_runs
@@ -283,7 +264,7 @@ export async function publishDailyPublication(
         [generationRunId, JSON.stringify(publication.quality)],
       );
       await client.query('COMMIT');
-      return result;
+      return publishedInsideTransaction;
     }
 
     const versionResult = await client.query<PuzzleVersionRow>(

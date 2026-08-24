@@ -8,6 +8,7 @@ import { Pool } from 'pg';
 import { loadCurrentCatalog } from './catalog';
 import type { WorkerEnvironment } from './config';
 import {
+  findPublishedDailyPuzzle,
   publishDailyPublication,
   recordGenerationFailure,
   type PublishResult,
@@ -76,6 +77,16 @@ export async function runWorker(
 
     for (let offset = 0; offset < environment.WORKER_BUFFER_DAYS; offset += 1) {
       const date = addDaysToIsoDate(startDate, offset);
+
+      if (environment.WORKER_MODE === 'publish') {
+        const existing = await findPublishedDailyPuzzle(client, date);
+
+        if (existing) {
+          publications.push(existing);
+          continue;
+        }
+      }
+
       let publication;
 
       try {

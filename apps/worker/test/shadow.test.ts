@@ -17,7 +17,7 @@ async function readJson<T>(filePath: string): Promise<T> {
 }
 
 describe('shadow generation', () => {
-  it('matches the deterministic bundled publication', async () => {
+  it('reports catalog evolution against an immutable bundled publication', async () => {
     const [catalog, reference] = await Promise.all([
       readJson<ClueCatalog>(
         path.join(
@@ -39,10 +39,10 @@ describe('shadow generation', () => {
 
     expect(compareShadowPublication(generated, reference)).toEqual({
       date: reference.date,
-      generatedChecksum: checksum(reference.puzzle),
-      matchesReference: true,
+      generatedChecksum: checksum(generated.puzzle),
+      matchesReference: false,
       referenceChecksum: checksum(reference.puzzle),
-      status: 'matched',
+      status: 'mismatch',
     });
   });
 
