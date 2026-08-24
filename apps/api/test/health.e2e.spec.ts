@@ -24,10 +24,18 @@ describe('API health', () => {
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
 
-    const response = await app.inject({ method: 'GET', url: '/health' });
+    const response = await app.inject({
+      headers: { origin: 'http://localhost:8081' },
+      method: 'GET',
+      url: '/health',
+    });
 
     expect(response.statusCode).toBe(200);
+    expect(response.headers['access-control-allow-origin']).toBe(
+      'http://localhost:8081',
+    );
     expect(response.headers['cache-control']).toBe('no-store');
+    expect(response.headers['x-request-id']).toBeTruthy();
     expect(response.json()).toEqual({
       checks: { api: 'up' },
       service: 'cengel-api',
@@ -41,13 +49,12 @@ describe('API health', () => {
     await app.getHttpAdapter().getInstance().ready();
 
     const response = await app.inject({ method: 'GET', url: '/ready' });
+    const body = response.json<{ code: string; requestId: string }>();
 
     expect(response.statusCode).toBe(503);
-    expect(response.json()).toEqual({
-      checks: { api: 'up', database: 'down' },
-      service: 'cengel-api',
-      status: 'error',
-    });
+    expect(response.headers['x-request-id']).toBeTruthy();
+    expect(body.code).toBe('SERVICE_UNAVAILABLE');
+    expect(body.requestId).toBe(response.headers['x-request-id']);
   });
 
   it('reports readiness when PostgreSQL responds', async () => {
@@ -62,6 +69,29 @@ describe('API health', () => {
       status: 'ok',
     });
   });
+
+  it('omits CORS headers for unknown origins and wraps route errors', async () => {
+    app = await createApiApplication({ logger: false });
+    await app.init();
+    await app.getHttpAdapter().getInstance().ready();
+
+    const response = await app.inject({
+      headers: { origin: 'https://example.com' },
+      method: 'GET',
+      url: '/missing',
+    });
+    const body = response.json<{
+      code: string;
+      message: string;
+      requestId: string;
+    }>();
+
+    expect(response.statusCode).toBe(404);
+    expect(response.headers['access-control-allow-origin']).toBeUndefined();
+    expect(body.code).toBe('NOT_FOUND');
+    expect(body.message).toContain('Cannot GET /missing');
+    expect(body.requestId).toBe(response.headers['x-request-id']);
+  });
 });
 
 describe('API configuration', () => {
@@ -71,6 +101,7 @@ describe('API configuration', () => {
         DATABASE_URL: 'postgresql://cengel:cengel@localhost:54329/cengel',
       }),
     ).toEqual({
+      CORS_ORIGINS: ['http://localhost:8081', 'http://localhost:19006'],
       DATABASE_SSL: false,
       DATABASE_URL: 'postgresql://cengel:cengel@localhost:54329/cengel',
       DB_CONNECTION_TIMEOUT_MS: 5000,

@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
 const environmentSchema = z.object({
+  CORS_ORIGINS: z
+    .string()
+    .default('http://localhost:8081,http://localhost:19006')
+    .transform((value) => value.split(',').map((origin) => origin.trim()).filter(Boolean)),
   DATABASE_SSL: z
     .enum(['true', 'false'])
     .default('false')

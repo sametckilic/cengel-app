@@ -12,6 +12,7 @@
     "api:db:check": "npm --workspace @cengel/api run db:check",
     "api:db:generate": "npm --workspace @cengel/api run db:generate",
     "api:db:migrate": "npm --workspace @cengel/api run db:migrate",
+    "api:docker:build": "docker build -f apps/api/Dockerfile -t cengel-api:local .",
     "api:dev": "npm --workspace @cengel/api run dev",
     "api:start": "npm --workspace @cengel/api run start",
     "api:test": "npm --workspace @cengel/api run test",
