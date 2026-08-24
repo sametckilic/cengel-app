@@ -8,6 +8,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -38,6 +39,87 @@ export const generationRunStatus = pgEnum('generation_run_status', [
   'succeeded',
   'failed',
 ]);
+
+export const progressOperation = pgEnum('progress_operation', [
+  'delete',
+  'upsert',
+]);
+
+export const profiles = pgTable('profiles', {
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  userId: uuid('user_id').primaryKey(),
+});
+
+export const devices = pgTable(
+  'devices',
+  {
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    id: uuid('id').primaryKey(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).defaultNow().notNull(),
+    platform: text('platform').notNull(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profiles.userId, { onDelete: 'cascade' }),
+  },
+  (table) => [index('devices_user_id_idx').on(table.userId)],
+);
+
+export const progressEvents = pgTable(
+  'progress_events',
+  {
+    clientUpdatedAt: timestamp('client_updated_at', { withTimezone: true }).notNull(),
+    deviceId: uuid('device_id')
+      .notNull()
+      .references(() => devices.id, { onDelete: 'restrict' }),
+    eventId: uuid('event_id').primaryKey(),
+    operation: progressOperation('operation').notNull(),
+    puzzleId: text('puzzle_id').notNull(),
+    receivedAt: timestamp('received_at', { withTimezone: true }).defaultNow().notNull(),
+    snapshot: jsonb('snapshot').$type<Record<string, unknown>>(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profiles.userId, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    index('progress_events_user_received_idx').on(table.userId, table.receivedAt),
+    index('progress_events_puzzle_idx').on(table.userId, table.puzzleId),
+    check(
+      'progress_events_snapshot_operation',
+      sql`(${table.operation} = 'upsert' AND ${table.snapshot} IS NOT NULL) OR (${table.operation} = 'delete' AND ${table.snapshot} IS NULL)`,
+    ),
+  ],
+);
+
+export const userPuzzleProgress = pgTable(
+  'user_puzzle_progress',
+  {
+    clientUpdatedAt: timestamp('client_updated_at', { withTimezone: true }).notNull(),
+    deleted: boolean('deleted').default(false).notNull(),
+    deviceId: uuid('device_id')
+      .notNull()
+      .references(() => devices.id, { onDelete: 'restrict' }),
+    puzzleId: text('puzzle_id').notNull(),
+    serverVersion: integer('server_version').default(1).notNull(),
+    snapshot: jsonb('snapshot').$type<Record<string, unknown>>(),
+    sourceEventId: uuid('source_event_id')
+      .notNull()
+      .references(() => progressEvents.eventId, { onDelete: 'restrict' }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profiles.userId, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.puzzleId] }),
+    index('user_puzzle_progress_updated_idx').on(table.userId, table.updatedAt),
+    check('user_puzzle_progress_version_positive', sql`${table.serverVersion} > 0`),
+    check(
+      'user_puzzle_progress_snapshot_deleted',
+      sql`(${table.deleted} = false AND ${table.snapshot} IS NOT NULL) OR (${table.deleted} = true AND ${table.snapshot} IS NULL)`,
+    ),
+  ],
+);
 
 export const clueCatalogVersions = pgTable('clue_catalog_versions', {
   checksum: text('checksum').notNull().unique(),
