@@ -1,6 +1,4 @@
-import type { PuzzleProgressSnapshot } from './puzzle-progress';
-
-export const ACHIEVEMENT_DEFINITIONS = [
+const ACHIEVEMENT_DEFINITIONS = [
   {
     description: 'İlk bulmacanı tamamla.',
     id: 'first-completion',
@@ -29,39 +27,16 @@ export const ACHIEVEMENT_DEFINITIONS = [
     title: '7 Günlük Seri',
     type: 'daily-streak',
   },
-] as const;
-
-export type AchievementDefinition = (typeof ACHIEVEMENT_DEFINITIONS)[number];
-export type AchievementId = AchievementDefinition['id'];
-export type AchievementVerification = 'casual' | 'verified';
-export type PuzzleValidationMode = 'offline-casual' | 'server-verified';
-
-export type PuzzleCompletionEvidence = {
-  completedAt: string;
-  puzzleId: string;
-  usedHint: boolean;
-  validationMode: PuzzleValidationMode;
-};
-
-export type EarnedAchievement = {
-  achievementId: AchievementId;
-  earnedAt: string;
-  verification: AchievementVerification;
-};
-
-type AchievementPuzzle = {
-  id: string;
-  words: readonly { id: string }[];
-};
+];
 
 const DAILY_PUZZLE_ID_PATTERN = /^gunun-(\d{4}-\d{2}-\d{2})$/;
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 
-export function createPuzzleCompletionEvidence(
-  puzzle: AchievementPuzzle,
-  progress: PuzzleProgressSnapshot,
-  validationMode: PuzzleValidationMode = 'offline-casual',
-): PuzzleCompletionEvidence | null {
+function createPuzzleCompletionEvidence(
+  puzzle,
+  progress,
+  validationMode = 'offline-casual',
+) {
   if (progress.puzzleId !== puzzle.id || puzzle.words.length === 0) {
     return null;
   }
@@ -80,22 +55,20 @@ export function createPuzzleCompletionEvidence(
   };
 }
 
-function verificationFor(
-  completions: readonly PuzzleCompletionEvidence[],
-): AchievementVerification {
+function verificationFor(completions) {
   return completions.every(({ validationMode }) => validationMode === 'server-verified')
     ? 'verified'
     : 'casual';
 }
 
-function compareCompletions(
-  left: PuzzleCompletionEvidence,
-  right: PuzzleCompletionEvidence,
-): number {
-  return left.completedAt.localeCompare(right.completedAt) || left.puzzleId.localeCompare(right.puzzleId);
+function compareCompletions(left, right) {
+  return (
+    left.completedAt.localeCompare(right.completedAt) ||
+    left.puzzleId.localeCompare(right.puzzleId)
+  );
 }
 
-function getDailyDateKey(puzzleId: string): string | null {
+function getDailyDateKey(puzzleId) {
   const match = DAILY_PUZZLE_ID_PATTERN.exec(puzzleId);
 
   if (!match) {
@@ -110,17 +83,15 @@ function getDailyDateKey(puzzleId: string): string | null {
     : dateKey;
 }
 
-function areConsecutiveDates(left: string, right: string): boolean {
+function areConsecutiveDates(left, right) {
   return (
     Date.parse(`${right}T00:00:00.000Z`) - Date.parse(`${left}T00:00:00.000Z`) ===
     DAY_IN_MILLISECONDS
   );
 }
 
-function getDailyCompletions(
-  completions: readonly PuzzleCompletionEvidence[],
-): readonly { completion: PuzzleCompletionEvidence; dateKey: string }[] {
-  const completionByDate = new Map<string, PuzzleCompletionEvidence>();
+function getDailyCompletions(completions) {
+  const completionByDate = new Map();
 
   for (const completion of completions) {
     const dateKey = getDailyDateKey(completion.puzzleId);
@@ -141,12 +112,9 @@ function getDailyCompletions(
     .map(([dateKey, completion]) => ({ completion, dateKey }));
 }
 
-function evaluateDailyStreak(
-  completions: readonly PuzzleCompletionEvidence[],
-  target: 3 | 7,
-): EarnedAchievement | null {
+function evaluateDailyStreak(completions, target) {
   const dailyCompletions = getDailyCompletions(completions);
-  const candidates: EarnedAchievement[] = [];
+  const candidates = [];
 
   for (let start = 0; start <= dailyCompletions.length - target; start += 1) {
     const streak = dailyCompletions.slice(start, start + target);
@@ -162,7 +130,8 @@ function evaluateDailyStreak(
     const evidence = streak.map(({ completion }) => completion);
     candidates.push({
       achievementId: target === 3 ? 'daily-streak-3' : 'daily-streak-7',
-      earnedAt: evidence.map(({ completedAt }) => completedAt).sort().at(-1)!,
+      earnedAt: evidence.map(({ completedAt }) => completedAt).sort().at(-1),
+      evidencePuzzleIds: evidence.map(({ puzzleId }) => puzzleId),
       verification: verificationFor(evidence),
     });
   }
@@ -170,11 +139,9 @@ function evaluateDailyStreak(
   return candidates.sort((left, right) => left.earnedAt.localeCompare(right.earnedAt))[0] ?? null;
 }
 
-export function evaluateAchievements(
-  completionEvidence: readonly PuzzleCompletionEvidence[],
-): readonly EarnedAchievement[] {
+function evaluateAchievements(completionEvidence) {
   const completions = [...completionEvidence].sort(compareCompletions);
-  const earned: EarnedAchievement[] = [];
+  const earned = [];
   const firstCompletion = completions[0];
   const firstNoHintCompletion = completions.find(({ usedHint }) => !usedHint);
 
@@ -182,6 +149,7 @@ export function evaluateAchievements(
     earned.push({
       achievementId: 'first-completion',
       earnedAt: firstCompletion.completedAt,
+      evidencePuzzleIds: [firstCompletion.puzzleId],
       verification: verificationFor([firstCompletion]),
     });
   }
@@ -190,6 +158,7 @@ export function evaluateAchievements(
     earned.push({
       achievementId: 'no-hint-completion',
       earnedAt: firstNoHintCompletion.completedAt,
+      evidencePuzzleIds: [firstNoHintCompletion.puzzleId],
       verification: verificationFor([firstNoHintCompletion]),
     });
   }
@@ -207,3 +176,9 @@ export function evaluateAchievements(
 
   return earned;
 }
+
+module.exports = {
+  ACHIEVEMENT_DEFINITIONS,
+  createPuzzleCompletionEvidence,
+  evaluateAchievements,
+};

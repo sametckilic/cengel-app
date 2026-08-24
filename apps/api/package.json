@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@cengel/achievement-core": "*",
     "@cengel/contracts": "*",
     "@cengel/puzzle-core": "*",
     "@nestjs/common": "^11.2.1",

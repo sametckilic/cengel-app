@@ -4,7 +4,7 @@ const test = require('node:test');
 const {
   createPuzzleCompletionEvidence,
   evaluateAchievements,
-} = require('../src/achievement.ts');
+} = require('../../achievement-core/src/achievement.js');
 
 function completion(puzzleId, completedAt, overrides = {}) {
   return {
@@ -53,11 +53,13 @@ test('awards first completion and the first hint-free completion independently',
     {
       achievementId: 'first-completion',
       earnedAt: '2026-08-20T10:00:00.000Z',
+      evidencePuzzleIds: ['puzzle-with-hint'],
       verification: 'casual',
     },
     {
       achievementId: 'no-hint-completion',
       earnedAt: '2026-08-21T10:00:00.000Z',
+      evidencePuzzleIds: ['puzzle-without-hint'],
       verification: 'casual',
     },
   ]);
@@ -80,11 +82,25 @@ test('awards daily streaks by puzzle publication dates regardless of sync order'
       {
         achievementId: 'daily-streak-3',
         earnedAt: '2026-08-03T18:00:00.000Z',
+        evidencePuzzleIds: [
+          'gunun-2026-08-01',
+          'gunun-2026-08-02',
+          'gunun-2026-08-03',
+        ],
         verification: 'verified',
       },
       {
         achievementId: 'daily-streak-7',
         earnedAt: '2026-08-07T18:00:00.000Z',
+        evidencePuzzleIds: [
+          'gunun-2026-08-01',
+          'gunun-2026-08-02',
+          'gunun-2026-08-03',
+          'gunun-2026-08-04',
+          'gunun-2026-08-05',
+          'gunun-2026-08-06',
+          'gunun-2026-08-07',
+        ],
         verification: 'verified',
       },
     ],

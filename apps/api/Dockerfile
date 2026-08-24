@@ -6,6 +6,7 @@ COPY package.json package-lock.json tsconfig.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/mobile/package.json apps/mobile/package.json
 COPY apps/worker/package.json apps/worker/package.json
+COPY packages/achievement-core/package.json packages/achievement-core/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
 COPY packages/generator/package.json packages/generator/package.json
 COPY packages/puzzle-core/package.json packages/puzzle-core/package.json
@@ -24,6 +25,7 @@ WORKDIR /app
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/drizzle ./apps/api/drizzle
+COPY --from=build /app/packages/achievement-core ./packages/achievement-core
 COPY apps/mobile/data/generated ./apps/mobile/data/generated
 COPY package.json ./package.json
 COPY apps/api/package.json ./apps/api/package.json

@@ -1,0 +1,13 @@
+{
+  "name": "@cengel/achievement-core",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/achievement.js",
+  "types": "./src/achievement.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/achievement.d.ts",
+      "default": "./src/achievement.js"
+    }
+  }
+}

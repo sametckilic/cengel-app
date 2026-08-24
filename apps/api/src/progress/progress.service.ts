@@ -1,14 +1,20 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { and, eq, sql } from 'drizzle-orm';
+import { ACHIEVEMENT_DEFINITIONS } from '@cengel/achievement-core';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import type { AuthenticatedUser } from '../auth/authenticated-user';
 import { DatabaseService } from '../database/database.service';
 import {
+  achievementDefinitions,
   devices,
   profiles,
   progressEvents,
+  puzzlePublications,
+  puzzles,
+  userAchievements,
   userPuzzleProgress,
 } from '../database/schema';
+import { evaluateProgressAchievements } from './achievement-evaluation';
 import type { ProgressSyncRequest } from './progress.dto';
 import { shouldApplyProgressEvent } from './progress-conflict';
 
@@ -175,6 +181,67 @@ export class ProgressService {
         })
         .from(userPuzzleProgress)
         .where(eq(userPuzzleProgress.userId, user.userId));
+
+      const puzzleIds = states
+        .filter(({ deleted }) => !deleted)
+        .map(({ puzzleId }) => puzzleId);
+      const puzzleRecords =
+        puzzleIds.length === 0
+          ? []
+          : await transaction
+              .select({
+                definition: puzzles.definition,
+                id: puzzles.id,
+                validationMode: puzzles.validationMode,
+                version: puzzles.version,
+              })
+              .from(puzzles)
+              .innerJoin(
+                puzzlePublications,
+                eq(puzzlePublications.puzzleRecordId, puzzles.recordId),
+              )
+              .where(
+                and(
+                  inArray(puzzles.id, puzzleIds),
+                  eq(puzzles.qualityPassed, true),
+                  eq(puzzlePublications.status, 'published'),
+                ),
+              )
+              .orderBy(desc(puzzles.version));
+      const earnedAchievements = evaluateProgressAchievements(states, puzzleRecords);
+
+      for (const definition of ACHIEVEMENT_DEFINITIONS) {
+        await transaction
+          .insert(achievementDefinitions)
+          .values(definition)
+          .onConflictDoUpdate({
+            set: {
+              description: definition.description,
+              target: definition.target,
+              title: definition.title,
+              type: definition.type,
+            },
+            target: achievementDefinitions.id,
+          });
+      }
+
+      if (earnedAchievements.length > 0) {
+        await transaction
+          .insert(userAchievements)
+          .values(
+            earnedAchievements.map((achievement) => ({
+              achievementId: achievement.achievementId,
+              earnedAt: new Date(achievement.earnedAt),
+              evidence: {
+                evaluatorVersion: 1,
+                puzzleIds: achievement.evidencePuzzleIds,
+              },
+              userId: user.userId,
+              verification: achievement.verification,
+            })),
+          )
+          .onConflictDoNothing();
+      }
 
       return {
         acknowledgedEventIds,

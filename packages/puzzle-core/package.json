@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./achievement": "./src/achievement.ts",
     "./clue-catalog": "./src/clue-catalog.ts",
     "./hint-access": "./src/hint-access.ts",
     "./puzzle": "./src/puzzle.ts",
