@@ -38,5 +38,8 @@
     "lint:api": "npm --workspace @cengel/api run lint",
     "lint:mobile": "npm --workspace @cengel/mobile run lint --"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "railway": "^3.11.0"
+  }
 }
