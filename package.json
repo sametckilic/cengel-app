@@ -32,6 +32,7 @@
     "newspaper:prototype:build": "node ./packages/generator/bin/generate-newspaper-prototype.js --output ./apps/mobile/data/generated/newspaper-prototype-8x8.json",
     "test:engine": "node --test ./packages/puzzle-core/test/puzzle-selection.test.js",
     "test:progress": "node --test ./packages/puzzle-core/test/puzzle-progress.test.js",
+    "test:achievements": "node --test ./packages/puzzle-core/test/achievement.test.js",
     "test:sync": "node --test ./apps/mobile/test/progress-sync.test.js",
     "test:auth": "node --test ./apps/mobile/test/password-auth.test.js",
     "test:catalog": "node --test ./apps/mobile/test/catalog-composition.test.js",
