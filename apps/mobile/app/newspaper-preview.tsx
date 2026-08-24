@@ -38,6 +38,7 @@ import { revealPuzzleWord } from '@cengel/puzzle-core/puzzle-hint';
 import {
   backspacePuzzleEntry,
   beginPuzzleWordEntry,
+  changePuzzleEntrySelection,
   clearInvalidPuzzleWordEntry,
   enterPuzzleLetter,
   type PuzzleInputState,
@@ -275,10 +276,15 @@ export function NewspaperPuzzleScreen({
         preKeyboardScrollOffsetY.current = scrollOffsetY.current;
       }
 
-      setInputState((currentState) => ({
-        ...currentState,
-        selection: nextSelection,
-      }));
+      setInputState((currentState) =>
+        changePuzzleEntrySelection(
+          puzzle,
+          currentState,
+          nextSelection,
+          getLockedCellIndices(puzzle, solvedWordIdsRef.current),
+          solvedWordIdsRef.current,
+        ),
+      );
       restartWordOnNextLetter.current = true;
       setCheckStatus('idle');
       systemInputRef.current?.open();

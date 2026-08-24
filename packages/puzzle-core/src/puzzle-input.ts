@@ -125,6 +125,29 @@ export function clearInvalidPuzzleWordEntry(
     : clearPuzzleWordEntry(puzzle, state, lockedCellIndices, wordId);
 }
 
+export function changePuzzleEntrySelection(
+  puzzle: Pick<PuzzleDefinition, 'words'>,
+  state: PuzzleInputState,
+  nextSelection: PuzzleSelection,
+  lockedCellIndices: ReadonlySet<number> = new Set(),
+  solvedWordIds: ReadonlySet<string> = new Set(),
+): PuzzleInputState {
+  if (state.selection.wordId === nextSelection.wordId) {
+    return { ...state, selection: nextSelection };
+  }
+
+  const nextState = solvedWordIds.has(state.selection.wordId)
+    ? state
+    : clearPuzzleWordEntry(
+        puzzle,
+        state,
+        lockedCellIndices,
+        state.selection.wordId,
+      );
+
+  return { ...nextState, selection: nextSelection };
+}
+
 export function enterPuzzleLetter(
   puzzle: Pick<PuzzleDefinition, 'words'>,
   state: PuzzleInputState,

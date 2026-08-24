@@ -8,6 +8,7 @@ const {
 const {
   backspacePuzzleEntry,
   beginPuzzleWordEntry,
+  changePuzzleEntrySelection,
   clearInvalidPuzzleWordEntry,
   clearPuzzleWordEntry,
   enterPuzzleLetter,
@@ -298,6 +299,66 @@ test('clears an incomplete active answer on close', () => {
   };
 
   assert.deepEqual(clearInvalidPuzzleWordEntry(puzzle, state).entries, {});
+});
+
+test('clears an unconfirmed answer when changing to another word', () => {
+  const currentWord = puzzle.words[0];
+  const nextWord = puzzle.words[1];
+  const state = {
+    entries: Object.fromEntries(
+      currentWord.cellIndices.map((cellIndex, index) => [cellIndex, currentWord.answer[index]]),
+    ),
+    selection: {
+      cellIndex: currentWord.cellIndices[0],
+      wordId: currentWord.id,
+    },
+  };
+  const nextSelection = {
+    cellIndex: nextWord.cellIndices[0],
+    wordId: nextWord.id,
+  };
+  const nextState = changePuzzleEntrySelection(puzzle, state, nextSelection);
+
+  assert.deepEqual(nextState.entries, {});
+  assert.deepEqual(nextState.selection, nextSelection);
+});
+
+test('keeps input when moving inside the same word or leaving a solved word', () => {
+  const currentWord = puzzle.words[0];
+  const nextWord = puzzle.words[1];
+  const entries = Object.fromEntries(
+    currentWord.cellIndices.map((cellIndex, index) => [cellIndex, currentWord.answer[index]]),
+  );
+  const state = {
+    entries,
+    selection: {
+      cellIndex: currentWord.cellIndices[0],
+      wordId: currentWord.id,
+    },
+  };
+  const sameWordSelection = {
+    cellIndex: currentWord.cellIndices[1],
+    wordId: currentWord.id,
+  };
+  const nextWordSelection = {
+    cellIndex: nextWord.cellIndices[0],
+    wordId: nextWord.id,
+  };
+
+  assert.deepEqual(
+    changePuzzleEntrySelection(puzzle, state, sameWordSelection),
+    { entries, selection: sameWordSelection },
+  );
+  assert.deepEqual(
+    changePuzzleEntrySelection(
+      puzzle,
+      state,
+      nextWordSelection,
+      new Set(currentWord.cellIndices),
+      new Set([currentWord.id]),
+    ),
+    { entries, selection: nextWordSelection },
+  );
 });
 
 test('rejects unsupported input characters', () => {
