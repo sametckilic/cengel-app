@@ -1,6 +1,5 @@
 const NEWSPAPER_DIRECTIONS = new Set(['down', 'right']);
 const NEWSPAPER_CELL_TYPES = new Set(['clue', 'letter', 'split-clue']);
-const RECOMMENDED_ANSWER_LENGTHS = [2, 3, 4, 5, 6, 7, 8];
 
 function getCellClues(cell) {
   if (cell?.type === 'clue') {
@@ -297,6 +296,16 @@ function analyzeCatalogReadiness(entries, gridSizes) {
   const answerLengthTotal = entries.reduce((total, entry) => total + entry.answerLength, 0);
   const averageAnswerLength = answerLengthTotal / entries.length;
   const answerLengths = countEntriesBy(entries, 'answerLength');
+  const maximumRecommendedAnswerLength = Math.max(
+    2,
+    ...gridSizes.map(
+      ({ columnCount, rowCount }) => Math.max(columnCount, rowCount) - 1,
+    ),
+  );
+  const recommendedAnswerLengths = Array.from(
+    { length: maximumRecommendedAnswerLength - 1 },
+    (_, index) => index + 2,
+  );
 
   return {
     answerLengthAverage: roundRatio(averageAnswerLength),
@@ -311,10 +320,10 @@ function analyzeCatalogReadiness(entries, gridSizes) {
     })),
     estimateNote:
       'Word demand uses the catalog average answer length and is a planning estimate, not a successful-fill guarantee.',
-    missingRecommendedAnswerLengths: RECOMMENDED_ANSWER_LENGTHS.filter(
+    missingRecommendedAnswerLengths: recommendedAnswerLengths.filter(
       (answerLength) => !answerLengths[String(answerLength)],
     ),
-    recommendedAnswerLengths: RECOMMENDED_ANSWER_LENGTHS,
+    recommendedAnswerLengths,
   };
 }
 

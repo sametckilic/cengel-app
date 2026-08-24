@@ -23,7 +23,7 @@ const DISALLOWED_FLAGS = new Set([
 ]);
 const FILTERS = Object.freeze({
   ambiguityScoreMax: 20,
-  answerLengthMax: 8,
+  answerLengthMax: null,
   answerLengthMin: 2,
   clarityScoreMin: 90,
   clueQualityMin: 85,
@@ -154,7 +154,6 @@ function isQualityCandidate(record) {
   return (
     record.gameplay_status === 'ready' &&
     record.answer_length >= FILTERS.answerLengthMin &&
-    record.answer_length <= FILTERS.answerLengthMax &&
     record.gameplay_score >= FILTERS.gameplayScoreMin &&
     record.clue_quality >= FILTERS.clueQualityMin &&
     record.clarity_score >= FILTERS.clarityScoreMin &&

@@ -103,6 +103,7 @@ test('reports catalog length gaps and dense word demand', () => {
   ]);
 
   assert.deepEqual(report.missingRecommendedAnswerLengths, [2, 3, 4, 7]);
+  assert.deepEqual(report.recommendedAnswerLengths, [2, 3, 4, 5, 6, 7]);
   assert.equal(report.estimatedGridDemand[0].cellCount, 64);
   assert.ok(report.estimatedGridDemand[0].minimumWordCount > 0);
   assert.ok(

@@ -16,7 +16,7 @@ export type ClueCatalog = {
   entries: readonly ClueCatalogEntry[];
   filters: {
     ambiguityScoreMax: number;
-    answerLengthMax: number;
+    answerLengthMax: number | null;
     answerLengthMin: number;
     clarityScoreMin: number;
     clueQualityMin: number;

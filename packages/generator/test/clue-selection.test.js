@@ -3,6 +3,7 @@ const test = require('node:test');
 
 const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
 const {
+  findEligibleClueCandidates,
   selectClueCandidates,
   validateGenerationRequest,
 } = require('../src/clue-selection');
@@ -42,6 +43,7 @@ test('catalog marks validated two-letter answers as fallback-only candidates', (
   const twoLetterEntries = catalog.entries.filter(({ answerLength }) => answerLength === 2);
 
   assert.equal(catalog.filters.answerLengthMin, 2);
+  assert.equal(catalog.filters.answerLengthMax, null);
   assert.ok(twoLetterEntries.length > 0);
   assert.ok(twoLetterEntries.every(({ fallbackOnly }) => fallbackOnly));
   assert.ok(
@@ -52,6 +54,10 @@ test('catalog marks validated two-letter answers as fallback-only candidates', (
   assert.ok(catalog.entries.some(({ answer }) => answer === 'İS'));
   assert.ok(catalog.entries.some(({ answerLength }) => answerLength === 3));
   assert.ok(catalog.entries.some(({ answerLength }) => answerLength === 4));
+  assert.ok(catalog.entries.some(({ answerLength }) => answerLength === 9));
+  assert.ok(catalog.entries.some(({ answerLength }) => answerLength === 10));
+  assert.ok(catalog.entries.some(({ answerLength }) => answerLength === 11));
+  assert.ok(catalog.entries.some(({ answerLength }) => answerLength === 12));
   assert.ok(catalog.entries.every(({ answerLength }) => answerLength >= 2));
   assert.ok(catalog.entries.some(({ answer }) => answer === 'İREM'));
   assert.ok(catalog.entries.some(({ answer }) => answer === 'İSKONTO'));
@@ -170,6 +176,23 @@ test('rectangular generation requests are valid', () => {
       rowCount: 7,
     }),
   );
+});
+
+test('grid dimensions, rather than the catalog, cap eligible answer length', () => {
+  const compactEntries = findEligibleClueCandidates(catalog.entries, {
+    ...baseRequest,
+    columnCount: 7,
+    rowCount: 7,
+  });
+  const largeEntries = findEligibleClueCandidates(catalog.entries, {
+    ...baseRequest,
+    columnCount: 13,
+    rowCount: 10,
+  });
+
+  assert.ok(compactEntries.every(({ answerLength }) => answerLength <= 6));
+  assert.ok(largeEntries.some(({ answerLength }) => answerLength > 8));
+  assert.ok(largeEntries.every(({ answerLength }) => answerLength <= 12));
 });
 
 test('category weight must describe a majority', () => {
