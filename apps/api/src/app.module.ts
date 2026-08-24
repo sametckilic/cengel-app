@@ -6,6 +6,7 @@ import { validateEnvironment } from './config/environment';
 import { ContentModule } from './content/content.module';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
+import { ProgressModule } from './progress/progress.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { HealthModule } from './health/health.module';
     AuthModule,
     ContentModule,
     HealthModule,
+    ProgressModule,
   ],
 })
 export class AppModule {}

@@ -9,7 +9,9 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 
 const ERROR_CODES: Partial<Record<number, string>> = {
   [HttpStatus.BAD_REQUEST]: 'BAD_REQUEST',
+  [HttpStatus.CONFLICT]: 'CONFLICT',
   [HttpStatus.NOT_FOUND]: 'NOT_FOUND',
+  [HttpStatus.UNAUTHORIZED]: 'UNAUTHORIZED',
   [HttpStatus.SERVICE_UNAVAILABLE]: 'SERVICE_UNAVAILABLE',
 };
 
