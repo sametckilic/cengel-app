@@ -93,6 +93,8 @@ EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 
 Doğrulama bağlantısı olmadan doğrudan kayıt için Supabase projesinde **Authentication → Sign In / Providers → Email** altındaki **Confirm email** kapatılmalıdır. Bu ayar kapalıyken adres sahipliği doğrulanmaz; geçici ürün kararı olarak kabul edilmiştir. Uygulama anonim Supabase oturumu açmadığı için **Anonymous Sign-Ins** ve **Allow manual linking** gerekli değildir. API tarafında aynı proje URL'si `SUPABASE_URL` olarak tanımlanır; yalnızca giriş yapmış kullanıcıların erişim tokenları Supabase JWKS üzerinden doğrulanır. Service-role veya JWT secret mobil uygulamaya eklenmez.
 
+Giriş yapan kullanıcının ilerlemesi senkronize edilirken ilk tamamlama, ipucusuz tamamlama ve 3/7 günlük seri başarımları sunucuda idempotent olarak değerlendirilir. Profil sekmesi kazanılmış ve kilitli durumları `GET /v1/me/achievements` üzerinden gösterir; misafir kullanım bu endpoint'e bağlı değildir.
+
 ## Server build
 
 Expo Router API Routes nedeniyle web çıktısı `server` modundadır; yalnızca statik hosting yeterli değildir.

@@ -153,7 +153,7 @@ Durum: zorunlu kimlik doğrulama kaldırıldı; uygulama yerel misafir olarak a�
 
 ### 6. Abonelik ve başarımlar
 
-Durum: ortak başarı tanımları ile ilk tamamlama, ipucusuz tamamlama, 3 günlük seri ve 7 günlük seri değerlendirme kuralları eklendi. Günlük seri, senkronizasyon zamanından bağımsız olarak tamamlanan `gunun-YYYY-MM-DD` yayın tarihlerinden hesaplanır; sonuçlar `casual` veya `verified` güven düzeyi taşır. Veritabanı kalıcılığı, kullanıcı endpoint'i ve mobil sunum sonraki increment'lerdir.
+Durum: ortak başarı tanımları ile ilk tamamlama, ipucusuz tamamlama, 3 günlük seri ve 7 günlük seri değerlendirme kuralları eklendi. Günlük seri, senkronizasyon zamanından bağımsız olarak tamamlanan `gunun-YYYY-MM-DD` yayın tarihlerinden hesaplanır; sonuçlar `casual` veya `verified` güven düzeyi taşır. PostgreSQL kalıcılığı, progress sync sırasında idempotent değerlendirme, `GET /v1/me/achievements` endpoint'i ve Profil sunumu staging'e dağıtıldı. Gerçek hesapla uçtan uca mobil UAT bekleniyor.
 
 - RevenueCat SDK satın alma/restore akışını ve doğrulanmış webhook endpoint'ini ekle.
 - İlk entitlement `premium_access`; premium archive/packs yalnızca API üzerinden teslim edilir.
