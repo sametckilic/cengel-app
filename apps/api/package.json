@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "nest build",
+    "content:import": "npm run build && node dist/content/import-content.js",
     "db:check": "drizzle-kit check",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "npm run build && node dist/database/migrate.js",

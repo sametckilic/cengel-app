@@ -8,6 +8,7 @@
   "scripts": {
     "start": "npm --workspace @cengel/mobile run start --",
     "api:build": "npm --workspace @cengel/api run build",
+    "api:content:import": "npm --workspace @cengel/api run content:import",
     "api:db:check": "npm --workspace @cengel/api run db:check",
     "api:db:generate": "npm --workspace @cengel/api run db:generate",
     "api:db:migrate": "npm --workspace @cengel/api run db:migrate",
