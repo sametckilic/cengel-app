@@ -61,9 +61,15 @@ export function clearPuzzleWordEntry(
   puzzle: Pick<PuzzleDefinition, 'words'>,
   state: PuzzleInputState,
   lockedCellIndices: ReadonlySet<number> = new Set(),
+  wordId = state.selection.wordId,
 ): PuzzleInputState {
-  const activeWord = getActiveWord(puzzle, state.selection);
-  const editableCellIndices = activeWord.cellIndices.filter(
+  const word = puzzle.words.find(({ id }) => id === wordId);
+
+  if (!word) {
+    throw new Error(`Puzzle is missing word "${wordId}".`);
+  }
+
+  const editableCellIndices = word.cellIndices.filter(
     (cellIndex) => !lockedCellIndices.has(cellIndex),
   );
 
@@ -79,10 +85,13 @@ export function clearPuzzleWordEntry(
 
   return {
     entries,
-    selection: {
-      ...state.selection,
-      cellIndex: editableCellIndices[0],
-    },
+    selection:
+      state.selection.wordId === wordId
+        ? {
+            ...state.selection,
+            cellIndex: editableCellIndices[0],
+          }
+        : state.selection,
   };
 }
 

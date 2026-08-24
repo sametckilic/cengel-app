@@ -92,6 +92,7 @@ export function NewspaperPuzzleScreen({
   const scrollRestoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const keyboardSpaceReleaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const completionRevealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingAnswerClearWordIds = useRef(new Set<string>());
   const progressSaveQueue = useRef<Promise<void>>(Promise.resolve());
   const restartWordOnNextLetter = useRef(false);
   const scrollOffsetY = useRef(0);
@@ -101,6 +102,7 @@ export function NewspaperPuzzleScreen({
     () => new Set(),
   );
   const [solvedWordIds, setSolvedWordIds] = useState<ReadonlySet<string>>(() => new Set());
+  const solvedWordIdsRef = useRef(solvedWordIds);
   const activeWord = getSelectedWord(puzzle, inputState.selection);
   const lockedCellIndices = useMemo(
     () => getLockedCellIndices(puzzle, solvedWordIds),
@@ -140,6 +142,7 @@ export function NewspaperPuzzleScreen({
           selection: restored.selection,
         });
         setRevealedWordIds(restored.revealedWordIds);
+        solvedWordIdsRef.current = restored.solvedWordIds;
         setSolvedWordIds(restored.solvedWordIds);
       })
       .catch(() => {
@@ -324,6 +327,29 @@ export function NewspaperPuzzleScreen({
       }
 
       if (wasVisible && !metrics.visible) {
+        const wordIdsToClear = [...pendingAnswerClearWordIds.current];
+        pendingAnswerClearWordIds.current.clear();
+
+        if (wordIdsToClear.length > 0) {
+          const currentLockedCellIndices = getLockedCellIndices(
+            puzzle,
+            solvedWordIdsRef.current,
+          );
+
+          setInputState((currentState) =>
+            wordIdsToClear.reduce(
+              (nextState, wordId) =>
+                clearPuzzleWordEntry(
+                  puzzle,
+                  nextState,
+                  currentLockedCellIndices,
+                  wordId,
+                ),
+              currentState,
+            ),
+          );
+        }
+
         if (scrollRestoreTimer.current) {
           clearTimeout(scrollRestoreTimer.current);
         }
@@ -346,7 +372,7 @@ export function NewspaperPuzzleScreen({
         }, KEYBOARD_SCROLL_RESTORE_DURATION);
       }
     },
-    [puzzleViewportTop, windowHeight],
+    [puzzle, puzzleViewportTop, windowHeight],
   );
   useEffect(
     () => () => {
@@ -374,6 +400,8 @@ export function NewspaperPuzzleScreen({
       const wasAlreadySolved = solvedWordIds.has(result.wordId);
       const nextSolvedWordIds = new Set(solvedWordIds).add(result.wordId);
 
+      pendingAnswerClearWordIds.current.delete(result.wordId);
+      solvedWordIdsRef.current = nextSolvedWordIds;
       setSolvedWordIds(nextSolvedWordIds);
       systemInputRef.current?.close();
 
@@ -381,10 +409,7 @@ export function NewspaperPuzzleScreen({
         beginPuzzleCompletion();
       }
     } else {
-      setInputState((currentState) =>
-        clearPuzzleWordEntry(puzzle, currentState, lockedCellIndices),
-      );
-      restartWordOnNextLetter.current = false;
+      pendingAnswerClearWordIds.current.add(result.wordId);
     }
 
     const announcement = {
@@ -397,7 +422,6 @@ export function NewspaperPuzzleScreen({
     beginPuzzleCompletion,
     inputState.entries,
     inputState.selection,
-    lockedCellIndices,
     progressHydrated,
     puzzle,
     solvedWordIds,
@@ -429,6 +453,8 @@ export function NewspaperPuzzleScreen({
       );
       const nextSolvedWordIds = new Set(solvedWordIds).add(requestedWordId);
 
+      pendingAnswerClearWordIds.current.delete(requestedWordId);
+      solvedWordIdsRef.current = nextSolvedWordIds;
       setSolvedWordIds(nextSolvedWordIds);
       setRevealedWordIds((currentIds) => new Set(currentIds).add(requestedWordId));
       setCheckStatus('idle');

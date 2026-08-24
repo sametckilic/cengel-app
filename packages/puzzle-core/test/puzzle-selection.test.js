@@ -186,6 +186,30 @@ test('clears an unconfirmed answer while preserving locked intersections', () =>
   assert.equal(clearedState.selection.wordId, word.id);
 });
 
+test('clears a deferred answer without changing another active selection', () => {
+  const deferredWord = puzzle.words[0];
+  const activeWord = puzzle.words[1];
+  const activeSelection = {
+    cellIndex: activeWord.cellIndices[0],
+    wordId: activeWord.id,
+  };
+  const state = {
+    entries: Object.fromEntries(
+      deferredWord.cellIndices.map((cellIndex) => [cellIndex, 'A']),
+    ),
+    selection: activeSelection,
+  };
+  const clearedState = clearPuzzleWordEntry(
+    puzzle,
+    state,
+    new Set(),
+    deferredWord.id,
+  );
+
+  assert.deepEqual(clearedState.entries, {});
+  assert.deepEqual(clearedState.selection, activeSelection);
+});
+
 test('rejects unsupported input characters', () => {
   assert.throws(() => normalizePuzzleLetter('1'), /Unsupported puzzle letter/);
   assert.throws(() => normalizePuzzleLetter('AB'), /Unsupported puzzle letter/);
