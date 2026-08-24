@@ -54,6 +54,7 @@ type SystemPuzzleInputProps = {
   onBackspacePress: () => void;
   onCheckPress?: () => void;
   onHintPress?: () => void;
+  onKeyboardCloseRequest?: () => void;
   onLetterPress: (letter: string) => void;
   onKeyboardMetricsChange?: (metrics: SystemKeyboardMetrics) => void;
   primaryClue: PuzzleClueSummary;
@@ -82,6 +83,7 @@ export const SystemPuzzleInput = forwardRef<
     onBackspacePress,
     onCheckPress,
     onHintPress,
+    onKeyboardCloseRequest,
     onLetterPress,
     onKeyboardMetricsChange,
     primaryClue,
@@ -128,17 +130,22 @@ export const SystemPuzzleInput = forwardRef<
     };
   }, [updateKeyboardVisibility]);
 
+  const closeKeyboard = useCallback(() => {
+    onKeyboardCloseRequest?.();
+    Keyboard.dismiss();
+  }, [onKeyboardCloseRequest]);
+
   useImperativeHandle(
     forwardedRef,
     () => ({
       close() {
-        Keyboard.dismiss();
+        closeKeyboard();
       },
       open() {
         inputRef.current?.focus();
       },
     }),
-    [],
+    [closeKeyboard],
   );
 
   const handleTextChange = (text: string) => {
@@ -160,6 +167,8 @@ export const SystemPuzzleInput = forwardRef<
         caretHidden
         contextMenuHidden
         onBlur={() => {
+          onKeyboardCloseRequest?.();
+
           if (Platform.OS === 'web') {
             updateKeyboardVisibility(false);
           }
@@ -216,7 +225,7 @@ export const SystemPuzzleInput = forwardRef<
               <Pressable
                 accessibilityLabel="Klavye kapat"
                 accessibilityRole="button"
-                onPress={Keyboard.dismiss}
+                onPress={closeKeyboard}
                 style={({ pressed }) => [styles.actionButton, pressed && styles.pressedButton]}>
                 <MaterialIcons color={palette.ink} name="keyboard-hide" size={18} />
                 <Text style={styles.actionLabel}>Kapat</Text>

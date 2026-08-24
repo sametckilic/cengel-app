@@ -318,6 +318,32 @@ export function NewspaperPuzzleScreen({
     },
     [],
   );
+  const clearPendingAnswers = useCallback(() => {
+    const wordIdsToClear = [...pendingAnswerClearWordIds.current];
+    pendingAnswerClearWordIds.current.clear();
+
+    if (wordIdsToClear.length === 0) {
+      return;
+    }
+
+    const currentLockedCellIndices = getLockedCellIndices(
+      puzzle,
+      solvedWordIdsRef.current,
+    );
+
+    setInputState((currentState) =>
+      wordIdsToClear.reduce(
+        (nextState, wordId) =>
+          clearPuzzleWordEntry(
+            puzzle,
+            nextState,
+            currentLockedCellIndices,
+            wordId,
+          ),
+        currentState,
+      ),
+    );
+  }, [puzzle]);
   const handleKeyboardMetricsChange = useCallback(
     (metrics: SystemKeyboardMetrics) => {
       const wasVisible = keyboardVisibleRef.current;
@@ -337,30 +363,11 @@ export function NewspaperPuzzleScreen({
         );
       }
 
+      if (!metrics.visible) {
+        clearPendingAnswers();
+      }
+
       if (wasVisible && !metrics.visible) {
-        const wordIdsToClear = [...pendingAnswerClearWordIds.current];
-        pendingAnswerClearWordIds.current.clear();
-
-        if (wordIdsToClear.length > 0) {
-          const currentLockedCellIndices = getLockedCellIndices(
-            puzzle,
-            solvedWordIdsRef.current,
-          );
-
-          setInputState((currentState) =>
-            wordIdsToClear.reduce(
-              (nextState, wordId) =>
-                clearPuzzleWordEntry(
-                  puzzle,
-                  nextState,
-                  currentLockedCellIndices,
-                  wordId,
-                ),
-              currentState,
-            ),
-          );
-        }
-
         if (scrollRestoreTimer.current) {
           clearTimeout(scrollRestoreTimer.current);
         }
@@ -383,7 +390,7 @@ export function NewspaperPuzzleScreen({
         }, KEYBOARD_SCROLL_RESTORE_DURATION);
       }
     },
-    [puzzle, puzzleViewportTop, windowHeight],
+    [clearPendingAnswers, puzzleViewportTop, windowHeight],
   );
   useEffect(
     () => () => {
@@ -570,6 +577,7 @@ export function NewspaperPuzzleScreen({
             : undefined
         }
         lockedAnswerPattern={lockedAnswerPattern}
+        onKeyboardCloseRequest={clearPendingAnswers}
         onKeyboardMetricsChange={handleKeyboardMetricsChange}
         onLetterPress={(letter) => {
           if (!progressHydrated) {
