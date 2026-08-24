@@ -1,19 +1,21 @@
-name: Publish daily puzzles
+name: Validate puzzle platform
 
 on:
-  schedule:
-    - cron: '10 21 * * *'
+  pull_request:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
-  group: publish-daily-puzzles
-  cancel-in-progress: false
+  group: validate-puzzle-platform-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  publish:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -31,9 +33,6 @@ jobs:
       - name: Prepare clue catalog
         run: npm run dataset:build
 
-      - name: Publish seven-day buffer
-        run: npm run daily:publish -- --start tomorrow --days 7 --revision schedule-v1 --publish
-
       - name: Verify generated content
         run: |
           npm run lint
@@ -43,18 +42,6 @@ jobs:
           npm run puzzles:check
           npm run test:engine
           npm run test:progress
-
-      - name: Commit generated publications
-        run: |
-          git config user.name "cengel-publisher[bot]"
-          git config user.email "cengel-publisher[bot]@users.noreply.github.com"
-          git add apps/mobile/data/generated
-          if git diff --cached --quiet; then
-            echo "No generated changes to commit."
-          else
-            git commit -m "chore: publish daily puzzles"
-            git push
-          fi
 
       - name: Export deployable Expo server bundle
         run: npm run server:build

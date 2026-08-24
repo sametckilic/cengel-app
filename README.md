@@ -54,7 +54,9 @@ Profil rotasyonu:
 - `easy-mixed-wide`: 9×10, kolay, Türkçe ve genel kültür ağırlıklı
 - `medium-literature-balanced`: 8×8, orta, edebiyat ağırlıklı
 
-Üretim otomasyonu [.github/workflows/publish-daily-puzzles.yml](.github/workflows/publish-daily-puzzles.yml) içinde her gün `21:10 UTC` (`00:10 Europe/Istanbul`) çalışır. Aynı workflow elle de başlatılabilir.
+Günlük üretimin kaynak sistemi Railway üzerindeki `generator-worker` servisidir. Worker her gün `21:10 UTC` (`00:10 Europe/Istanbul`) çalışır, PostgreSQL'deki güncel ipucu kataloğundan yedi günlük tampon üretir ve kalite kapısını geçen bulmacaları atomik olarak yayınlar. Aynı tarih ve revizyonla tekrar çalıştırılması güvenlidir; mevcut yayınlar değiştirilmez.
+
+[.github/workflows/publish-daily-puzzles.yml](.github/workflows/publish-daily-puzzles.yml) artık yalnızca pull request ve `main` push'larında lint, tip, dataset, generator, puzzle, engine, progress ve Expo server build doğrulamalarını çalıştırır; içerik üretmez veya repository'ye commit atmaz.
 
 ## API ve çevrimdışı çalışma
 
