@@ -8,6 +8,7 @@ const {
 const {
   backspacePuzzleEntry,
   beginPuzzleWordEntry,
+  clearPuzzleWordEntry,
   enterPuzzleLetter,
   normalizePuzzleLetter,
 } = require('../src/puzzle-input.ts');
@@ -161,6 +162,28 @@ test('backspace clears the active value before moving backward', () => {
 
   assert.equal(movedBackState.entries[selection.cellIndex], undefined);
   assert.equal(movedBackState.selection.cellIndex, selection.cellIndex);
+});
+
+test('clears an unconfirmed answer while preserving locked intersections', () => {
+  const selection = createInitialPuzzleSelection(puzzle);
+  const word = getSelectedWord(puzzle, selection);
+  const lockedCellIndex = word.cellIndices[1];
+  const lockedLetter = word.answer[1];
+  const entries = Object.fromEntries(
+    word.cellIndices.map((cellIndex, index) => [cellIndex, index === 1 ? lockedLetter : 'A']),
+  );
+  const clearedState = clearPuzzleWordEntry(
+    puzzle,
+    {
+      entries,
+      selection: { ...selection, cellIndex: word.cellIndices.at(-1) },
+    },
+    new Set([lockedCellIndex]),
+  );
+
+  assert.deepEqual(clearedState.entries, { [lockedCellIndex]: lockedLetter });
+  assert.equal(clearedState.selection.cellIndex, word.cellIndices[0]);
+  assert.equal(clearedState.selection.wordId, word.id);
 });
 
 test('rejects unsupported input characters', () => {

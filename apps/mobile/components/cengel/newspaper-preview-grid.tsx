@@ -396,6 +396,7 @@ export function NewspaperPreviewGrid({
                     <Text
                       style={[
                         styles.letter,
+                        !isLocked && styles.unconfirmedLetter,
                         {
                           fontSize: letterFontSize,
                           lineHeight: Math.round(letterFontSize * 1.1),
@@ -442,6 +443,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     textAlign: 'center',
     textAlignVertical: 'center',
+  },
+  unconfirmedLetter: {
+    color: palette.secondary,
   },
   activeWordCell: {
     backgroundColor: palette.selectionBlue,

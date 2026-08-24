@@ -57,6 +57,35 @@ export function beginPuzzleWordEntry(
   };
 }
 
+export function clearPuzzleWordEntry(
+  puzzle: Pick<PuzzleDefinition, 'words'>,
+  state: PuzzleInputState,
+  lockedCellIndices: ReadonlySet<number> = new Set(),
+): PuzzleInputState {
+  const activeWord = getActiveWord(puzzle, state.selection);
+  const editableCellIndices = activeWord.cellIndices.filter(
+    (cellIndex) => !lockedCellIndices.has(cellIndex),
+  );
+
+  if (editableCellIndices.length === 0) {
+    return state;
+  }
+
+  const entries = { ...state.entries };
+
+  for (const cellIndex of editableCellIndices) {
+    delete entries[cellIndex];
+  }
+
+  return {
+    entries,
+    selection: {
+      ...state.selection,
+      cellIndex: editableCellIndices[0],
+    },
+  };
+}
+
 export function enterPuzzleLetter(
   puzzle: Pick<PuzzleDefinition, 'words'>,
   state: PuzzleInputState,

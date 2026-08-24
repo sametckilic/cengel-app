@@ -1,5 +1,5 @@
 import { Redirect, Stack, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   type NativeScrollEvent,
@@ -38,6 +38,7 @@ import { revealPuzzleWord } from '@cengel/puzzle-core/puzzle-hint';
 import {
   backspacePuzzleEntry,
   beginPuzzleWordEntry,
+  clearPuzzleWordEntry,
   enterPuzzleLetter,
   type PuzzleInputState,
 } from '@cengel/puzzle-core/puzzle-input';
@@ -101,7 +102,10 @@ export function NewspaperPuzzleScreen({
   );
   const [solvedWordIds, setSolvedWordIds] = useState<ReadonlySet<string>>(() => new Set());
   const activeWord = getSelectedWord(puzzle, inputState.selection);
-  const lockedCellIndices = getLockedCellIndices(puzzle, solvedWordIds);
+  const lockedCellIndices = useMemo(
+    () => getLockedCellIndices(puzzle, solvedWordIds),
+    [puzzle, solvedWordIds],
+  );
   const answerPattern = activeWord.cellIndices.map(
     (cellIndex) => inputState.entries[cellIndex],
   );
@@ -371,10 +375,16 @@ export function NewspaperPuzzleScreen({
       const nextSolvedWordIds = new Set(solvedWordIds).add(result.wordId);
 
       setSolvedWordIds(nextSolvedWordIds);
+      systemInputRef.current?.close();
 
       if (!wasAlreadySolved && isPuzzleComplete(puzzle, nextSolvedWordIds)) {
         beginPuzzleCompletion();
       }
+    } else {
+      setInputState((currentState) =>
+        clearPuzzleWordEntry(puzzle, currentState, lockedCellIndices),
+      );
+      restartWordOnNextLetter.current = false;
     }
 
     const announcement = {
@@ -387,6 +397,7 @@ export function NewspaperPuzzleScreen({
     beginPuzzleCompletion,
     inputState.entries,
     inputState.selection,
+    lockedCellIndices,
     progressHydrated,
     puzzle,
     solvedWordIds,

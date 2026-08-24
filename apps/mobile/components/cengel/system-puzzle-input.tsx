@@ -335,10 +335,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   filledPatternCharacter: {
-    color: palette.ink,
+    color: palette.secondary,
   },
   lockedPatternCharacter: {
-    color: palette.secondary,
+    color: palette.ink,
     fontFamily: fonts.interBold,
   },
   actions: {
