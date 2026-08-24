@@ -16,6 +16,10 @@
     "api:dev": "npm --workspace @cengel/api run dev",
     "api:start": "npm --workspace @cengel/api run start",
     "api:test": "npm --workspace @cengel/api run test",
+    "worker:build": "npm --workspace @cengel/worker run build",
+    "worker:docker:build": "docker build -f apps/worker/Dockerfile -t cengel-worker:local .",
+    "worker:start": "npm --workspace @cengel/worker run start",
+    "worker:test": "npm --workspace @cengel/worker run test",
     "reset-project": "npm --workspace @cengel/mobile run reset-project --",
     "dataset:check": "node ./packages/generator/bin/prepare-clue-catalog.js --check",
     "dataset:build": "node ./packages/generator/bin/prepare-clue-catalog.js --output ./apps/mobile/data/generated/clue-catalog.json",
@@ -34,9 +38,10 @@
     "web": "npm --workspace @cengel/mobile run web --",
     "server:build": "npm --workspace @cengel/mobile run server:build --",
     "server:serve": "npm --workspace @cengel/mobile run server:serve --",
-    "lint": "npm run lint:mobile && npm run lint:api",
+    "lint": "npm run lint:mobile && npm run lint:api && npm run lint:worker",
     "lint:api": "npm --workspace @cengel/api run lint",
-    "lint:mobile": "npm --workspace @cengel/mobile run lint --"
+    "lint:mobile": "npm --workspace @cengel/mobile run lint --",
+    "lint:worker": "npm --workspace @cengel/worker run lint"
   },
   "private": true,
   "devDependencies": {

@@ -8,7 +8,10 @@
     "./daily-puzzle-publication": "./src/daily-puzzle-publication.js",
     "./daily-puzzle-quality": "./src/daily-puzzle-quality.js",
     "./daily-puzzle-recipe": "./src/daily-puzzle-recipe.js",
-    "./daily-puzzle-schedule": "./src/daily-puzzle-schedule.js",
+    "./daily-puzzle-schedule": {
+      "types": "./src/daily-puzzle-schedule.d.ts",
+      "default": "./src/daily-puzzle-schedule.js"
+    },
     "./newspaper-fill": "./src/newspaper-fill.js",
     "./newspaper-grid": "./src/newspaper-grid.js",
     "./newspaper-topology": "./src/newspaper-topology.js",
