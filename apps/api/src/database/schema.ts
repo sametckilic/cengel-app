@@ -45,11 +45,48 @@ export const progressOperation = pgEnum('progress_operation', [
   'upsert',
 ]);
 
+export const achievementVerification = pgEnum('achievement_verification', [
+  'casual',
+  'verified',
+]);
+
 export const profiles = pgTable('profiles', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   userId: uuid('user_id').primaryKey(),
 });
+
+export const achievementDefinitions = pgTable(
+  'achievement_definitions',
+  {
+    description: text('description').notNull(),
+    id: text('id').primaryKey(),
+    target: integer('target').notNull(),
+    title: text('title').notNull(),
+    type: text('type').notNull(),
+  },
+  (table) => [check('achievement_definitions_target_positive', sql`${table.target} > 0`)],
+);
+
+export const userAchievements = pgTable(
+  'user_achievements',
+  {
+    achievementId: text('achievement_id')
+      .notNull()
+      .references(() => achievementDefinitions.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    earnedAt: timestamp('earned_at', { withTimezone: true }).notNull(),
+    evidence: jsonb('evidence').$type<Record<string, unknown>>().notNull(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profiles.userId, { onDelete: 'cascade' }),
+    verification: achievementVerification('verification').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.achievementId] }),
+    index('user_achievements_earned_idx').on(table.userId, table.earnedAt),
+  ],
+);
 
 export const devices = pgTable(
   'devices',
