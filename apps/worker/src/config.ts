@@ -12,6 +12,7 @@ const environmentSchema = z.object({
   DB_CONNECTION_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
   DB_POOL_MAX: z.coerce.number().int().min(1).max(20).default(5),
   WORKER_BUFFER_DAYS: z.coerce.number().int().min(1).max(31).default(7),
+  WORKER_MODE: z.enum(['publish', 'shadow']).default('shadow'),
   WORKER_REVISION: z
     .string()
     .regex(/^[a-z0-9][a-z0-9-]*$/)

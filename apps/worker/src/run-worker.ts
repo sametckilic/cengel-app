@@ -8,6 +8,11 @@ import { Pool } from 'pg';
 import { loadCurrentCatalog } from './catalog';
 import type { WorkerEnvironment } from './config';
 import {
+  publishDailyPublication,
+  recordGenerationFailure,
+  type PublishResult,
+} from './publisher';
+import {
   compareShadowPublication,
   readReferencePublication,
   type ShadowComparison,
@@ -35,9 +40,15 @@ export type ShadowRunSummary = {
   mode: 'shadow';
 };
 
+export type PublishRunSummary = {
+  catalogVersionId: string;
+  mode: 'publish';
+  publications: PublishResult[];
+};
+
 export async function runWorker(
   environment: WorkerEnvironment,
-): Promise<ShadowRunSummary> {
+): Promise<PublishRunSummary | ShadowRunSummary> {
   const pool = new Pool({
     connectionString: environment.DATABASE_URL,
     connectionTimeoutMillis: environment.DB_CONNECTION_TIMEOUT_MS,
@@ -60,16 +71,50 @@ export async function runWorker(
 
     const catalogSnapshot = await loadCurrentCatalog(client);
     const startDate = resolveStartDate(environment.WORKER_START_DATE);
+    const publications = [];
     const comparisons: ShadowComparison[] = [];
 
     for (let offset = 0; offset < environment.WORKER_BUFFER_DAYS; offset += 1) {
       const date = addDaysToIsoDate(startDate, offset);
-      const publication = createScheduledDailyPublication(
-        catalogSnapshot.catalog,
-        { date, revision: environment.WORKER_REVISION },
-      );
+      let publication;
+
+      try {
+        publication = createScheduledDailyPublication(catalogSnapshot.catalog, {
+          date,
+          revision: environment.WORKER_REVISION,
+        });
+      } catch (error) {
+        if (environment.WORKER_MODE === 'publish') {
+          await recordGenerationFailure(client, catalogSnapshot, {
+            date,
+            error,
+            revision: environment.WORKER_REVISION,
+          });
+        }
+
+        throw error;
+      }
+
+      if (environment.WORKER_MODE === 'publish') {
+        publications.push(
+          await publishDailyPublication(client, {
+            catalog: catalogSnapshot,
+            publication,
+          }),
+        );
+        continue;
+      }
+
       const reference = await readReferencePublication(date);
       comparisons.push(compareShadowPublication(publication, reference));
+    }
+
+    if (environment.WORKER_MODE === 'publish') {
+      return {
+        catalogVersionId: catalogSnapshot.catalogVersionId,
+        mode: 'publish',
+        publications,
+      };
     }
 
     const mismatches = comparisons.filter(
