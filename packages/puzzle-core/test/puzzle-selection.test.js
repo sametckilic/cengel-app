@@ -8,6 +8,7 @@ const {
 const {
   backspacePuzzleEntry,
   beginPuzzleWordEntry,
+  clearInvalidPuzzleWordEntry,
   clearPuzzleWordEntry,
   enterPuzzleLetter,
   normalizePuzzleLetter,
@@ -268,6 +269,35 @@ test('clears a deferred answer without changing another active selection', () =>
 
   assert.deepEqual(clearedState.entries, {});
   assert.deepEqual(clearedState.selection, activeSelection);
+});
+
+test('clears invalid active input on close but preserves an unconfirmed correct answer', () => {
+  const selection = createInitialPuzzleSelection(puzzle);
+  const word = getSelectedWord(puzzle, selection);
+  const correctEntries = Object.fromEntries(
+    word.cellIndices.map((cellIndex, index) => [cellIndex, word.answer[index]]),
+  );
+  const wrongEntries = {
+    ...correctEntries,
+    [word.cellIndices.at(-1)]: word.answer.at(-1) === 'A' ? 'B' : 'A',
+  };
+  const correctState = { entries: correctEntries, selection };
+  const wrongState = { entries: wrongEntries, selection };
+
+  assert.equal(clearInvalidPuzzleWordEntry(puzzle, correctState), correctState);
+  assert.deepEqual(clearInvalidPuzzleWordEntry(puzzle, wrongState).entries, {});
+});
+
+test('clears an incomplete active answer on close', () => {
+  const selection = createInitialPuzzleSelection(puzzle);
+  const word = getSelectedWord(puzzle, selection);
+  const firstCellIndex = word.cellIndices[0];
+  const state = {
+    entries: { [firstCellIndex]: word.answer[0] },
+    selection,
+  };
+
+  assert.deepEqual(clearInvalidPuzzleWordEntry(puzzle, state).entries, {});
 });
 
 test('rejects unsupported input characters', () => {

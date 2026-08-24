@@ -38,7 +38,7 @@ import { revealPuzzleWord } from '@cengel/puzzle-core/puzzle-hint';
 import {
   backspacePuzzleEntry,
   beginPuzzleWordEntry,
-  clearPuzzleWordEntry,
+  clearInvalidPuzzleWordEntry,
   enterPuzzleLetter,
   type PuzzleInputState,
 } from '@cengel/puzzle-core/puzzle-input';
@@ -92,7 +92,6 @@ export function NewspaperPuzzleScreen({
   const scrollRestoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const keyboardSpaceReleaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const completionRevealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingAnswerClearWordIds = useRef(new Set<string>());
   const progressSaveQueue = useRef<Promise<void>>(Promise.resolve());
   const restartWordOnNextLetter = useRef(false);
   const scrollOffsetY = useRef(0);
@@ -318,31 +317,18 @@ export function NewspaperPuzzleScreen({
     },
     [],
   );
-  const clearPendingAnswers = useCallback(() => {
-    const wordIdsToClear = [...pendingAnswerClearWordIds.current];
-    pendingAnswerClearWordIds.current.clear();
+  const clearInvalidActiveAnswer = useCallback(() => {
+    setInputState((currentState) => {
+      if (solvedWordIdsRef.current.has(currentState.selection.wordId)) {
+        return currentState;
+      }
 
-    if (wordIdsToClear.length === 0) {
-      return;
-    }
-
-    const currentLockedCellIndices = getLockedCellIndices(
-      puzzle,
-      solvedWordIdsRef.current,
-    );
-
-    setInputState((currentState) =>
-      wordIdsToClear.reduce(
-        (nextState, wordId) =>
-          clearPuzzleWordEntry(
-            puzzle,
-            nextState,
-            currentLockedCellIndices,
-            wordId,
-          ),
+      return clearInvalidPuzzleWordEntry(
+        puzzle,
         currentState,
-      ),
-    );
+        getLockedCellIndices(puzzle, solvedWordIdsRef.current),
+      );
+    });
   }, [puzzle]);
   const handleKeyboardMetricsChange = useCallback(
     (metrics: SystemKeyboardMetrics) => {
@@ -364,7 +350,7 @@ export function NewspaperPuzzleScreen({
       }
 
       if (!metrics.visible) {
-        clearPendingAnswers();
+        clearInvalidActiveAnswer();
       }
 
       if (wasVisible && !metrics.visible) {
@@ -390,7 +376,7 @@ export function NewspaperPuzzleScreen({
         }, KEYBOARD_SCROLL_RESTORE_DURATION);
       }
     },
-    [clearPendingAnswers, puzzleViewportTop, windowHeight],
+    [clearInvalidActiveAnswer, puzzleViewportTop, windowHeight],
   );
   useEffect(
     () => () => {
@@ -418,7 +404,6 @@ export function NewspaperPuzzleScreen({
       const wasAlreadySolved = solvedWordIds.has(result.wordId);
       const nextSolvedWordIds = new Set(solvedWordIds).add(result.wordId);
 
-      pendingAnswerClearWordIds.current.delete(result.wordId);
       solvedWordIdsRef.current = nextSolvedWordIds;
       setSolvedWordIds(nextSolvedWordIds);
       systemInputRef.current?.close();
@@ -426,8 +411,6 @@ export function NewspaperPuzzleScreen({
       if (!wasAlreadySolved && isPuzzleComplete(puzzle, nextSolvedWordIds)) {
         beginPuzzleCompletion();
       }
-    } else {
-      pendingAnswerClearWordIds.current.add(result.wordId);
     }
 
     const announcement = {
@@ -471,7 +454,6 @@ export function NewspaperPuzzleScreen({
       );
       const nextSolvedWordIds = new Set(solvedWordIds).add(requestedWordId);
 
-      pendingAnswerClearWordIds.current.delete(requestedWordId);
       solvedWordIdsRef.current = nextSolvedWordIds;
       setSolvedWordIds(nextSolvedWordIds);
       setRevealedWordIds((currentIds) => new Set(currentIds).add(requestedWordId));
@@ -577,7 +559,7 @@ export function NewspaperPuzzleScreen({
             : undefined
         }
         lockedAnswerPattern={lockedAnswerPattern}
-        onKeyboardCloseRequest={clearPendingAnswers}
+        onKeyboardCloseRequest={clearInvalidActiveAnswer}
         onKeyboardMetricsChange={handleKeyboardMetricsChange}
         onLetterPress={(letter) => {
           if (!progressHydrated) {

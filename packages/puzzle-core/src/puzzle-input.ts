@@ -95,6 +95,36 @@ export function clearPuzzleWordEntry(
   };
 }
 
+export function clearInvalidPuzzleWordEntry(
+  puzzle: Pick<PuzzleDefinition, 'words'>,
+  state: PuzzleInputState,
+  lockedCellIndices: ReadonlySet<number> = new Set(),
+  wordId = state.selection.wordId,
+): PuzzleInputState {
+  const word = puzzle.words.find(({ id }) => id === wordId);
+
+  if (!word) {
+    throw new Error(`Puzzle is missing word "${wordId}".`);
+  }
+
+  const hasEditableEntry = word.cellIndices.some(
+    (cellIndex) =>
+      !lockedCellIndices.has(cellIndex) && state.entries[cellIndex] !== undefined,
+  );
+
+  if (!hasEditableEntry) {
+    return state;
+  }
+
+  const enteredAnswer = word.cellIndices
+    .map((cellIndex) => state.entries[cellIndex])
+    .join('');
+
+  return enteredAnswer === word.answer
+    ? state
+    : clearPuzzleWordEntry(puzzle, state, lockedCellIndices, wordId);
+}
+
 export function enterPuzzleLetter(
   puzzle: Pick<PuzzleDefinition, 'words'>,
   state: PuzzleInputState,
