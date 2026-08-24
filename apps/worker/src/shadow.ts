@@ -1,7 +1,7 @@
-import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import { checksumJson } from './canonical-json';
 import type { DailyPublication } from './types';
 
 export type ShadowComparison = {
@@ -19,7 +19,7 @@ const REFERENCE_DIRECTORY = path.join(
 );
 
 export function checksum(value: unknown): string {
-  return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  return checksumJson(value);
 }
 
 export function compareShadowPublication(

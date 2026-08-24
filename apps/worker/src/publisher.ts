@@ -3,9 +3,11 @@ import { createHash } from 'node:crypto';
 import type { PoolClient, QueryResultRow } from 'pg';
 
 import type { CatalogSnapshot, DailyPublication } from './types';
+import { checksumJson, jsonValuesEqual } from './canonical-json';
 
 type PublishedPuzzleRow = QueryResultRow & {
   checksum: string;
+  definition: unknown;
   puzzle_id: string;
   record_id: string;
   version: number;
@@ -49,9 +51,7 @@ export function requestHash(input: Record<string, string>): string {
 }
 
 function puzzleChecksum(publication: DailyPublication): string {
-  return createHash('sha256')
-    .update(JSON.stringify(publication.puzzle))
-    .digest('hex');
+  return checksumJson(publication.puzzle);
 }
 
 function validatePublication(publication: DailyPublication): void {
@@ -81,7 +81,8 @@ async function findPublishedPuzzle(
         p.record_id,
         p.id AS puzzle_id,
         p.version,
-        p.checksum
+        p.checksum,
+        p.definition
       FROM puzzle_publications publication
       INNER JOIN puzzles p ON p.record_id = publication.puzzle_record_id
       WHERE
@@ -103,7 +104,8 @@ function comparePublishedPuzzle(
 ): PublishResult {
   if (
     existing.puzzle_id !== publication.puzzle.id ||
-    existing.checksum !== checksum
+    (existing.checksum !== checksum &&
+      !jsonValuesEqual(existing.definition, publication.puzzle))
   ) {
     throw new Error(
       `Published daily puzzle for ${publication.date} is immutable and differs from generation output.`,
@@ -111,7 +113,7 @@ function comparePublishedPuzzle(
   }
 
   return {
-    checksum,
+    checksum: existing.checksum,
     date: publication.date,
     puzzleId: existing.puzzle_id,
     status: 'already-published',
