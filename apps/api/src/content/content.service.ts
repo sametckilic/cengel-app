@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { and, desc, eq, lt, lte, or, sql } from 'drizzle-orm';
 
@@ -22,6 +24,20 @@ export type PuzzleListResult = {
   catalogVersion: string;
   items: readonly PuzzleSummary[];
   nextCursor: string | null;
+};
+
+export type PublishedCatalogResult = {
+  apiVersion: 1;
+  catalogVersion: string;
+  manifest: {
+    puzzles: readonly Record<string, unknown>[];
+    rights: {
+      basis: 'project-owned';
+      confirmedAt: '2026-08-19';
+    };
+    schemaVersion: 1;
+    sourceCatalog: string;
+  };
 };
 
 type ListOptions = {
@@ -132,6 +148,50 @@ export class ContentService {
         hasNextPage && lastItem
           ? encodeCursor({ id: lastItem.id, publicationDate: lastItem.publicationDate })
           : null,
+    };
+  }
+
+  async catalog(visibleOn: string): Promise<PublishedCatalogResult> {
+    const rows = await this.database.db
+      .select({
+        checksum: puzzles.checksum,
+        definition: puzzles.definition,
+        id: puzzles.id,
+        version: puzzles.version,
+      })
+      .from(puzzlePublications)
+      .innerJoin(puzzles, eq(puzzlePublications.puzzleRecordId, puzzles.recordId))
+      .where(
+        and(
+          eq(puzzlePublications.status, 'published'),
+          lte(puzzlePublications.publicationDate, visibleOn),
+          eq(puzzles.qualityPassed, true),
+        ),
+      )
+      .orderBy(desc(puzzlePublications.publicationDate), desc(puzzles.version));
+    const rowsById = new Map(rows.map((row) => [row.id, row]));
+    const publishedRows = [...rowsById.values()];
+    const signature = publishedRows
+      .map(({ checksum, id, version }) => `${id}:${version}:${checksum}`)
+      .sort()
+      .join('|');
+    const catalogVersion = `catalog-${createHash('sha256')
+      .update(signature)
+      .digest('hex')
+      .slice(0, 16)}`;
+
+    return {
+      apiVersion: 1,
+      catalogVersion,
+      manifest: {
+        puzzles: publishedRows.map(({ definition }) => definition),
+        rights: {
+          basis: 'project-owned',
+          confirmedAt: '2026-08-19',
+        },
+        schemaVersion: 1,
+        sourceCatalog: await this.getCatalogVersion(),
+      },
     };
   }
 

@@ -45,13 +45,13 @@ export function PuzzleCatalogProvider({ children }: PropsWithChildren) {
     let active = true;
 
     async function synchronizeCatalog() {
-      let cachedVersion: string | undefined;
+      let cachedEntityTag: string | undefined;
 
       try {
         const cached = await puzzleCatalogStore.load();
 
         if (cached && active) {
-          cachedVersion = cached.catalogVersion;
+          cachedEntityTag = cached.entityTag;
           setManifest(mergePuzzleManifests(BUNDLED_PUZZLE_MANIFEST, cached.manifest));
           setSource('cache');
         }
@@ -60,7 +60,7 @@ export function PuzzleCatalogProvider({ children }: PropsWithChildren) {
       }
 
       try {
-        const result = await fetchPuzzleCatalog(cachedVersion, controller.signal);
+        const result = await fetchPuzzleCatalog(cachedEntityTag, controller.signal);
 
         if (!active || result.status !== 'updated') {
           return;
@@ -75,6 +75,7 @@ export function PuzzleCatalogProvider({ children }: PropsWithChildren) {
         await puzzleCatalogStore.save({
           ...result.response,
           cachedAt: new Date().toISOString(),
+          entityTag: result.entityTag,
         });
       } catch {
         // Cache or bundled content remains available when the network is unavailable.

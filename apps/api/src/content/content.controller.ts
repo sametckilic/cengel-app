@@ -88,6 +88,11 @@ export class ContentController {
     return { apiVersion: API_VERSION, ...(await this.content.findDaily(date)) };
   }
 
+  @Get('catalog')
+  async catalog() {
+    return this.content.catalog(getIstanbulDateKey());
+  }
+
   @Get(':id')
   async detail(@Param('id') id: string) {
     return {

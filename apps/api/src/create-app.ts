@@ -22,7 +22,10 @@ export async function createApiApplication(
   );
   const config = app.get<ConfigService<ApiEnvironment, true>>(ConfigService);
 
-  app.enableCors({ origin: config.get('CORS_ORIGINS', { infer: true }) });
+  app.enableCors({
+    exposedHeaders: ['ETag', 'X-Request-Id'],
+    origin: config.get('CORS_ORIGINS', { infer: true }),
+  });
   app.useGlobalFilters(new ApiExceptionFilter());
   app.getHttpAdapter().getInstance().addHook('onRequest', (request, reply, done) => {
     reply.header('X-Request-Id', request.id);

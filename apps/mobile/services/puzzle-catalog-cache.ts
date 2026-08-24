@@ -3,6 +3,7 @@ import type { PuzzleCatalogApiResponse } from '@cengel/contracts/puzzle-api';
 
 export type PuzzleCatalogCacheSnapshot = PuzzleCatalogApiResponse & {
   cachedAt: string;
+  entityTag?: string;
 };
 
 export type PuzzleCatalogCacheStore = {
@@ -21,6 +22,7 @@ export function parsePuzzleCatalogCache(
       value === null ||
       !('cachedAt' in value) ||
       typeof value.cachedAt !== 'string' ||
+      ('entityTag' in value && typeof value.entityTag !== 'string') ||
       !isPuzzleCatalogApiResponse(value)
     ) {
       return null;

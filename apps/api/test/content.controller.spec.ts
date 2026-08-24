@@ -5,14 +5,16 @@ import { ContentController, getIstanbulDateKey } from '../src/content/content.co
 import { ContentService } from '../src/content/content.service';
 
 function createController() {
+  const catalog = vi.fn();
   const findDaily = vi.fn();
   const service = {
+    catalog,
     findById: vi.fn(),
     findDaily,
     list: vi.fn(),
   } as unknown as ContentService;
 
-  return { controller: new ContentController(service), findDaily };
+  return { catalog, controller: new ContentController(service), findDaily };
 }
 
 describe('ContentController', () => {
@@ -36,5 +38,14 @@ describe('ContentController', () => {
 
     await expect(controller.daily('2999-01-01')).rejects.toBeInstanceOf(BadRequestException);
     expect(findDaily).not.toHaveBeenCalled();
+  });
+
+  it('loads the visible catalog using the Istanbul date', async () => {
+    const { catalog, controller } = createController();
+    catalog.mockResolvedValue({ catalogVersion: 'catalog-test' });
+
+    await controller.catalog();
+
+    expect(catalog).toHaveBeenCalledWith(getIstanbulDateKey());
   });
 });

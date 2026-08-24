@@ -8,20 +8,27 @@ import {
 export type PuzzleCatalogFetchResult =
   | { status: 'not-modified' }
   | { status: 'unavailable' }
-  | { response: PuzzleCatalogApiResponse; status: 'updated' };
+  | {
+      entityTag?: string;
+      response: PuzzleCatalogApiResponse;
+      status: 'updated';
+    };
 
 export function getPuzzleCatalogApiUrl(): string | null {
   const configuredOrigin = process.env.EXPO_PUBLIC_PUZZLE_API_URL?.trim();
 
   if (configuredOrigin) {
-    return new URL('api/puzzles', `${configuredOrigin.replace(/\/$/, '')}/`).toString();
+    return new URL(
+      'v1/puzzles/catalog',
+      `${configuredOrigin.replace(/\/$/, '')}/`,
+    ).toString();
   }
 
   return Platform.OS === 'web' ? '/api/puzzles' : null;
 }
 
 export async function fetchPuzzleCatalog(
-  catalogVersion?: string,
+  entityTag?: string,
   signal?: AbortSignal,
 ): Promise<PuzzleCatalogFetchResult> {
   const url = getPuzzleCatalogApiUrl();
@@ -33,7 +40,7 @@ export async function fetchPuzzleCatalog(
   const response = await fetch(url, {
     headers: {
       Accept: 'application/json',
-      ...(catalogVersion ? { 'If-None-Match': `"${catalogVersion}"` } : {}),
+      ...(entityTag ? { 'If-None-Match': entityTag } : {}),
     },
     signal,
   });
@@ -52,5 +59,9 @@ export async function fetchPuzzleCatalog(
     throw new Error('Puzzle catalog API returned an invalid response.');
   }
 
-  return { response: value, status: 'updated' };
+  return {
+    entityTag: response.headers.get('ETag') ?? undefined,
+    response: value,
+    status: 'updated',
+  };
 }
