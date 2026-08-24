@@ -42,6 +42,7 @@ export default defineRailway(() => {
       DB_CONNECTION_TIMEOUT_MS: "5000",
       DB_POOL_MAX: "5",
       NODE_ENV: "production",
+      SUPABASE_URL: "https://ttdebjcyfyanxjutueop.supabase.co",
     },
   });
   const generatorWorker = service("generator-worker", {
