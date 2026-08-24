@@ -3,11 +3,10 @@ const test = require('node:test');
 
 const {
   AccountLinkingError,
+  checkEmailAccountLink,
   getAccountIdentity,
   normalizeAccountEmail,
-  normalizeEmailOtp,
   requestEmailAccountLink,
-  verifyEmailAccountLink,
 } = require('../services/account-linking.ts');
 
 function user(overrides = {}) {
@@ -22,12 +21,10 @@ function user(overrides = {}) {
   };
 }
 
-test('normalizes email and six-digit OTP input', () => {
+test('normalizes email input', () => {
   assert.equal(normalizeAccountEmail('  TEST@Example.COM '), 'test@example.com');
   assert.equal(normalizeAccountEmail('INFO@EXAMPLE.COM'), 'info@example.com');
   assert.equal(normalizeAccountEmail('invalid-address'), null);
-  assert.equal(normalizeEmailOtp('12 34-56'), '123456');
-  assert.equal(normalizeEmailOtp('12345'), null);
 });
 
 test('summarizes anonymous and pending email identity', () => {
@@ -66,10 +63,10 @@ test('requests an email link without changing the anonymous user id', async () =
   });
 });
 
-test('verifies email change and preserves the original user id', async () => {
+test('checks confirmed email link and preserves the original user id', async () => {
   const anonymousUser = user();
   const permanentUser = user({ email: 'test@example.com', is_anonymous: false });
-  let verificationType = null;
+  let refreshed = false;
   const auth = {
     async getSession() {
       return { data: { session: { user: anonymousUser } }, error: null };
@@ -77,14 +74,14 @@ test('verifies email change and preserves the original user id', async () => {
     async getUser() {
       return { data: { user: permanentUser }, error: null };
     },
-    async verifyOtp(input) {
-      verificationType = input.type;
+    async refreshSession() {
+      refreshed = true;
       return { data: { session: null, user: permanentUser }, error: null };
     },
   };
 
-  const result = await verifyEmailAccountLink('test@example.com', '123456', auth);
-  assert.equal(verificationType, 'email_change');
+  const result = await checkEmailAccountLink(auth);
+  assert.equal(refreshed, true);
   assert.equal(result.userId, anonymousUser.id);
   assert.equal(result.isAnonymous, false);
 });
@@ -105,13 +102,13 @@ test('rejects a verification response that switches user identity', async () => 
         error: null,
       };
     },
-    async verifyOtp() {
+    async refreshSession() {
       return { data: { session: null, user: null }, error: null };
     },
   };
 
   await assert.rejects(
-    () => verifyEmailAccountLink('test@example.com', '123456', auth),
+    () => checkEmailAccountLink(auth),
     (error) => error instanceof AccountLinkingError && error.code === 'IDENTITY_CHANGED',
   );
 });

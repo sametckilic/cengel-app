@@ -1,11 +1,9 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const OTP_PATTERN = /^\d{6}$/;
-
 export type AccountLinkingAuth = Pick<
   SupabaseClient['auth'],
-  'getSession' | 'getUser' | 'resend' | 'updateUser' | 'verifyOtp'
+  'getSession' | 'getUser' | 'refreshSession' | 'resend' | 'updateUser'
 >;
 
 export type AccountIdentity = {
@@ -20,7 +18,6 @@ type AccountLinkingErrorCode =
   | 'AUTH_UNAVAILABLE'
   | 'IDENTITY_CHANGED'
   | 'INVALID_EMAIL'
-  | 'INVALID_OTP'
   | 'LINK_NOT_CONFIRMED'
   | 'NO_SESSION'
   | 'PROVIDER_ERROR';
@@ -38,11 +35,6 @@ export class AccountLinkingError extends Error {
 export function normalizeAccountEmail(value: string): string | null {
   const normalized = value.trim().toLowerCase();
   return EMAIL_PATTERN.test(normalized) ? normalized : null;
-}
-
-export function normalizeEmailOtp(value: string): string | null {
-  const normalized = value.replace(/\D/g, '').slice(0, 6);
-  return OTP_PATTERN.test(normalized) ? normalized : null;
 }
 
 export function getAccountIdentity(user: User): AccountIdentity {
@@ -88,7 +80,7 @@ function providerError(error: { code?: string; message: string }): AccountLinkin
       case 'email_address_not_authorized':
         return 'Bu e-posta adresine doğrulama gönderilemiyor.';
       case 'otp_expired':
-        return 'Doğrulama kodunun süresi dolmuş. Yeni bir kod isteyin.';
+        return 'Doğrulama bağlantısının süresi dolmuş. Yeni bir e-posta isteyin.';
       case 'otp_disabled':
         return 'E-posta doğrulaması şu anda kullanılamıyor.';
       case 'over_email_send_rate_limit':
@@ -135,28 +127,15 @@ export async function requestEmailAccountLink(
   return { email, userId: currentUser.id };
 }
 
-export async function verifyEmailAccountLink(
-  emailValue: string,
-  otpValue: string,
+export async function checkEmailAccountLink(
   authOverride?: AccountLinkingAuth,
 ): Promise<AccountIdentity> {
-  const email = normalizeAccountEmail(emailValue);
-  const token = normalizeEmailOtp(otpValue);
-
-  if (!email) {
-    throw new AccountLinkingError('INVALID_EMAIL', 'Geçerli bir e-posta adresi girin.');
-  }
-
-  if (!token) {
-    throw new AccountLinkingError('INVALID_OTP', 'E-postadaki 6 haneli kodu girin.');
-  }
-
   const auth = requireAuth(authOverride);
   const currentUser = await requireCurrentUser(auth);
-  const verification = await auth.verifyOtp({ email, token, type: 'email_change' });
+  const refresh = await auth.refreshSession();
 
-  if (verification.error) {
-    throw providerError(verification.error);
+  if (refresh.error) {
+    throw providerError(refresh.error);
   }
 
   const refreshed = await auth.getUser();
@@ -177,7 +156,7 @@ export async function verifyEmailAccountLink(
   if (linkedUser.is_anonymous) {
     throw new AccountLinkingError(
       'LINK_NOT_CONFIRMED',
-      'E-posta doğrulandı ancak hesap bağlantısı henüz tamamlanmadı.',
+      'E-posta bağlantısı henüz onaylanmadı. Mesajdaki doğrulama bağlantısına dokunun.',
     );
   }
 

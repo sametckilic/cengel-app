@@ -88,7 +88,7 @@ EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
-Supabase projesinde **Authentication → Sign In / Providers** altında hem **Anonymous Sign-Ins** hem de **Allow manual linking** etkin olmalıdır. Profil sekmesi anonim kullanıcıya e-posta doğrulama kodu gönderir ve kod doğrulandığında mevcut Supabase kullanıcı UUID'sini değiştirmeden kalıcı e-posta kimliğini bağlar. API tarafında aynı proje URL'si `SUPABASE_URL` olarak tanımlanır; erişim tokenları Supabase JWKS üzerinden doğrulanır. Service-role veya JWT secret mobil uygulamaya eklenmez.
+Supabase projesinde **Authentication → Sign In / Providers** altında hem **Anonymous Sign-Ins** hem de **Allow manual linking** etkin olmalıdır. Profil sekmesi anonim kullanıcıya Supabase'in varsayılan doğrulama e-postasını gönderir. Kullanıcı e-postadaki bağlantıyı açıp uygulamaya döndüğünde session yenilenir ve mevcut Supabase kullanıcı UUID'si değiştirilmeden kalıcı e-posta kimliği bağlanır. Bu akış varsayılan e-posta şablonuyla çalışır; özel şablon veya ücretli plan gerektirmez. API tarafında aynı proje URL'si `SUPABASE_URL` olarak tanımlanır; erişim tokenları Supabase JWKS üzerinden doğrulanır. Service-role veya JWT secret mobil uygulamaya eklenmez.
 
 ## Server build
 

@@ -10,10 +10,10 @@ import {
 } from 'react';
 
 import {
+  checkEmailAccountLink,
   getAccountIdentity,
   requestEmailAccountLink,
   resendEmailAccountLink,
-  verifyEmailAccountLink,
   type AccountIdentity,
 } from '@/services/account-linking';
 import { ensureAnonymousAccessToken, getSupabaseClient } from '@/services/supabase-client';
@@ -24,10 +24,10 @@ type AuthContextValue = {
   account: AccountIdentity | null;
   error: string | null;
   pendingEmail: string | null;
+  checkEmailLink(): Promise<void>;
   requestEmailLink(email: string): Promise<void>;
   resendEmailLink(): Promise<void>;
   status: AuthStatus;
-  verifyEmailLink(otp: string): Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -97,16 +97,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setUser(current.data.user);
       }
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : 'Doğrulama kodu gönderilemedi.';
+      const message = reason instanceof Error ? reason.message : 'Doğrulama e-postası gönderilemedi.';
       setError(message);
       throw reason;
     }
   }, []);
 
-  const verifyEmailLink = useCallback(
-    async (otp: string) => {
+  const checkEmailLink = useCallback(
+    async () => {
       if (!pendingEmail) {
-        const reason = new Error('Önce doğrulama kodu isteyin.');
+        const reason = new Error('Önce doğrulama e-postası isteyin.');
         setError(reason.message);
         throw reason;
       }
@@ -114,16 +114,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setError(null);
 
       try {
-        const account = await verifyEmailAccountLink(
-          pendingEmail,
-          otp,
-          getSupabaseClient()?.auth,
-        );
+        const account = await checkEmailAccountLink(getSupabaseClient()?.auth);
         const current = await getSupabaseClient()?.auth.getUser();
         setUser(current?.data.user ?? null);
         setPendingEmail(account.pendingEmail);
       } catch (reason) {
-        const message = reason instanceof Error ? reason.message : 'E-posta doğrulanamadı.';
+        const message = reason instanceof Error ? reason.message : 'E-posta bağlantısı doğrulanamadı.';
         setError(message);
         throw reason;
       }
@@ -143,7 +139,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     try {
       await resendEmailAccountLink(pendingEmail, getSupabaseClient()?.auth);
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : 'Kod tekrar gönderilemedi.';
+      const message = reason instanceof Error ? reason.message : 'E-posta tekrar gönderilemedi.';
       setError(message);
       throw reason;
     }
@@ -162,14 +158,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const value = useMemo<AuthContextValue>(
     () => ({
       account,
+      checkEmailLink,
       error,
       pendingEmail,
       requestEmailLink,
       resendEmailLink,
       status,
-      verifyEmailLink,
     }),
-    [account, error, pendingEmail, requestEmailLink, resendEmailLink, status, verifyEmailLink],
+    [account, checkEmailLink, error, pendingEmail, requestEmailLink, resendEmailLink, status],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

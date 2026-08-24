@@ -17,20 +17,18 @@ import { EditorialIcon } from '@/components/cengel/editorial-icon';
 import { SectionLabel } from '@/components/cengel/section-label';
 import { fonts, layout, palette, spacing, typography } from '@/constants/design';
 import { useAuth } from '@/providers/auth-provider';
-import { normalizeEmailOtp } from '@/services/account-linking';
 
 export default function ProfileScreen() {
   const {
     account,
+    checkEmailLink,
     error,
     pendingEmail,
     requestEmailLink,
     resendEmailLink,
     status,
-    verifyEmailLink,
   } = useAuth();
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -94,48 +92,39 @@ export default function ProfileScreen() {
       return (
         <View style={styles.formCard}>
           <SectionLabel>E-postanı Doğrula</SectionLabel>
-          <Text style={styles.cardTitle}>6 haneli kodu gir</Text>
+          <Text style={styles.cardTitle}>E-postadaki bağlantıya dokun</Text>
           <Text style={styles.supportingText}>
-            {pendingEmail} adresine gönderilen kod, mevcut anonim hesabını kalıcı hesaba bağlar.
+            {pendingEmail} adresine gönderilen “Confirm new email address” bağlantısı mevcut anonim
+            hesabını kalıcı hesaba bağlar. Bağlantıyı açtıktan sonra buraya dön.
           </Text>
-          <TextInput
-            accessibilityLabel="Altı haneli doğrulama kodu"
-            autoComplete="one-time-code"
-            editable={!submitting}
-            keyboardType="number-pad"
-            maxLength={6}
-            onChangeText={(value) => setOtp(value.replace(/\D/g, '').slice(0, 6))}
-            placeholder="000000"
-            placeholderTextColor={palette.mutedInk}
-            style={[styles.input, styles.otpInput]}
-            textContentType="oneTimeCode"
-            value={otp}
-          />
           <Pressable
             accessibilityRole="button"
-            disabled={submitting || normalizeEmailOtp(otp) === null}
+            disabled={submitting}
             onPress={() =>
-              void run(() => verifyEmailLink(otp), 'E-posta doğrulandı; hesabın güvenceye alındı.')
+              void run(
+                () => checkEmailLink(),
+                'E-posta doğrulandı; hesabın güvenceye alındı.',
+              )
             }
             style={({ pressed }) => [
               styles.primaryButton,
-              (submitting || normalizeEmailOtp(otp) === null) && styles.buttonDisabled,
+              submitting && styles.buttonDisabled,
               pressed && styles.buttonPressed,
             ]}>
             {submitting ? (
               <ActivityIndicator color={palette.onPrimary} />
             ) : (
-              <Text style={styles.primaryButtonText}>Doğrula</Text>
+              <Text style={styles.primaryButtonText}>Doğrulamayı Kontrol Et</Text>
             )}
           </Pressable>
           <Pressable
             accessibilityRole="button"
             disabled={submitting}
             onPress={() =>
-              void run(() => resendEmailLink(), 'Yeni doğrulama kodu e-posta adresine gönderildi.')
+              void run(() => resendEmailLink(), 'Doğrulama e-postası tekrar gönderildi.')
             }
             style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
-            <Text style={styles.secondaryButtonText}>Kodu Tekrar Gönder</Text>
+            <Text style={styles.secondaryButtonText}>E-postayı Tekrar Gönder</Text>
           </Pressable>
         </View>
       );
@@ -178,7 +167,7 @@ export default function ProfileScreen() {
           {submitting ? (
             <ActivityIndicator color={palette.onPrimary} />
           ) : (
-            <Text style={styles.primaryButtonText}>Kodu Gönder</Text>
+            <Text style={styles.primaryButtonText}>Doğrulama Bağlantısını Gönder</Text>
           )}
         </Pressable>
       </View>
@@ -213,8 +202,8 @@ export default function ProfileScreen() {
             <View style={styles.privacyNote}>
               <EditorialIcon color={palette.outline} name="lock" size={18} />
               <Text style={styles.privacyText}>
-                Şifresiz doğrulama kullanılır. E-posta adresin bulmaca içeriği üretmek veya reklam
-                amacıyla kullanılmaz.
+                Şifresiz bağlantı doğrulaması kullanılır. E-posta adresin bulmaca içeriği üretmek
+                veya reklam amacıyla kullanılmaz.
               </Text>
             </View>
           </View>
@@ -281,12 +270,6 @@ const styles = StyleSheet.create({
     color: palette.ink,
     minHeight: 52,
     paddingHorizontal: 16,
-  },
-  otpInput: {
-    fontFamily: fonts.interBold,
-    fontSize: 24,
-    letterSpacing: 12,
-    textAlign: 'center',
   },
   primaryButton: {
     alignItems: 'center',

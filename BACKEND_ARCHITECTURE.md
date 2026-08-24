@@ -144,7 +144,7 @@ Supabase anonim kullanıcı UUID'si RevenueCat `app_user_id` olarak kullanılır
 
 ### 5. Kimlik ve progress sync
 
-Durum: anonim Supabase oturumu, native güvenli session saklama, JWT/JWKS doğrulaması, profile/device provisioning, SQLite/localStorage outbox, batch sync, idempotency ve deterministik conflict çözümü tamamlandı. Staging'de gerçek anonim JWT ile upsert, duplicate event ve tombstone akışları doğrulandı. Profil sekmesindeki e-posta OTP akışı anonim kullanıcı UUID'sini koruyarak kalıcı kimlik bağlar; canlı e-posta doğrulaması Supabase manual linking ayarı ve gerçek bir alıcı adresiyle kabul testinde tamamlanacaktır.
+Durum: anonim Supabase oturumu, native güvenli session saklama, JWT/JWKS doğrulaması, profile/device provisioning, SQLite/localStorage outbox, batch sync, idempotency ve deterministik conflict çözümü tamamlandı. Staging'de gerçek anonim JWT ile upsert, duplicate event ve tombstone akışları doğrulandı. Profil sekmesindeki varsayılan e-posta bağlantısı akışı anonim kullanıcı UUID'sini koruyarak kalıcı kimlik bağlar; canlı e-posta doğrulaması Supabase manual linking ayarı ve gerçek bir alıcı adresiyle kabul testinde tamamlanacaktır.
 
 - Uygulama ilk açılışında Supabase anonim oturum oluştur; session'ı güvenli yerel storage'da sürdür.
 - API'de Supabase JWT/JWKS doğrulaması ve profile/device provisioning ekle.
