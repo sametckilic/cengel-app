@@ -44,8 +44,42 @@ export default defineRailway(() => {
       NODE_ENV: "production",
     },
   });
+  const generatorWorker = service("generator-worker", {
+    source: github("sametckilic/cengel-app", { branch: "main" }),
+    build: {
+      builder: "DOCKERFILE",
+      dockerfilePath: "apps/worker/Dockerfile",
+      watchPatterns: [
+        "apps/worker/**",
+        "apps/mobile/data/generated/daily/**",
+        "packages/generator/**",
+        "package.json",
+        "package-lock.json",
+      ],
+    },
+    deploy: {
+      cronSchedule: "10 21 * * *",
+      restartPolicyType: "NEVER",
+    },
+    replicas: { "ams": 1 },
+    env: {
+      DATABASE_SSL: "false",
+      DATABASE_URL: postgresDatabase.env.DATABASE_URL,
+      DB_CONNECTION_TIMEOUT_MS: "5000",
+      DB_POOL_MAX: "2",
+      WORKER_BUFFER_DAYS: "7",
+      WORKER_MODE: "shadow",
+      WORKER_REVISION: "schedule-v1",
+      WORKER_START_DATE: "tomorrow",
+    },
+  });
 
   return project("cengel-app", {
-    resources: [cengelApi, postgresDatabase, postgresVolume],
+    resources: [
+      cengelApi,
+      generatorWorker,
+      postgresDatabase,
+      postgresVolume,
+    ],
   });
 });
