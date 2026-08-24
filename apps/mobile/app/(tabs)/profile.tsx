@@ -18,30 +18,23 @@ import { SectionLabel } from '@/components/cengel/section-label';
 import { fonts, layout, palette, spacing, typography } from '@/constants/design';
 import { useAuth } from '@/providers/auth-provider';
 
-export default function ProfileScreen() {
-  const {
-    account,
-    checkEmailLink,
-    error,
-    pendingEmail,
-    requestEmailLink,
-    resendEmailLink,
-    status,
-  } = useAuth();
-  const [email, setEmail] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+type FormMode = 'login' | 'register';
 
-  async function run(action: () => Promise<void>, successMessage?: string) {
+export default function ProfileScreen() {
+  const { account, error, login, logout, register, status } = useAuth();
+  const [mode, setMode] = useState<FormMode>('register');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirmation, setPasswordConfirmation] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  async function run(action: () => Promise<void>) {
     setSubmitting(true);
-    setNotice(null);
 
     try {
       await action();
-
-      if (successMessage) {
-        setNotice(successMessage);
-      }
+      setPassword('');
+      setPasswordConfirmation('');
     } catch {
       // The provider exposes a user-facing error message.
     } finally {
@@ -54,7 +47,7 @@ export default function ProfileScreen() {
       return (
         <View style={styles.loadingState}>
           <ActivityIndicator color={palette.ink} />
-          <Text style={styles.supportingText}>Hesabın hazırlanıyor…</Text>
+          <Text style={styles.supportingText}>Hesap durumu yükleniyor…</Text>
         </View>
       );
     }
@@ -65,79 +58,73 @@ export default function ProfileScreen() {
           <EditorialIcon name="cloud-off" size={28} />
           <Text style={styles.cardTitle}>Hesap bağlantısı kullanılamıyor</Text>
           <Text style={styles.supportingText}>
-            Bu kurulumda Supabase public yapılandırması bulunamadı. Yerel ilerlemen cihazında
-            korunmaya devam eder.
+            Yerel ilerlemen cihazında korunmaya devam eder. Supabase public yapılandırması
+            eklendiğinde hesap ve cihazlar arası senkronizasyon açılır.
           </Text>
         </View>
       );
     }
 
-    if (status === 'permanent') {
+    if (status === 'authenticated') {
       return (
         <View style={styles.statusCard}>
           <View style={styles.successIcon}>
             <EditorialIcon color={palette.onPrimary} name="check" size={24} />
           </View>
-          <SectionLabel>Hesap Güvende</SectionLabel>
-          <Text style={styles.cardTitle}>{account?.email ?? 'Doğrulanmış hesap'}</Text>
+          <SectionLabel>Hesap Bağlı</SectionLabel>
+          <Text style={styles.cardTitle}>{account?.email}</Text>
           <Text style={styles.supportingText}>
-            Bulmaca ilerlemen bu kullanıcı kimliğine bağlı. Aynı kimlik abonelikler ve başarımlar
-            için de kullanılacak.
+            Yerel bulmaca ilerlemen bu hesaba senkronize edilir. Uygulamadan çıkış yapsan da
+            cihazındaki bulmacalar ve ilerleme kayıtları silinmez.
           </Text>
+          <Pressable
+            accessibilityRole="button"
+            disabled={submitting}
+            onPress={() => void run(logout)}
+            style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
+            {submitting ? (
+              <ActivityIndicator color={palette.ink} />
+            ) : (
+              <Text style={styles.secondaryButtonText}>Bu Cihazda Çıkış Yap</Text>
+            )}
+          </Pressable>
         </View>
       );
     }
 
-    if (pendingEmail) {
-      return (
-        <View style={styles.formCard}>
-          <SectionLabel>E-postanı Doğrula</SectionLabel>
-          <Text style={styles.cardTitle}>E-postadaki bağlantıya dokun</Text>
-          <Text style={styles.supportingText}>
-            {pendingEmail} adresine gönderilen “Confirm new email address” bağlantısı mevcut anonim
-            hesabını kalıcı hesaba bağlar. Bağlantıyı açtıktan sonra buraya dön.
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            disabled={submitting}
-            onPress={() =>
-              void run(
-                () => checkEmailLink(),
-                'E-posta doğrulandı; hesabın güvenceye alındı.',
-              )
-            }
-            style={({ pressed }) => [
-              styles.primaryButton,
-              submitting && styles.buttonDisabled,
-              pressed && styles.buttonPressed,
-            ]}>
-            {submitting ? (
-              <ActivityIndicator color={palette.onPrimary} />
-            ) : (
-              <Text style={styles.primaryButtonText}>Doğrulamayı Kontrol Et</Text>
-            )}
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            disabled={submitting}
-            onPress={() =>
-              void run(() => resendEmailLink(), 'Doğrulama e-postası tekrar gönderildi.')
-            }
-            style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
-            <Text style={styles.secondaryButtonText}>E-postayı Tekrar Gönder</Text>
-          </Pressable>
-        </View>
-      );
-    }
+    const isRegister = mode === 'register';
 
     return (
       <View style={styles.formCard}>
-        <SectionLabel>İlerlemeni Koru</SectionLabel>
-        <Text style={styles.cardTitle}>Hesabını güvenceye al</Text>
-        <Text style={styles.supportingText}>
-          Şu anda kayıt gerektirmeyen anonim bir hesap kullanıyorsun. E-postanı doğruladığında
-          kullanıcı kimliğin ve tüm bulmaca ilerlemen aynı kalır.
+        <SectionLabel>İsteğe Bağlı Hesap</SectionLabel>
+        <Text style={styles.cardTitle}>
+          {isRegister ? 'İlerlemeni güvenceye al' : 'Hesabına giriş yap'}
         </Text>
+        <Text style={styles.supportingText}>
+          {isRegister
+            ? 'Hesap oluşturmadan oynamaya devam edebilirsin. Hesap açarsan ilerlemen cihazlar arasında taşınabilir.'
+            : 'Daha önce oluşturduğun hesabın e-posta adresi ve şifresiyle devam et.'}
+        </Text>
+        <View accessibilityRole="tablist" style={styles.modeTabs}>
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isRegister }}
+            onPress={() => setMode('register')}
+            style={[styles.modeTab, isRegister && styles.modeTabActive]}>
+            <Text style={[styles.modeTabText, isRegister && styles.modeTabTextActive]}>
+              Kayıt Ol
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{ selected: !isRegister }}
+            onPress={() => setMode('login')}
+            style={[styles.modeTab, !isRegister && styles.modeTabActive]}>
+            <Text style={[styles.modeTabText, !isRegister && styles.modeTabTextActive]}>
+              Giriş Yap
+            </Text>
+          </Pressable>
+        </View>
         <Text style={styles.inputLabel}>E-posta adresi</Text>
         <TextInput
           accessibilityLabel="E-posta adresi"
@@ -147,27 +134,65 @@ export default function ProfileScreen() {
           editable={!submitting}
           keyboardType="email-address"
           onChangeText={setEmail}
-          onSubmitEditing={() => void run(() => requestEmailLink(email))}
           placeholder="ornek@eposta.com"
           placeholderTextColor={palette.mutedInk}
-          returnKeyType="send"
           style={styles.input}
           textContentType="emailAddress"
           value={email}
         />
+        <Text style={styles.inputLabel}>Şifre</Text>
+        <TextInput
+          accessibilityLabel="Şifre"
+          autoCapitalize="none"
+          autoComplete={isRegister ? 'new-password' : 'current-password'}
+          editable={!submitting}
+          onChangeText={setPassword}
+          placeholder="En az 8 karakter"
+          placeholderTextColor={palette.mutedInk}
+          secureTextEntry
+          style={styles.input}
+          textContentType={isRegister ? 'newPassword' : 'password'}
+          value={password}
+        />
+        {isRegister ? (
+          <>
+            <Text style={styles.inputLabel}>Şifre tekrar</Text>
+            <TextInput
+              accessibilityLabel="Şifre tekrar"
+              autoCapitalize="none"
+              autoComplete="new-password"
+              editable={!submitting}
+              onChangeText={setPasswordConfirmation}
+              placeholder="Şifreyi yeniden gir"
+              placeholderTextColor={palette.mutedInk}
+              secureTextEntry
+              style={styles.input}
+              textContentType="newPassword"
+              value={passwordConfirmation}
+            />
+          </>
+        ) : null}
         <Pressable
           accessibilityRole="button"
-          disabled={submitting || email.trim().length === 0}
-          onPress={() => void run(() => requestEmailLink(email))}
+          disabled={submitting || !email.trim() || !password}
+          onPress={() =>
+            void run(() =>
+              isRegister
+                ? register(email, password, passwordConfirmation)
+                : login(email, password),
+            )
+          }
           style={({ pressed }) => [
             styles.primaryButton,
-            (submitting || email.trim().length === 0) && styles.buttonDisabled,
+            (submitting || !email.trim() || !password) && styles.buttonDisabled,
             pressed && styles.buttonPressed,
           ]}>
           {submitting ? (
             <ActivityIndicator color={palette.onPrimary} />
           ) : (
-            <Text style={styles.primaryButtonText}>Doğrulama Bağlantısını Gönder</Text>
+            <Text style={styles.primaryButtonText}>
+              {isRegister ? 'Hesap Oluştur' : 'Giriş Yap'}
+            </Text>
           )}
         </Pressable>
       </View>
@@ -179,7 +204,6 @@ export default function ProfileScreen() {
       <EditorialHeader title="Profil" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
         style={styles.keyboardAvoiding}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -193,17 +217,11 @@ export default function ProfileScreen() {
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
-            {notice ? (
-              <View accessibilityLiveRegion="polite" style={styles.noticeMessage}>
-                <EditorialIcon color={palette.secondary} name="check-circle-outline" size={18} />
-                <Text style={styles.noticeText}>{notice}</Text>
-              </View>
-            ) : null}
-            <View style={styles.privacyNote}>
-              <EditorialIcon color={palette.outline} name="lock" size={18} />
-              <Text style={styles.privacyText}>
-                Şifresiz bağlantı doğrulaması kullanılır. E-posta adresin bulmaca içeriği üretmek
-                veya reklam amacıyla kullanılmaz.
+            <View style={styles.localNote}>
+              <EditorialIcon color={palette.outline} name="offline-bolt" size={18} />
+              <Text style={styles.localNoteText}>
+                Hesap zorunlu değildir. Bulmacalar ve yerel kayıtlar internet veya giriş olmadan
+                çalışmaya devam eder.
               </Text>
             </View>
           </View>
@@ -214,13 +232,8 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    backgroundColor: palette.paper,
-    flex: 1,
-  },
-  keyboardAvoiding: {
-    flex: 1,
-  },
+  screen: { backgroundColor: palette.paper, flex: 1 },
+  keyboardAvoiding: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 120,
@@ -236,7 +249,7 @@ const styles = StyleSheet.create({
     backgroundColor: palette.surfaceLowest,
     borderColor: palette.gridLine,
     borderWidth: 1,
-    gap: 16,
+    gap: 14,
     padding: spacing.page,
   },
   statusCard: {
@@ -247,14 +260,26 @@ const styles = StyleSheet.create({
     gap: 16,
     padding: spacing.page,
   },
-  cardTitle: {
-    ...typography.headlineMd,
-    color: palette.ink,
+  cardTitle: { ...typography.headlineMd, color: palette.ink },
+  supportingText: { ...typography.bodyClue, color: palette.onSurfaceVariant },
+  modeTabs: {
+    borderColor: palette.outlineVariant,
+    borderWidth: 1,
+    flexDirection: 'row',
   },
-  supportingText: {
+  modeTab: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  modeTabActive: { backgroundColor: palette.primary },
+  modeTabText: {
     ...typography.bodyClue,
-    color: palette.onSurfaceVariant,
+    color: palette.ink,
+    fontFamily: fonts.interSemiBold,
   },
+  modeTabTextActive: { color: palette.onPrimary },
   inputLabel: {
     ...typography.caption,
     color: palette.ink,
@@ -296,12 +321,8 @@ const styles = StyleSheet.create({
     color: palette.ink,
     fontFamily: fonts.interSemiBold,
   },
-  buttonDisabled: {
-    opacity: 0.4,
-  },
-  buttonPressed: {
-    opacity: 0.72,
-  },
+  buttonDisabled: { opacity: 0.4 },
+  buttonPressed: { opacity: 0.72 },
   loadingState: {
     alignItems: 'center',
     gap: 12,
@@ -328,20 +349,7 @@ const styles = StyleSheet.create({
     color: palette.onErrorContainer,
     flex: 1,
   },
-  noticeMessage: {
-    alignItems: 'flex-start',
-    backgroundColor: palette.secondaryFixed,
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 16,
-    padding: 14,
-  },
-  noticeText: {
-    ...typography.bodyClue,
-    color: palette.onSecondaryFixed,
-    flex: 1,
-  },
-  privacyNote: {
+  localNote: {
     alignItems: 'flex-start',
     borderTopColor: palette.gridLine,
     borderTopWidth: 1,
@@ -350,7 +358,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.section,
     paddingTop: 16,
   },
-  privacyText: {
+  localNoteText: {
     ...typography.caption,
     color: palette.outline,
     flex: 1,

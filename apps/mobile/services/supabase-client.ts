@@ -4,7 +4,6 @@ import { Platform } from 'react-native';
 import { authStorage } from '@/services/auth-storage';
 
 let client: SupabaseClient | null | undefined;
-let sessionPromise: Promise<string | null> | undefined;
 
 function readSupabaseConfiguration(): {
   publishableKey: string;
@@ -40,34 +39,25 @@ export function getSupabaseClient(): SupabaseClient | null {
   return client;
 }
 
-export function ensureAnonymousAccessToken(): Promise<string | null> {
-  sessionPromise ??= (async () => {
-    const supabase = getSupabaseClient();
+export async function getAuthenticatedAccess(): Promise<{
+  accessToken: string;
+  userId: string;
+} | null> {
+  const supabase = getSupabaseClient();
 
-    if (!supabase) {
-      return null;
-    }
+  if (!supabase) {
+    return null;
+  }
 
-    const current = await supabase.auth.getSession();
+  const current = await supabase.auth.getSession();
 
-    if (current.error) {
-      throw current.error;
-    }
+  if (current.error) {
+    throw current.error;
+  }
 
-    if (current.data.session) {
-      return current.data.session.access_token;
-    }
+  const session = current.data.session;
 
-    const anonymous = await supabase.auth.signInAnonymously();
-
-    if (anonymous.error) {
-      throw anonymous.error;
-    }
-
-    return anonymous.data.session?.access_token ?? null;
-  })().finally(() => {
-    sessionPromise = undefined;
-  });
-
-  return sessionPromise;
+  return session && !session.user.is_anonymous
+    ? { accessToken: session.access_token, userId: session.user.id }
+    : null;
 }

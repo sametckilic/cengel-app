@@ -39,6 +39,10 @@ export type ProgressSyncOutboxStore = {
   applyChanges(changes: readonly ProgressSyncChange[]): Promise<void>;
   getDeviceId(): Promise<string>;
   list(limit?: number): Promise<readonly ProgressSyncEvent[]>;
+  prepareForUser(
+    userId: string,
+    snapshots: readonly PuzzleProgressSnapshot[],
+  ): Promise<void>;
 };
 
 const outboxListeners = new Set<() => void>();
@@ -50,6 +54,21 @@ export function notifyProgressOutboxChanged(): void {
 export function subscribeProgressOutbox(listener: () => void): () => void {
   outboxListeners.add(listener);
   return () => outboxListeners.delete(listener);
+}
+
+export function createProgressRebaseEvents(
+  deviceId: string,
+  snapshots: readonly PuzzleProgressSnapshot[],
+  createEventId: () => string,
+): readonly ProgressSyncEvent[] {
+  return snapshots.map((snapshot) => ({
+    clientUpdatedAt: snapshot.updatedAt,
+    deviceId,
+    eventId: createEventId(),
+    operation: 'upsert',
+    puzzleId: snapshot.puzzleId,
+    snapshot,
+  }));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

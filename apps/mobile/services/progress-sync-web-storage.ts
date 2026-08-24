@@ -1,14 +1,18 @@
 import { randomUUID } from 'expo-crypto';
 
 import {
+  createProgressRebaseEvents,
   parseProgressSyncEvent,
   type ProgressSyncEvent,
 } from '@/services/progress-sync';
+import type { PuzzleProgressSnapshot } from '@cengel/puzzle-core/puzzle-progress';
 
 const DEVICE_KEY = 'cengel:device-id:v1';
 const OUTBOX_KEY = 'cengel:progress-outbox:v1';
+const SYNC_USER_KEY = 'cengel:sync-user-id:v1';
 let memoryDeviceId: string | undefined;
 let memoryOutbox: Record<string, ProgressSyncEvent> = {};
+let memorySyncUserId: string | undefined;
 
 function readOutbox(): Record<string, ProgressSyncEvent> {
   if (typeof window === 'undefined') {
@@ -79,4 +83,35 @@ export function listWebProgressEvents(limit: number): readonly ProgressSyncEvent
   return Object.values(readOutbox())
     .sort((left, right) => left.clientUpdatedAt.localeCompare(right.clientUpdatedAt))
     .slice(0, limit);
+}
+
+export function prepareWebProgressSyncUser(
+  userId: string,
+  snapshots: readonly PuzzleProgressSnapshot[],
+): void {
+  const currentUserId =
+    typeof window === 'undefined'
+      ? memorySyncUserId
+      : (window.localStorage.getItem(SYNC_USER_KEY) ?? undefined);
+
+  if (currentUserId === userId) {
+    return;
+  }
+
+  const deviceId = randomUUID();
+  const events = createProgressRebaseEvents(deviceId, snapshots, randomUUID);
+  const outbox = Object.fromEntries(
+    events.map((event) => [event.puzzleId, event]),
+  );
+
+  if (typeof window === 'undefined') {
+    memoryDeviceId = deviceId;
+    memoryOutbox = outbox;
+    memorySyncUserId = userId;
+    return;
+  }
+
+  window.localStorage.setItem(DEVICE_KEY, deviceId);
+  window.localStorage.setItem(SYNC_USER_KEY, userId);
+  writeOutbox(outbox);
 }

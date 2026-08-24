@@ -4,6 +4,7 @@ import {
   acknowledgeWebProgressEvents,
   getOrCreateWebProgressDeviceId,
   listWebProgressEvents,
+  prepareWebProgressSyncUser,
 } from '@/services/progress-sync-web-storage';
 
 export const progressSyncOutboxStore: ProgressSyncOutboxStore = {
@@ -18,5 +19,8 @@ export const progressSyncOutboxStore: ProgressSyncOutboxStore = {
   },
   async list(limit = 50) {
     return listWebProgressEvents(limit);
+  },
+  async prepareForUser(userId, snapshots) {
+    prepareWebProgressSyncUser(userId, snapshots);
   },
 };

@@ -9,7 +9,7 @@ Kararlaştırılan temel seçimler:
 - Backend: TypeScript, NestJS ve Fastify kullanan bağımsız bir modüler monolit
 - Veritabanı: Railway üzerinde PostgreSQL
 - Dağıtım: Docker ile Railway; API ve worker ayrı servisler
-- Kimlik: Supabase Auth ile otomatik anonim kullanıcı, daha sonra kalıcı hesaba bağlama
+- Kimlik: zorunlu hesap olmadan yerel misafir modu; isteğe bağlı Supabase e-posta/şifre hesabı
 - Abonelik: RevenueCat; backend webhook olaylarından entitlement üretir
 - Doğrulama: çevrimdışı rahat bulmacalar ve sunucuda doğrulanan rekabetçi bulmacalar olmak üzere iki katman
 - İlk milestone: bağımsız içerik API'si, PostgreSQL, generator worker ve mobil katalog geçişi
@@ -107,7 +107,7 @@ Puzzle tanımı `validationMode` taşır:
 
 Premium puzzle tanımları uygulama bundle'ına gömülmez. API, aktif entitlement olmadan premium liste veya detay döndürmez. İstemciden gelen `isPremium` benzeri değerlere güvenilmez.
 
-Supabase anonim kullanıcı UUID'si RevenueCat `app_user_id` olarak kullanılır. Kullanıcı hesabını bağladığında aynı Supabase kullanıcısı korunur. RevenueCat webhook'ları event ID ile idempotent işlenir; renewal, cancellation, expiration ve transfer olayları backend entitlement durumunu günceller.
+Hesapla giriş yapan kullanıcıda Supabase UUID'si RevenueCat `app_user_id` olarak kullanılır. Misafir satın alma desteği abonelik aşamasında kalıcı kurulum kimliği ve hesapla birleştirme kurallarıyla ayrıca tasarlanacaktır. RevenueCat webhook'ları event ID ile idempotent işlenir; renewal, cancellation, expiration ve transfer olayları backend entitlement durumunu günceller.
 
 ## Uygulama aşamaları
 
@@ -144,12 +144,12 @@ Supabase anonim kullanıcı UUID'si RevenueCat `app_user_id` olarak kullanılır
 
 ### 5. Kimlik ve progress sync
 
-Durum: anonim Supabase oturumu, native güvenli session saklama, JWT/JWKS doğrulaması, profile/device provisioning, SQLite/localStorage outbox, batch sync, idempotency ve deterministik conflict çözümü tamamlandı. Staging'de gerçek anonim JWT ile upsert, duplicate event ve tombstone akışları doğrulandı. Profil sekmesindeki varsayılan e-posta bağlantısı akışı anonim kullanıcı UUID'sini koruyarak kalıcı kimlik bağlar; canlı e-posta doğrulaması Supabase manual linking ayarı ve gerçek bir alıcı adresiyle kabul testinde tamamlanacaktır.
+Durum: zorunlu kimlik doğrulama kaldırıldı; uygulama yerel misafir olarak açılır. İsteğe bağlı e-posta/şifre kayıt, giriş ve yerel çıkış akışı; native güvenli session saklama; JWT/JWKS doğrulaması; profile/device provisioning; SQLite/localStorage outbox; batch sync; idempotency ve deterministik conflict çözümü tamamlandı. Misafir ilerlemesi ilk girişte yeni hesap/cihaz kimliğine taşınarak senkronizasyon kuyruğuna alınır. Staging'de sync endpoint'i upsert, duplicate event ve tombstone akışlarıyla doğrulandı. Doğrudan kayıt kabul testi için Supabase **Confirm email** ayarı kapatılmalıdır.
 
-- Uygulama ilk açılışında Supabase anonim oturum oluştur; session'ı güvenli yerel storage'da sürdür.
+- Uygulamayı zorunlu hesap olmadan yerel misafir modunda aç; isteğe bağlı e-posta/şifre session'ını güvenli yerel storage'da sürdür.
 - API'de Supabase JWT/JWKS doğrulaması ve profile/device provisioning ekle.
 - SQLite outbox, batch sync, duplicate event ve iki cihaz conflict çözümünü uygula.
-- Anonim kullanıcıyı kalıcı hesaba bağlarken puzzle ilerlemesini ve RevenueCat kimliğini koru.
+- İlk girişte mevcut misafir ilerlemesini hesap için yeni cihaz kimliğiyle yeniden kuyruğa al; çıkışta yerel ilerlemeyi koru.
 
 ### 6. Abonelik ve başarımlar
 
@@ -181,7 +181,7 @@ Ek backend doğrulamaları:
 - API contract/E2E: liste, günlük, detay, filtre, ETag/304, 404 ve gelecek içeriğin gizlenmesi
 - DB: tekrar çalıştırılabilir migration/import, immutable yayın, unique tarih ve rollback
 - Worker: deterministik sonuç, idempotency, retry, eşzamanlı lock ve başarısızlıkta tamponun korunması
-- Auth/progress: anonim session, hesap bağlama, offline replay, duplicate event ve çoklu cihaz conflict
+- Auth/progress: misafir açılış, e-posta/şifre kayıt-giriş-çıkış, ilk girişte ilerleme aktarımı, offline replay, duplicate event ve çoklu cihaz conflict
 - RevenueCat: webhook doğrulama, duplicate/reordered event, renewal, cancellation, expiration ve transfer
 - Mobil: Android/iOS/web export, uzak katalog, cache ve tamamen çevrimdışı fallback
 
@@ -198,7 +198,7 @@ Ek backend doğrulamaları:
 - [Expo SDK 54](https://docs.expo.dev/versions/v54.0.0/)
 - [Expo monorepo rehberi](https://docs.expo.dev/guides/monorepos/)
 - [NestJS Fastify adapter](https://docs.nestjs.com/techniques/performance)
-- [Supabase anonim kullanıcılar](https://supabase.com/docs/guides/auth/auth-anonymous)
+- [Supabase parola tabanlı kimlik doğrulama](https://supabase.com/docs/guides/auth/passwords)
 - [RevenueCat webhook olayları](https://www.revenuecat.com/docs/integrations/webhooks/event-types-and-fields)
 - [Railway monorepo deployment](https://docs.railway.com/deployments/monorepo)
 - [Railway cron jobs](https://docs.railway.com/cron-jobs)

@@ -1,6 +1,8 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
+import { randomUUID } from 'expo-crypto';
 
 import {
+  createProgressRebaseEvents,
   parseProgressSyncEvent,
   type ProgressSyncEvent,
   type ProgressSyncOutboxStore,
@@ -13,6 +15,10 @@ import {
 
 type OutboxRow = {
   payload: string;
+};
+
+type MetadataRow = {
+  value: string;
 };
 
 async function acknowledgeEvents(
@@ -54,5 +60,43 @@ export const progressSyncOutboxStore: ProgressSyncOutboxStore = {
     return rows
       .map(({ payload }) => parseProgressSyncEvent(payload))
       .filter((event): event is ProgressSyncEvent => event !== null);
+  },
+  async prepareForUser(userId, snapshots) {
+    const database = await getProgressDatabase();
+    const owner = await database.getFirstAsync<MetadataRow>(
+      "SELECT value FROM progress_metadata WHERE key = 'sync-user-id'",
+    );
+
+    if (owner?.value === userId) {
+      return;
+    }
+
+    const deviceId = randomUUID();
+    const events = createProgressRebaseEvents(deviceId, snapshots, randomUUID);
+
+    await database.withTransactionAsync(async () => {
+      await database.runAsync('DELETE FROM progress_sync_outbox');
+      await database.runAsync(
+        `INSERT INTO progress_metadata (key, value) VALUES ('device-id', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+        deviceId,
+      );
+      await database.runAsync(
+        `INSERT INTO progress_metadata (key, value) VALUES ('sync-user-id', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+        userId,
+      );
+
+      for (const event of events) {
+        await database.runAsync(
+          `INSERT INTO progress_sync_outbox (puzzle_id, event_id, payload, created_at)
+           VALUES (?, ?, ?, ?)`,
+          event.puzzleId,
+          event.eventId,
+          JSON.stringify(event),
+          event.clientUpdatedAt,
+        );
+      }
+    });
   },
 };

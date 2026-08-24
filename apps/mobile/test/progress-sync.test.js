@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const {
+  createProgressRebaseEvents,
   isProgressSyncEvent,
   parseProgressSyncEvent,
   parseProgressSyncResponse,
@@ -77,4 +78,23 @@ test('validates sync responses before applying remote state', () => {
     }),
     null,
   );
+});
+
+test('rebases local snapshots onto a new authenticated device identity', () => {
+  let eventSequence = 0;
+  const events = createProgressRebaseEvents('device-new', [snapshot], () => {
+    eventSequence += 1;
+    return `event-${eventSequence}`;
+  });
+
+  assert.deepEqual(events, [
+    {
+      clientUpdatedAt: snapshot.updatedAt,
+      deviceId: 'device-new',
+      eventId: 'event-1',
+      operation: 'upsert',
+      puzzleId: snapshot.puzzleId,
+      snapshot,
+    },
+  ]);
 });

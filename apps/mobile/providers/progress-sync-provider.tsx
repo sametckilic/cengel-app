@@ -6,7 +6,9 @@ import { AppState } from 'react-native';
 
 import { subscribeProgressOutbox } from '@/services/progress-sync';
 import { synchronizeProgress } from '@/services/progress-sync-client';
-import { ensureAnonymousAccessToken } from '@/services/supabase-client';
+import { progressSyncOutboxStore } from '@/services/progress-sync-store';
+import { puzzleProgressStore } from '@/services/puzzle-progress-store';
+import { getAuthenticatedAccess, getSupabaseClient } from '@/services/supabase-client';
 
 const OUTBOX_DEBOUNCE_MS = 1500;
 
@@ -30,14 +32,19 @@ export function ProgressSyncProvider({ children }: PropsWithChildren) {
       running = true;
 
       try {
-        const accessToken = await ensureAnonymousAccessToken();
+        const access = await getAuthenticatedAccess();
 
-        if (!accessToken) {
+        if (!access) {
           return;
         }
 
+        await progressSyncOutboxStore.prepareForUser(
+          access.userId,
+          await puzzleProgressStore.list(),
+        );
+
         for (let batch = 0; batch < 10 && active; batch += 1) {
-          const result = await synchronizeProgress(accessToken);
+          const result = await synchronizeProgress(access.accessToken);
 
           if (result.status === 'unavailable' || result.sentEventCount < 50) {
             break;
@@ -69,6 +76,7 @@ export function ProgressSyncProvider({ children }: PropsWithChildren) {
     const unsubscribeOutbox = subscribeProgressOutbox(() =>
       scheduleSync(OUTBOX_DEBOUNCE_MS),
     );
+    const authSubscription = getSupabaseClient()?.auth.onAuthStateChange(() => scheduleSync(0));
     const appStateSubscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         scheduleSync(0);
@@ -79,6 +87,7 @@ export function ProgressSyncProvider({ children }: PropsWithChildren) {
     return () => {
       active = false;
       unsubscribeOutbox();
+      authSubscription?.data.subscription.unsubscribe();
       appStateSubscription.remove();
 
       if (timer) {

@@ -10,23 +10,22 @@ import {
 } from 'react';
 
 import {
-  checkEmailAccountLink,
   getAccountIdentity,
-  requestEmailAccountLink,
-  resendEmailAccountLink,
+  loginWithPassword,
+  logoutCurrentAccount,
+  registerWithPassword,
   type AccountIdentity,
-} from '@/services/account-linking';
-import { ensureAnonymousAccessToken, getSupabaseClient } from '@/services/supabase-client';
+} from '@/services/password-auth';
+import { getSupabaseClient } from '@/services/supabase-client';
 
-type AuthStatus = 'anonymous' | 'error' | 'loading' | 'permanent' | 'unconfigured';
+type AuthStatus = 'authenticated' | 'guest' | 'loading' | 'unconfigured';
 
 type AuthContextValue = {
   account: AccountIdentity | null;
   error: string | null;
-  pendingEmail: string | null;
-  checkEmailLink(): Promise<void>;
-  requestEmailLink(email: string): Promise<void>;
-  resendEmailLink(): Promise<void>;
+  login(email: string, password: string): Promise<void>;
+  logout(): Promise<void>;
+  register(email: string, password: string, confirmation: string): Promise<void>;
   status: AuthStatus;
 };
 
@@ -34,12 +33,11 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<User | null>(null);
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const configured = getSupabaseClient() !== null;
 
-  const refreshUser = useCallback(async () => {
+  const loadUser = useCallback(async () => {
     const supabase = getSupabaseClient();
 
     if (!supabase) {
@@ -48,17 +46,40 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
 
     try {
-      await ensureAnonymousAccessToken();
-      const current = await supabase.auth.getUser();
+      const current = await supabase.auth.getSession();
 
       if (current.error) {
         throw current.error;
       }
 
-      setUser(current.data.user);
-      setPendingEmail(current.data.user.new_email ?? null);
+      if (current.data.session?.user.is_anonymous) {
+        const legacyLogout = await supabase.auth.signOut({ scope: 'local' });
+
+        if (legacyLogout.error) {
+          throw legacyLogout.error;
+        }
+
+        setUser(null);
+        setError(null);
+        return;
+      }
+
+      if (!current.data.session) {
+        setUser(null);
+        setError(null);
+        return;
+      }
+
+      const verified = await supabase.auth.getUser();
+
+      if (verified.error) {
+        throw verified.error;
+      }
+
+      setUser(verified.data.user);
       setError(null);
     } catch (reason) {
+      setUser(null);
       setError(reason instanceof Error ? reason.message : 'Kullanıcı oturumu yüklenemedi.');
     } finally {
       setLoading(false);
@@ -74,98 +95,81 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
 
     const subscription = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-
-      if (session?.user.new_email) {
-        setPendingEmail(session.user.new_email);
-      }
+      setUser(session?.user.is_anonymous ? null : (session?.user ?? null));
     });
 
-    void refreshUser();
+    void loadUser();
     return () => subscription.data.subscription.unsubscribe();
-  }, [refreshUser]);
+  }, [loadUser]);
 
-  const requestEmailLink = useCallback(async (email: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     setError(null);
 
     try {
-      const request = await requestEmailAccountLink(email, getSupabaseClient()?.auth);
-      setPendingEmail(request.email);
+      const account = await loginWithPassword(email, password, getSupabaseClient()?.auth);
       const current = await getSupabaseClient()?.auth.getUser();
+      setUser(current?.data.user ?? null);
 
-      if (current?.data.user) {
-        setUser(current.data.user);
+      if (!current?.data.user || current.data.user.id !== account.userId) {
+        throw new Error('Giriş oturumu doğrulanamadı.');
       }
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : 'Doğrulama e-postası gönderilemedi.';
+      const message = reason instanceof Error ? reason.message : 'Giriş yapılamadı.';
       setError(message);
       throw reason;
     }
   }, []);
 
-  const checkEmailLink = useCallback(
-    async () => {
-      if (!pendingEmail) {
-        const reason = new Error('Önce doğrulama e-postası isteyin.');
-        setError(reason.message);
-        throw reason;
-      }
-
+  const register = useCallback(
+    async (email: string, password: string, confirmation: string) => {
       setError(null);
 
       try {
-        const account = await checkEmailAccountLink(getSupabaseClient()?.auth);
+        const account = await registerWithPassword(
+          email,
+          password,
+          confirmation,
+          getSupabaseClient()?.auth,
+        );
         const current = await getSupabaseClient()?.auth.getUser();
         setUser(current?.data.user ?? null);
-        setPendingEmail(account.pendingEmail);
+
+        if (!current?.data.user || current.data.user.id !== account.userId) {
+          throw new Error('Kayıt oturumu doğrulanamadı.');
+        }
       } catch (reason) {
-        const message = reason instanceof Error ? reason.message : 'E-posta bağlantısı doğrulanamadı.';
+        const message = reason instanceof Error ? reason.message : 'Hesap oluşturulamadı.';
         setError(message);
         throw reason;
       }
     },
-    [pendingEmail],
+    [],
   );
 
-  const resendEmailLink = useCallback(async () => {
-    if (!pendingEmail) {
-      const reason = new Error('Tekrar gönderilecek e-posta adresi bulunamadı.');
-      setError(reason.message);
-      throw reason;
-    }
-
+  const logout = useCallback(async () => {
     setError(null);
 
     try {
-      await resendEmailAccountLink(pendingEmail, getSupabaseClient()?.auth);
+      await logoutCurrentAccount(getSupabaseClient()?.auth);
+      setUser(null);
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : 'E-posta tekrar gönderilemedi.';
+      const message = reason instanceof Error ? reason.message : 'Çıkış yapılamadı.';
       setError(message);
       throw reason;
     }
-  }, [pendingEmail]);
+  }, []);
 
-  const account = user ? getAccountIdentity(user) : null;
+  const account = useMemo(() => (user ? getAccountIdentity(user) : null), [user]);
   const status: AuthStatus = !configured
     ? 'unconfigured'
     : loading
       ? 'loading'
-      : account?.isAnonymous
-        ? 'anonymous'
-        : account
-          ? 'permanent'
-          : 'error';
+      : account
+        ? 'authenticated'
+        : 'guest';
   const value = useMemo<AuthContextValue>(
-    () => ({
-      account,
-      checkEmailLink,
-      error,
-      pendingEmail,
-      requestEmailLink,
-      resendEmailLink,
-      status,
-    }),
-    [account, checkEmailLink, error, pendingEmail, requestEmailLink, resendEmailLink, status],
+    () => ({ account, error, login, logout, register, status }),
+    [account, error, login, logout, register, status],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -79,7 +79,7 @@ Native katalog önbelleği Expo SQLite’ta, web önbelleği `localStorage` içi
 
 ## Kimlik ve ilerleme senkronizasyonu
 
-Uygulama ilk açılışta Supabase Auth üzerinden anonim bir kullanıcı oluşturur. Native session Expo SecureStore'da, web session `localStorage` içinde saklanır. Yerel puzzle ilerlemesi çevrimdışıyken outbox'a yazılır ve bağlantı geldiğinde bağımsız API'ye idempotent batch olarak gönderilir.
+Uygulama ilk açılışta hesap istemez; bütün yerel bulmaca akışı misafir olarak kullanılabilir. Profil sekmesinden isteğe bağlı e-posta ve şifre hesabı oluşturulabilir veya mevcut hesaba giriş yapılabilir. Native session Expo SecureStore'da, web session `localStorage` içinde saklanır. Yerel puzzle ilerlemesi hesapla giriş yapıldığında bağımsız API'ye idempotent batch olarak gönderilir; çıkış yapmak cihazdaki yerel ilerlemeyi silmez.
 
 Mobil istemci yalnızca public değerleri kullanır:
 
@@ -88,7 +88,7 @@ EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
-Supabase projesinde **Authentication → Sign In / Providers** altında hem **Anonymous Sign-Ins** hem de **Allow manual linking** etkin olmalıdır. Profil sekmesi anonim kullanıcıya Supabase'in varsayılan doğrulama e-postasını gönderir. Kullanıcı e-postadaki bağlantıyı açıp uygulamaya döndüğünde session yenilenir ve mevcut Supabase kullanıcı UUID'si değiştirilmeden kalıcı e-posta kimliği bağlanır. Bu akış varsayılan e-posta şablonuyla çalışır; özel şablon veya ücretli plan gerektirmez. API tarafında aynı proje URL'si `SUPABASE_URL` olarak tanımlanır; erişim tokenları Supabase JWKS üzerinden doğrulanır. Service-role veya JWT secret mobil uygulamaya eklenmez.
+Doğrulama bağlantısı olmadan doğrudan kayıt için Supabase projesinde **Authentication → Sign In / Providers → Email** altındaki **Confirm email** kapatılmalıdır. Bu ayar kapalıyken adres sahipliği doğrulanmaz; geçici ürün kararı olarak kabul edilmiştir. Uygulama anonim Supabase oturumu açmadığı için **Anonymous Sign-Ins** ve **Allow manual linking** gerekli değildir. API tarafında aynı proje URL'si `SUPABASE_URL` olarak tanımlanır; yalnızca giriş yapmış kullanıcıların erişim tokenları Supabase JWKS üzerinden doğrulanır. Service-role veya JWT secret mobil uygulamaya eklenmez.
 
 ## Server build
 
