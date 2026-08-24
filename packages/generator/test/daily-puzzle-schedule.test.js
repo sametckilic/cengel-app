@@ -2,7 +2,6 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
-const { createDailyPuzzlePublication } = require('../src/daily-puzzle-publication');
 const {
   addDaysToIsoDate,
   createDailyPublicationSchedule,
@@ -62,7 +61,11 @@ test('retries a failed deterministic seed before changing profile', () => {
           throw new Error('Synthetic fill failure.');
         }
 
-        return createDailyPuzzlePublication(entries, request);
+        return {
+          date: request.date,
+          profileId: request.profileId,
+          revision: request.revision,
+        };
       },
     },
   );

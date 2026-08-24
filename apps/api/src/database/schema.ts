@@ -179,11 +179,12 @@ export const clues = pgTable(
     clue: text('clue').notNull(),
     difficulty: gameplayDifficulty('difficulty').notNull(),
     fallbackOnly: boolean('fallback_only').default(false).notNull(),
-    id: text('id').primaryKey(),
+    id: text('id').notNull(),
     kind: text('kind').notNull(),
     shortClue: text('short_clue').notNull(),
   },
   (table) => [
+    primaryKey({ columns: [table.catalogVersionId, table.id] }),
     index('clues_catalog_version_idx').on(table.catalogVersionId),
     index('clues_generation_filter_idx').on(
       table.difficulty,

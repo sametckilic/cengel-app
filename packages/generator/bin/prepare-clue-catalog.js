@@ -5,9 +5,13 @@ const { mkdir, writeFile } = require('node:fs/promises');
 const path = require('node:path');
 const readline = require('node:readline');
 
+const {
+  isSupportedSourceGridAnswer,
+  normalizeGridAnswer,
+} = require('../src/grid-answer');
+
 const SOURCE_FILE = 'datasets/crossword_clues_gameplay_ready.jsonl';
 const SOURCE_PATH = path.resolve(process.cwd(), SOURCE_FILE);
-const ANSWER_PATTERN = /^[A-ZÇĞİÖŞÜ]+$/;
 const ALLOWED_SCREEN_FITS = new Set(['acceptable', 'ideal']);
 const DISALLOWED_FLAGS = new Set([
   'ambiguous_clue',
@@ -106,7 +110,7 @@ function validateRecord(record, lineNumber) {
 
   if (
     typeof record.answer_normalized === 'string' &&
-    !ANSWER_PATTERN.test(record.answer_normalized)
+    !isSupportedSourceGridAnswer(record.answer_normalized)
   ) {
     errors.push('answer_normalized contains unsupported characters');
   }
@@ -120,6 +124,15 @@ function validateRecord(record, lineNumber) {
   }
 
   return errors.map((error) => `Line ${lineNumber}: ${error}`);
+}
+
+function normalizeRecord(record) {
+  return typeof record.answer_normalized === 'string'
+    ? {
+        ...record,
+        answer_normalized: normalizeGridAnswer(record.answer_normalized),
+      }
+    : record;
 }
 
 function isQualityCandidate(record) {
@@ -201,7 +214,7 @@ async function readDataset() {
     try {
       const record = JSON.parse(line);
       validationErrors.push(...validateRecord(record, lineNumber));
-      records.push(record);
+      records.push(normalizeRecord(record));
     } catch (error) {
       validationErrors.push(`Line ${lineNumber}: invalid JSON (${error.message})`);
     }

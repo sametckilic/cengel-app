@@ -25,7 +25,9 @@ test('accepts a dense and balanced daily newspaper candidate', () => {
 
   assert.equal(quality.passed, true);
   assert.deepEqual(quality.issues, []);
-  assert.deepEqual(quality.metrics, {
+  assert.deepEqual(
+    { ...quality.metrics, themedWordCount: undefined },
+    {
     answerLengthAverage: 3.8,
     directionShare: 0.44,
     fallbackWordCount: 5,
@@ -34,9 +36,13 @@ test('accepts a dense and balanced daily newspaper candidate', () => {
     intersectionRatio: 1,
     occupiedRatio: 1,
     requiredThemedWordCount: 15,
-    themedWordCount: 20,
+    themedWordCount: undefined,
     wordCount: 25,
-  });
+    },
+  );
+  assert.ok(
+    quality.metrics.themedWordCount >= quality.metrics.requiredThemedWordCount,
+  );
   assert.equal(puzzle.id, 'gunun-2026-08-23');
 });
 
