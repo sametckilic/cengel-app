@@ -7,7 +7,11 @@ import {
   type PuzzleProgressStore,
   serializePuzzleProgress,
 } from '@cengel/puzzle-core/puzzle-progress';
-import type { ProgressSyncEvent } from '@/services/progress-sync';
+import {
+  notifyProgressOutboxChanged,
+  type ProgressSyncChange,
+  type ProgressSyncEvent,
+} from '@/services/progress-sync';
 
 const DATABASE_NAME = 'cengel-progress.db';
 let databasePromise: Promise<SQLiteDatabase> | undefined;
@@ -95,6 +99,47 @@ async function enqueueProgressEvent(
   );
 }
 
+export async function applyRemoteProgressChanges(
+  changes: readonly ProgressSyncChange[],
+): Promise<void> {
+  const database = await getProgressDatabase();
+
+  await database.withTransactionAsync(async () => {
+    for (const change of changes) {
+      const row = await database.getFirstAsync<ProgressRow>(
+        'SELECT payload FROM puzzle_progress WHERE puzzle_id = ?',
+        change.puzzleId,
+      );
+      const current = row ? parsePuzzleProgress(row.payload) : null;
+
+      if (current && current.updatedAt > change.clientUpdatedAt) {
+        continue;
+      }
+
+      if (change.deleted) {
+        await database.runAsync(
+          'DELETE FROM puzzle_progress WHERE puzzle_id = ?',
+          change.puzzleId,
+        );
+        continue;
+      }
+
+      if (change.snapshot) {
+        await database.runAsync(
+          `INSERT INTO puzzle_progress (puzzle_id, payload, updated_at)
+           VALUES (?, ?, ?)
+           ON CONFLICT(puzzle_id) DO UPDATE SET
+             payload = excluded.payload,
+             updated_at = excluded.updated_at`,
+          change.puzzleId,
+          serializePuzzleProgress(change.snapshot),
+          change.clientUpdatedAt,
+        );
+      }
+    }
+  });
+}
+
 export const puzzleProgressStore: PuzzleProgressStore = {
   async list() {
     const database = await getProgressDatabase();
@@ -130,6 +175,7 @@ export const puzzleProgressStore: PuzzleProgressStore = {
         puzzleId,
       });
     });
+    notifyProgressOutboxChanged();
   },
   async save(progress) {
     const database = await getProgressDatabase();
@@ -157,5 +203,6 @@ export const puzzleProgressStore: PuzzleProgressStore = {
       );
       await enqueueProgressEvent(database, event);
     });
+    notifyProgressOutboxChanged();
   },
 };

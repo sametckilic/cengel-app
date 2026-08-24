@@ -6,6 +6,7 @@ import {
   type ProgressSyncOutboxStore,
 } from '@/services/progress-sync';
 import {
+  applyRemoteProgressChanges,
   getOrCreateProgressDeviceId,
   getProgressDatabase,
 } from '@/services/puzzle-progress-store';
@@ -32,6 +33,9 @@ async function acknowledgeEvents(
 export const progressSyncOutboxStore: ProgressSyncOutboxStore = {
   async acknowledge(eventIds) {
     await acknowledgeEvents(await getProgressDatabase(), eventIds);
+  },
+  async applyChanges(changes) {
+    await applyRemoteProgressChanges(changes);
   },
   async getDeviceId() {
     const database = await getProgressDatabase();

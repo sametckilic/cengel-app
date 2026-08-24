@@ -14,8 +14,12 @@ export type PuzzleCatalogFetchResult =
       status: 'updated';
     };
 
+export function getPuzzleApiOrigin(): string | null {
+  return process.env.EXPO_PUBLIC_PUZZLE_API_URL?.trim() || null;
+}
+
 export function getPuzzleCatalogApiUrl(): string | null {
-  const configuredOrigin = process.env.EXPO_PUBLIC_PUZZLE_API_URL?.trim();
+  const configuredOrigin = getPuzzleApiOrigin();
 
   if (configuredOrigin) {
     return new URL(

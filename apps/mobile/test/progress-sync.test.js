@@ -4,6 +4,7 @@ const test = require('node:test');
 const {
   isProgressSyncEvent,
   parseProgressSyncEvent,
+  parseProgressSyncResponse,
 } = require('../services/progress-sync.ts');
 
 const snapshot = {
@@ -49,5 +50,31 @@ test('rejects snapshots whose identity does not match the event', () => {
       snapshot,
     }),
     false,
+  );
+});
+
+test('validates sync responses before applying remote state', () => {
+  const response = {
+    acknowledgedEventIds: ['00000000-0000-4000-8000-000000000001'],
+    changes: [
+      {
+        clientUpdatedAt: snapshot.updatedAt,
+        deleted: false,
+        deviceId: '00000000-0000-4000-8000-000000000002',
+        puzzleId: snapshot.puzzleId,
+        serverVersion: 2,
+        snapshot,
+        sourceEventId: '00000000-0000-4000-8000-000000000001',
+      },
+    ],
+  };
+
+  assert.deepEqual(parseProgressSyncResponse(response), response);
+  assert.equal(
+    parseProgressSyncResponse({
+      ...response,
+      changes: [{ ...response.changes[0], serverVersion: 0 }],
+    }),
+    null,
   );
 });

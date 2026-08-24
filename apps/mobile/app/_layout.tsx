@@ -21,6 +21,7 @@ import 'react-native-reanimated';
 
 import { palette } from '@/constants/design';
 import { PuzzleCatalogProvider } from '@/providers/puzzle-catalog-provider';
+import { ProgressSyncProvider } from '@/providers/progress-sync-provider';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -62,21 +63,23 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <PuzzleCatalogProvider>
-          <ThemeProvider value={editorialTheme}>
-            <Stack
-              screenOptions={{
-                animation: 'slide_from_right',
-                contentStyle: { backgroundColor: palette.paper },
-                headerShown: false,
-              }}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="puzzle" />
-              <Stack.Screen name="puzzle/[id]" />
-              <Stack.Screen name="newspaper-preview" />
-              <Stack.Screen name="packs/edebiyat" />
-            </Stack>
-            <StatusBar style="dark" />
-          </ThemeProvider>
+          <ProgressSyncProvider>
+            <ThemeProvider value={editorialTheme}>
+              <Stack
+                screenOptions={{
+                  animation: 'slide_from_right',
+                  contentStyle: { backgroundColor: palette.paper },
+                  headerShown: false,
+                }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="puzzle" />
+                <Stack.Screen name="puzzle/[id]" />
+                <Stack.Screen name="newspaper-preview" />
+                <Stack.Screen name="packs/edebiyat" />
+              </Stack>
+              <StatusBar style="dark" />
+            </ThemeProvider>
+          </ProgressSyncProvider>
         </PuzzleCatalogProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

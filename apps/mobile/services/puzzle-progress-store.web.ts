@@ -1,4 +1,8 @@
 import {
+  notifyProgressOutboxChanged,
+  type ProgressSyncChange,
+} from '@/services/progress-sync';
+import {
   createMemoryPuzzleProgressStore,
   parsePuzzleProgress,
   type PuzzleProgressSnapshot,
@@ -46,6 +50,45 @@ function writeProgressByPuzzleId(progressByPuzzleId: Record<string, PuzzleProgre
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progressByPuzzleId));
 }
 
+export async function applyRemoteProgressChanges(
+  changes: readonly ProgressSyncChange[],
+): Promise<void> {
+  if (typeof window === 'undefined') {
+    for (const change of changes) {
+      const current = await memoryStore.load(change.puzzleId);
+
+      if (current && current.updatedAt > change.clientUpdatedAt) {
+        continue;
+      }
+
+      if (change.deleted) {
+        await memoryStore.remove(change.puzzleId);
+      } else if (change.snapshot) {
+        await memoryStore.save(change.snapshot);
+      }
+    }
+    return;
+  }
+
+  const progressByPuzzleId = readProgressByPuzzleId();
+
+  for (const change of changes) {
+    const current = progressByPuzzleId[change.puzzleId];
+
+    if (current && current.updatedAt > change.clientUpdatedAt) {
+      continue;
+    }
+
+    if (change.deleted) {
+      delete progressByPuzzleId[change.puzzleId];
+    } else if (change.snapshot) {
+      progressByPuzzleId[change.puzzleId] = change.snapshot;
+    }
+  }
+
+  writeProgressByPuzzleId(progressByPuzzleId);
+}
+
 export const puzzleProgressStore: PuzzleProgressStore = {
   async list() {
     if (typeof window === 'undefined') {
@@ -79,6 +122,7 @@ export const puzzleProgressStore: PuzzleProgressStore = {
       operation: 'delete',
       puzzleId,
     });
+    notifyProgressOutboxChanged();
   },
   async save(progress) {
     if (typeof window === 'undefined') {
@@ -98,6 +142,7 @@ export const puzzleProgressStore: PuzzleProgressStore = {
       puzzleId: progress.puzzleId,
       snapshot: progress,
     });
+    notifyProgressOutboxChanged();
   },
 };
 import { randomUUID } from 'expo-crypto';
