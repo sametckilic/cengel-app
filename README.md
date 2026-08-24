@@ -24,6 +24,7 @@ npm run puzzles:check
 npm run test:engine
 npm run test:progress
 npm run test:achievements
+npm run test:achievement-api
 npm run test:sync
 npm run test:auth
 npm run test:catalog
