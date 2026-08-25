@@ -12,11 +12,14 @@ const environmentSchema = z.object({
   DB_CONNECTION_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
   DB_POOL_MAX: z.coerce.number().int().min(1).max(20).default(5),
   WORKER_BUFFER_DAYS: z.coerce.number().int().min(1).max(31).default(7),
+  WORKER_GENERATOR_VERSION: z
+    .enum(['newspaper-v1', 'newspaper-v2'])
+    .default('newspaper-v2'),
   WORKER_MODE: z.enum(['publish', 'shadow']).default('shadow'),
   WORKER_REVISION: z
     .string()
     .regex(/^[a-z0-9][a-z0-9-]*$/)
-    .default('schedule-v1'),
+    .default('schedule-v2'),
   WORKER_START_DATE: z
     .union([z.literal('today'), z.literal('tomorrow'), z.iso.date()])
     .default('tomorrow'),

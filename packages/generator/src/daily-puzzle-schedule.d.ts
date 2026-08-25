@@ -53,6 +53,9 @@ export function addDaysToIsoDate(date: string, dayOffset: number): string;
 export function createScheduledDailyPublication(
   catalog: GeneratorClueCatalog,
   request: { date: string; revision: string },
+  options?: {
+    generatorVersion?: 'newspaper-v1' | 'newspaper-v2';
+  },
 ): DailyPuzzlePublication;
 
 export function getDateKeyInTimeZone(

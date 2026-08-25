@@ -90,10 +90,16 @@ export async function runWorker(
       let publication;
 
       try {
-        publication = createScheduledDailyPublication(catalogSnapshot.catalog, {
-          date,
-          revision: environment.WORKER_REVISION,
-        });
+        publication = createScheduledDailyPublication(
+          catalogSnapshot.catalog,
+          {
+            date,
+            revision: environment.WORKER_REVISION,
+          },
+          {
+            generatorVersion: environment.WORKER_GENERATOR_VERSION,
+          },
+        );
       } catch (error) {
         if (environment.WORKER_MODE === 'publish') {
           await recordGenerationFailure(client, catalogSnapshot, {
