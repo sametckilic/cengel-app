@@ -23,6 +23,7 @@ import { palette } from '@/constants/design';
 import { AuthProvider } from '@/providers/auth-provider';
 import { PuzzleCatalogProvider } from '@/providers/puzzle-catalog-provider';
 import { ProgressSyncProvider } from '@/providers/progress-sync-provider';
+import { RevenueCatProvider } from '@/providers/revenuecat-provider';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -65,23 +66,25 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <PuzzleCatalogProvider>
           <AuthProvider>
-            <ProgressSyncProvider>
-              <ThemeProvider value={editorialTheme}>
-                <Stack
-                  screenOptions={{
-                    animation: 'slide_from_right',
-                    contentStyle: { backgroundColor: palette.paper },
-                    headerShown: false,
-                  }}>
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen name="puzzle" />
-                  <Stack.Screen name="puzzle/[id]" />
-                  <Stack.Screen name="newspaper-preview" />
-                  <Stack.Screen name="packs/edebiyat" />
-                </Stack>
-                <StatusBar style="dark" />
-              </ThemeProvider>
-            </ProgressSyncProvider>
+            <RevenueCatProvider>
+              <ProgressSyncProvider>
+                <ThemeProvider value={editorialTheme}>
+                  <Stack
+                    screenOptions={{
+                      animation: 'slide_from_right',
+                      contentStyle: { backgroundColor: palette.paper },
+                      headerShown: false,
+                    }}>
+                    <Stack.Screen name="(tabs)" />
+                    <Stack.Screen name="puzzle" />
+                    <Stack.Screen name="puzzle/[id]" />
+                    <Stack.Screen name="newspaper-preview" />
+                    <Stack.Screen name="packs/edebiyat" />
+                  </Stack>
+                  <StatusBar style="dark" />
+                </ThemeProvider>
+              </ProgressSyncProvider>
+            </RevenueCatProvider>
           </AuthProvider>
         </PuzzleCatalogProvider>
       </SafeAreaProvider>
