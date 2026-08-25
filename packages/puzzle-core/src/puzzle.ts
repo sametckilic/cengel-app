@@ -31,10 +31,13 @@ export type PuzzleDefinition = {
   difficulty: GameplayDifficulty;
   id: string;
   generation?: {
+    aestheticScore?: number;
     categoryWeight: number;
+    generatorVersion?: 'newspaper-v2';
     intersectionCount: number;
     seed: string;
     targetWordCount: number;
+    topologyFingerprint?: string;
     topologyId?: string;
   };
   initialSelection: {
