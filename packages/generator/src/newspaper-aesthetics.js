@@ -72,6 +72,35 @@ function resolveAestheticPolicy(overrides = {}) {
   return policy;
 }
 
+function scoreAestheticMetrics(metrics) {
+  const directionBalance =
+    1 -
+    Math.abs(metrics.directionCounts.right - metrics.directionCounts.down) /
+      (metrics.directionCounts.right + metrics.directionCounts.down);
+  const clueDensityFit = Math.max(0, 1 - Math.abs(metrics.clueDensity - 0.26) / 0.17);
+  const splitClueFit = Math.max(0, 1 - Math.abs(metrics.splitClueShare - 0.25) / 0.25);
+  const topRowVariety =
+    (Math.min(metrics.topRowRightSlotCount, 2) / 2 +
+      Math.min(metrics.topRowDownStartCount, 2) / 2) /
+    2;
+  const consecutiveRunControl = Math.max(
+    0,
+    1 - metrics.maximumConsecutiveDominantSingleRightRows / 4,
+  );
+  const slotLengthVariety = Math.min(metrics.distinctSlotLengths.length / 6, 1);
+  const score =
+    metrics.columnDownCoverage * 20 +
+    (1 - metrics.singleRightSlotRowShare) * 15 +
+    directionBalance * 15 +
+    clueDensityFit * 15 +
+    splitClueFit * 10 +
+    topRowVariety * 15 +
+    consecutiveRunControl * 5 +
+    slotLengthVariety * 5;
+
+  return roundRatio(score);
+}
+
 function evaluateNewspaperTopologyAesthetics(topology, policyOverrides) {
   const structuralReport = validateNewspaperTopology(topology);
   const policy = resolveAestheticPolicy(policyOverrides);
@@ -220,6 +249,7 @@ function evaluateNewspaperTopologyAesthetics(topology, policyOverrides) {
     metrics,
     passed: issues.length === 0,
     policy,
+    score: scoreAestheticMetrics(metrics),
   };
 }
 
@@ -227,4 +257,5 @@ module.exports = {
   DEFAULT_NEWSPAPER_AESTHETIC_POLICY,
   evaluateNewspaperTopologyAesthetics,
   resolveAestheticPolicy,
+  scoreAestheticMetrics,
 };
