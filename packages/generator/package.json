@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "exports": {
+    "./clue-text-fit": "./src/clue-text-fit.js",
     "./clue-selection": "./src/clue-selection.js",
     "./daily-puzzle-profiles": "./src/daily-puzzle-profiles.js",
     "./daily-puzzle-publication": "./src/daily-puzzle-publication.js",
@@ -15,6 +16,8 @@
     "./newspaper-fill": "./src/newspaper-fill.js",
     "./newspaper-grid": "./src/newspaper-grid.js",
     "./newspaper-topology": "./src/newspaper-topology.js",
+    "./newspaper-topology-generator": "./src/newspaper-topology-generator.js",
+    "./newspaper-v2": "./src/newspaper-v2.js",
     "./puzzle-layout": "./src/puzzle-layout.js",
     "./puzzle-manifest": "./src/puzzle-manifest.js"
   }

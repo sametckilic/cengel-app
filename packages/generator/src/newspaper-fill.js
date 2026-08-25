@@ -1,4 +1,9 @@
 const { createSeededRandom, validateGenerationRequest } = require('./clue-selection');
+const {
+  analyzeClueTextFit,
+  measureClueTextUnits,
+  resolveClueTextPolicy,
+} = require('./clue-text-fit');
 const { validateNewspaperPuzzle } = require('./newspaper-grid');
 const { validateNewspaperTopology } = require('./newspaper-topology');
 
@@ -42,7 +47,7 @@ function buildSlotMetadata(topology) {
   );
 }
 
-function createCandidateDomains(entries, request, topology) {
+function createCandidateDomains(entries, request, topology, clueTextPolicy) {
   const requiredLengths = new Set(topology.slots.map(({ cellIndices }) => cellIndices.length));
   const eligibleEntries = entries
     .filter(
@@ -70,8 +75,34 @@ function createCandidateDomains(entries, request, topology) {
     );
   }
 
+  const clueUseCountByCell = topology.slots.reduce((counts, slot) => {
+    counts.set(slot.clueCellIndex, (counts.get(slot.clueCellIndex) ?? 0) + 1);
+    return counts;
+  }, new Map());
+
   return new Map(
-    topology.slots.map((slot) => [slot.id, entriesByLength.get(slot.cellIndices.length)]),
+    topology.slots.map((slot) => {
+      const candidates = entriesByLength.get(slot.cellIndices.length);
+
+      if (!clueTextPolicy) {
+        return [slot.id, candidates];
+      }
+
+      const isSplitClue = clueUseCountByCell.get(slot.clueCellIndex) > 1;
+      const fittingCandidates = candidates.filter((entry) =>
+        analyzeClueTextFit(entry.shortClue, isSplitClue, clueTextPolicy).fits,
+      );
+
+      if (fittingCandidates.length === 0) {
+        const cellType = isSplitClue ? 'split' : 'single';
+        throw new Error(
+          `Catalog has no readable ${request.difficulty} answer with length ` +
+            `${slot.cellIndices.length} for a ${cellType} clue cell.`,
+        );
+      }
+
+      return [slot.id, fittingCandidates];
+    }),
   );
 }
 
@@ -123,12 +154,15 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
   }
 
   const maxSearchNodes = options.maxSearchNodes ?? DEFAULT_MAX_SEARCH_NODES;
+  const clueTextPolicy = options.clueTextPolicy
+    ? resolveClueTextPolicy(options.clueTextPolicy)
+    : null;
 
   if (!Number.isInteger(maxSearchNodes) || maxSearchNodes < 1) {
     throw new Error('maxSearchNodes must be a positive integer.');
   }
 
-  const domains = createCandidateDomains(entries, request, topology);
+  const domains = createCandidateDomains(entries, request, topology, clueTextPolicy);
   const metadataBySlot = buildSlotMetadata(topology);
   const clueUseCountByCell = topology.slots.reduce((counts, slot) => {
     counts.set(slot.clueCellIndex, (counts.get(slot.clueCellIndex) ?? 0) + 1);
@@ -196,9 +230,12 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
   function orderCandidates(candidates, slot) {
     const prioritizeShortClues = clueUseCountByCell.get(slot.clueCellIndex) > 1;
     const sortForCell = (entriesToSort) =>
-      prioritizeShortClues
+      clueTextPolicy || prioritizeShortClues
         ? [...entriesToSort].sort(
-            (left, right) => left.shortClue.length - right.shortClue.length,
+            (left, right) =>
+              measureClueTextUnits(left.shortClue) -
+                measureClueTextUnits(right.shortClue) ||
+              left.id.localeCompare(right.id),
           )
         : entriesToSort;
 
@@ -322,6 +359,18 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
     words,
   };
   const puzzleReport = validateNewspaperPuzzle(puzzle);
+  const clueTextFits = puzzle.words.map((word) => {
+    const slot = topology.slots.find(({ id }) => `${request.id}-${id}` === word.id);
+    const isSplitClue = clueUseCountByCell.get(slot.clueCellIndex) > 1;
+
+    return {
+      isSplitClue,
+      wordId: word.id,
+      ...(clueTextPolicy
+        ? analyzeClueTextFit(word.clue, isSplitClue, clueTextPolicy)
+        : { units: measureClueTextUnits(word.clue) }),
+    };
+  });
 
   return {
     puzzle,
@@ -332,6 +381,27 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
       requiredThemedWordCount,
       searchNodeCount,
       themedWordCount,
+      clueText: {
+        averageUnits: Number(
+          (
+            clueTextFits.reduce((total, { units }) => total + units, 0) /
+            clueTextFits.length
+          ).toFixed(4),
+        ),
+        maximumSingleUnits: Math.max(
+          0,
+          ...clueTextFits
+            .filter(({ isSplitClue }) => !isSplitClue)
+            .map(({ units }) => units),
+        ),
+        maximumSplitUnits: Math.max(
+          0,
+          ...clueTextFits
+            .filter(({ isSplitClue }) => isSplitClue)
+            .map(({ units }) => units),
+        ),
+        policy: clueTextPolicy,
+      },
       topology: topologyReport,
       validation: puzzleReport,
     },
