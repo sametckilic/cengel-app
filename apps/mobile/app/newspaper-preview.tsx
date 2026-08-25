@@ -1,4 +1,4 @@
-import { Redirect, Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
@@ -13,6 +13,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { EditorialHeader } from '@/components/cengel/editorial-header';
 import { NewspaperPreviewGrid } from '@/components/cengel/newspaper-preview-grid';
+import { NewspaperV2PreviewMenu } from '@/components/cengel/newspaper-v2-preview-menu';
 import { PuzzleCompletionPanel } from '@/components/cengel/puzzle-completion-panel';
 import {
   SystemPuzzleInput,
@@ -23,11 +24,11 @@ import {
 import { layout, palette, spacing } from '@/constants/design';
 import {
   getDifficultyLabel,
-  getPuzzleHref,
   getPuzzleCategoryLabel,
   getPuzzleSizeLabel,
 } from '@/data/puzzle-catalog';
 import { NEWSPAPER_PROTOTYPE } from '@/data/newspaper-prototype';
+import { NEWSPAPER_V2_PREVIEW_PUZZLES } from '@/data/newspaper-v2-preview';
 import { prototypeAnswerRevealAccessProvider } from '@cengel/puzzle-core/hint-access';
 import {
   createPuzzleProgressSnapshot,
@@ -599,7 +600,17 @@ export function NewspaperPuzzleScreen({
 }
 
 export default function NewspaperPreviewScreen() {
-  return <Redirect href={getPuzzleHref(NEWSPAPER_PROTOTYPE.id)} />;
+  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
+  const puzzleId = Array.isArray(id) ? id[0] : id;
+  const selectedPuzzle = NEWSPAPER_V2_PREVIEW_PUZZLES.find(
+    (puzzle) => puzzle.id === puzzleId,
+  );
+
+  if (selectedPuzzle) {
+    return <NewspaperPuzzleScreen key={selectedPuzzle.id} puzzle={selectedPuzzle} />;
+  }
+
+  return <NewspaperV2PreviewMenu />;
 }
 
 const styles = StyleSheet.create({

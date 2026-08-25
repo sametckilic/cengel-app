@@ -214,6 +214,27 @@ export default function HomeScreen() {
             <Text style={styles.pageTitle}>Ne çözebilirim?</Text>
           </View>
 
+          {__DEV__ ? (
+            <View style={styles.paddedSection}>
+              <SectionLabel>GELİŞTİRME ÖNİZLEMESİ</SectionLabel>
+              <Pressable
+                accessibilityLabel="V2 gazete düzeni UAT ekranını aç"
+                onPress={() => router.push('/newspaper-preview')}
+                style={({ pressed }) => [
+                  styles.uatCard,
+                  pressed && styles.pressedSurface,
+                ]}>
+                <View style={styles.uatCopy}>
+                  <Text style={styles.uatTitle}>V2 Gazete Düzeni</Text>
+                  <Text style={styles.uatDescription}>
+                    7×7, 8×8 ve 9×10 düzenleri telefonda karşılaştır.
+                  </Text>
+                </View>
+                <EditorialIcon color={palette.secondary} name="arrow-forward" />
+              </Pressable>
+            </View>
+          ) : null}
+
           <View style={styles.todayCard}>
             <PuzzleTexture />
             <View style={styles.todayCardContent}>
@@ -427,6 +448,29 @@ const styles = StyleSheet.create({
   continueMeta: {
     ...typography.bodyClue,
     color: palette.onSurfaceVariant,
+  },
+  uatCard: {
+    alignItems: 'center',
+    backgroundColor: palette.surfaceLowest,
+    borderColor: palette.secondary,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 82,
+    padding: 16,
+  },
+  uatCopy: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  uatTitle: {
+    ...typography.gridInput,
+    color: palette.ink,
+  },
+  uatDescription: {
+    ...typography.caption,
+    color: palette.onSurfaceVariant,
+    marginTop: spacing.cell,
   },
   progressRing: {
     alignItems: 'center',
