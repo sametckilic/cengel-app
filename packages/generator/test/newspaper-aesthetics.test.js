@@ -8,6 +8,8 @@ const {
 const {
   createNewspaper9x10Topology,
   createNewspaperBeginner7x7Topology,
+  createNewspaperLarge10x10Topology,
+  createNewspaperLarge10x12Topology,
   createNewspaperMedium8x8Topology,
   createNewspaperTopology,
   createNewspaperPrototypeTopology,
@@ -79,6 +81,20 @@ test('accepts a balanced topology with a varied top row under the default policy
   assert.deepEqual(report.issues, []);
   assert.deepEqual(report.metrics.topRowRightSlotLengths, [2, 2, 2]);
   assert.equal(report.metrics.columnDownCoverage, 0.8);
+});
+
+test('accepts the large preview topology families', () => {
+  for (const topology of [
+    createNewspaperLarge10x10Topology(),
+    createNewspaperLarge10x12Topology(),
+  ]) {
+    const report = evaluateNewspaperTopologyAesthetics(topology);
+
+    assert.equal(report.passed, true);
+    assert.ok(report.metrics.topRowRightSlotCount > 1);
+    assert.ok(report.metrics.columnDownCoverage >= 0.75);
+    assert.ok(report.metrics.minorityDirectionShare >= 0.35);
+  }
 });
 
 test('rejects invalid aesthetic policy ranges', () => {

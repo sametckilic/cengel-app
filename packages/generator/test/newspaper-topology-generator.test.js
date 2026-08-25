@@ -82,6 +82,25 @@ test('supports a compact non-square-independent topology family', () => {
   assert.ok(result.candidates.every(({ topology }) => topology.slots.length === 14));
 });
 
+test('supports large square and rectangular topology families without mutation', () => {
+  const requests = [
+    { columnCount: 10, rowCount: 10, targetWordCount: 29 },
+    { columnCount: 12, rowCount: 10, targetWordCount: 39 },
+  ];
+
+  for (const request of requests) {
+    const result = generateNewspaperTopologyCandidates(
+      { ...request, seed: `large-${request.rowCount}x${request.columnCount}` },
+      { maxCandidates: 1, maxMutationDepth: 0 },
+    );
+
+    assert.equal(result.candidates.length, 1);
+    assert.equal(result.candidates[0].mutationDepth, 0);
+    assert.equal(result.candidates[0].aesthetic.passed, true);
+    assert.equal(result.candidates[0].topology.slots.length, request.targetWordCount);
+  }
+});
+
 test('fails descriptively for an unsupported topology family', () => {
   assert.throws(
     () =>

@@ -227,7 +227,7 @@ export default function HomeScreen() {
                 <View style={styles.uatCopy}>
                   <Text style={styles.uatTitle}>V2 Gazete Düzeni</Text>
                   <Text style={styles.uatDescription}>
-                    7×7, 8×8 ve 9×10 düzenleri telefonda karşılaştır.
+                    7×7’den 10×12’ye kadar beş düzeni telefonda karşılaştır.
                   </Text>
                 </View>
                 <EditorialIcon color={palette.secondary} name="arrow-forward" />

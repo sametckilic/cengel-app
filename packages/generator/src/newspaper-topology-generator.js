@@ -6,6 +6,8 @@ const {
 const {
   createNewspaper9x10Topology,
   createNewspaperBeginner7x7Topology,
+  createNewspaperLarge10x10Topology,
+  createNewspaperLarge10x12Topology,
   createNewspaperMedium8x8Topology,
   createNewspaperPrototypeTopology,
   createNewspaperTopology,
@@ -52,6 +54,8 @@ function createBaseTopologies(rowCount, columnCount) {
     createNewspaper9x10Topology(),
     createNewspaperBeginner7x7Topology(),
     createNewspaperMedium8x8Topology(),
+    createNewspaperLarge10x10Topology(),
+    createNewspaperLarge10x12Topology(),
   ].filter(
     (topology) =>
       topology.rowCount === rowCount && topology.columnCount === columnCount,
@@ -108,11 +112,14 @@ function validateOptions(request, options) {
   for (const [field, minimum] of [
     ['beamWidth', 1],
     ['maxCandidates', 1],
-    ['maxMutationDepth', 1],
   ]) {
     if (!Number.isInteger(options[field]) || options[field] < minimum) {
       throw new Error(`${field} must be a positive integer.`);
     }
+  }
+
+  if (!Number.isInteger(options.maxMutationDepth) || options.maxMutationDepth < 0) {
+    throw new Error('maxMutationDepth must be a non-negative integer.');
   }
 
   if (typeof options.scoreWindow !== 'number' || options.scoreWindow < 0) {
@@ -176,7 +183,13 @@ function generateNewspaperTopologyCandidates(request, optionOverrides = {}) {
     visitedPatterns.add(pattern.join(''));
     return createState(topology, pattern, topology.id, 0);
   });
-  const candidatesByFingerprint = new Map();
+  const candidatesByFingerprint = new Map(
+    beam.flatMap((state) =>
+      state.aesthetic.passed && state.topology.slots.length === request.targetWordCount
+        ? [[state.fingerprint, state]]
+        : [],
+    ),
+  );
   let structurallyValidPatternCount = beam.length;
 
   for (let mutationDepth = 1; mutationDepth <= options.maxMutationDepth; mutationDepth += 1) {

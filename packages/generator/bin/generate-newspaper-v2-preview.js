@@ -48,6 +48,28 @@ const PREVIEW_REQUESTS = Object.freeze([
     seed: 'newspaper-v2-preview-9x10-a',
     targetWordCount: 25,
   },
+  {
+    id: 'newspaper-v2-preview-10x10',
+    title: 'Tarih ve Coğrafya',
+    categories: ['tarih', 'cografya', 'genel_kultur', 'turkce'],
+    categoryWeight: 0.55,
+    columnCount: 10,
+    difficulty: 'easy',
+    rowCount: 10,
+    seed: 'newspaper-v2-preview-10x10-a',
+    targetWordCount: 29,
+  },
+  {
+    id: 'newspaper-v2-preview-10x12',
+    title: 'Büyük Bilim ve Teknoloji',
+    categories: ['bilim', 'teknoloji', 'genel_kultur', 'turkce'],
+    categoryWeight: 0.55,
+    columnCount: 12,
+    difficulty: 'easy',
+    rowCount: 10,
+    seed: 'newspaper-v2-preview-10x12-a',
+    targetWordCount: 39,
+  },
 ]);
 
 function parseArguments(argumentsList) {
@@ -80,6 +102,15 @@ function parseArguments(argumentsList) {
 }
 
 function generationOptions(request) {
+  if (request.rowCount >= 10) {
+    return {
+      maximumFillAttempts: 1,
+      maximumSuccessfulFills: 1,
+      maxSearchNodesPerTopology: 25_000,
+      topology: { maxCandidates: 1, maxMutationDepth: 0 },
+    };
+  }
+
   return {
     maximumFillAttempts: 6,
     maximumSuccessfulFills: 2,

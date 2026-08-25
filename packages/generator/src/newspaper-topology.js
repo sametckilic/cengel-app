@@ -40,6 +40,30 @@ const MEDIUM_8X8_PATTERN = [
   '#.......',
   '#.......',
 ];
+const LARGE_10X10_PATTERN = [
+  '##..#..#..',
+  '.#...#...#',
+  '.##.......',
+  '..#.......',
+  '#.##...#..',
+  '.#.......#',
+  '...#......',
+  '#....#....',
+  '#....#....',
+  '#....#....',
+];
+const LARGE_10X12_PATTERN = [
+  '##..#..#..##',
+  '.#...#...#..',
+  '.##....#....',
+  '..#.......#.',
+  '#.##...#...#',
+  '.#..#....#..',
+  '...#......#.',
+  '#....#.....#',
+  '#....#......',
+  '#....#......',
+];
 
 function createSlotsFromPattern(pattern, columnCount) {
   const clueCellIndices = new Set(
@@ -146,12 +170,22 @@ function createNewspaperMedium8x8Topology() {
   return createNewspaperTopology('newspaper-medium-8x8-v1', MEDIUM_8X8_PATTERN);
 }
 
+function createNewspaperLarge10x12Topology() {
+  return createNewspaperTopology('newspaper-large-10x12-v1', LARGE_10X12_PATTERN);
+}
+
+function createNewspaperLarge10x10Topology() {
+  return createNewspaperTopology('newspaper-large-10x10-v1', LARGE_10X10_PATTERN);
+}
+
 function createNewspaperTopologyById(topologyId) {
   const factories = {
     'newspaper-8x8-v2': createNewspaperPrototypeTopology,
     'newspaper-9x10-v1': createNewspaper9x10Topology,
     'newspaper-beginner-7x7-v1': createNewspaperBeginner7x7Topology,
     'newspaper-medium-8x8-v1': createNewspaperMedium8x8Topology,
+    'newspaper-large-10x10-v1': createNewspaperLarge10x10Topology,
+    'newspaper-large-10x12-v1': createNewspaperLarge10x12Topology,
   };
   const factory = factories[topologyId];
 
@@ -285,6 +319,8 @@ module.exports = {
   createNewspaper9x10Topology,
   createNewspaperBeginner7x7Topology,
   createNewspaperMedium8x8Topology,
+  createNewspaperLarge10x10Topology,
+  createNewspaperLarge10x12Topology,
   createNewspaperTopology,
   createNewspaperTopologyById,
   createNewspaperPrototypeTopology,
