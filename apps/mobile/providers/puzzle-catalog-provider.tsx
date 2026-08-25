@@ -17,6 +17,7 @@ import {
 import { createPuzzleCatalogApiResponse } from '@cengel/contracts/puzzle-api';
 import { fetchPuzzleCatalog } from '@/services/puzzle-catalog-client';
 import { puzzleCatalogStore } from '@/services/puzzle-catalog-store';
+import { getAuthenticatedAccess, getSupabaseClient } from '@/services/supabase-client';
 import type { PuzzleDefinition, PuzzleManifest } from '@cengel/puzzle-core/puzzle';
 
 type PuzzleCatalogSource = 'bundled' | 'cache' | 'remote';
@@ -27,6 +28,7 @@ type PuzzleCatalogContextValue = {
   getPuzzleById: (id: string) => PuzzleDefinition | undefined;
   loading: boolean;
   puzzles: readonly PuzzleDefinition[];
+  refreshCatalog: () => void;
   source: PuzzleCatalogSource;
 };
 
@@ -39,6 +41,15 @@ export function PuzzleCatalogProvider({ children }: PropsWithChildren) {
   const [manifest, setManifest] = useState<PuzzleManifest>(BUNDLED_PUZZLE_MANIFEST);
   const [source, setSource] = useState<PuzzleCatalogSource>('bundled');
   const [loading, setLoading] = useState(true);
+  const [syncRevision, setSyncRevision] = useState(0);
+
+  useEffect(() => {
+    const subscription = getSupabaseClient()?.auth.onAuthStateChange(() => {
+      setSyncRevision((current) => current + 1);
+    });
+
+    return () => subscription?.data.subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -46,21 +57,39 @@ export function PuzzleCatalogProvider({ children }: PropsWithChildren) {
 
     async function synchronizeCatalog() {
       let cachedEntityTag: string | undefined;
+      let accessToken: string | undefined;
+
+      setLoading(true);
 
       try {
-        const cached = await puzzleCatalogStore.load();
-
-        if (cached && active) {
-          cachedEntityTag = cached.entityTag;
-          setManifest(mergePuzzleManifests(BUNDLED_PUZZLE_MANIFEST, cached.manifest));
-          setSource('cache');
-        }
+        accessToken = (await getAuthenticatedAccess())?.accessToken;
       } catch {
-        // The bundled manifest remains the safe offline fallback.
+        // An invalid/expired session falls back to the anonymous catalog.
+      }
+
+      if (!accessToken) {
+        try {
+          const cached = await puzzleCatalogStore.load();
+
+          if (cached && active) {
+            cachedEntityTag = cached.entityTag;
+            setManifest(mergePuzzleManifests(BUNDLED_PUZZLE_MANIFEST, cached.manifest));
+            setSource('cache');
+          }
+        } catch {
+          // The bundled manifest remains the safe offline fallback.
+        }
+      } else if (active) {
+        setManifest(BUNDLED_PUZZLE_MANIFEST);
+        setSource('bundled');
       }
 
       try {
-        const result = await fetchPuzzleCatalog(cachedEntityTag, controller.signal);
+        const result = await fetchPuzzleCatalog(
+          accessToken ? undefined : cachedEntityTag,
+          controller.signal,
+          accessToken,
+        );
 
         if (!active || result.status !== 'updated') {
           return;
@@ -72,11 +101,14 @@ export function PuzzleCatalogProvider({ children }: PropsWithChildren) {
         );
         setManifest(mergedManifest);
         setSource('remote');
-        await puzzleCatalogStore.save({
-          ...result.response,
-          cachedAt: new Date().toISOString(),
-          entityTag: result.entityTag,
-        });
+
+        if (!accessToken) {
+          await puzzleCatalogStore.save({
+            ...result.response,
+            cachedAt: new Date().toISOString(),
+            entityTag: result.entityTag,
+          });
+        }
       } catch {
         // Cache or bundled content remains available when the network is unavailable.
       } finally {
@@ -91,7 +123,7 @@ export function PuzzleCatalogProvider({ children }: PropsWithChildren) {
       active = false;
       controller.abort();
     };
-  }, []);
+  }, [syncRevision]);
 
   const value = useMemo<PuzzleCatalogContextValue>(() => {
     const puzzles = createPuzzleCatalog(manifest);
@@ -102,6 +134,7 @@ export function PuzzleCatalogProvider({ children }: PropsWithChildren) {
       getPuzzleById: (id) => puzzles.find((puzzle) => puzzle.id === id),
       loading,
       puzzles,
+      refreshCatalog: () => setSyncRevision((current) => current + 1),
       source,
     };
   }, [loading, manifest, source]);

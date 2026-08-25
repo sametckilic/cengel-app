@@ -5,9 +5,11 @@ import { EditorialIcon } from '@/components/cengel/editorial-icon';
 import { SectionLabel } from '@/components/cengel/section-label';
 import { fonts, palette, spacing, typography } from '@/constants/design';
 import { useRevenueCat } from '@/providers/revenuecat-provider';
+import { usePuzzleCatalog } from '@/providers/puzzle-catalog-provider';
 
 export function PremiumAccessCard() {
   const { busy, error, package: offer, premium, purchase, restore, status } = useRevenueCat();
+  const { refreshCatalog } = usePuzzleCatalog();
   const [notice, setNotice] = useState<string | null>(null);
 
   async function runPurchase() {
@@ -20,6 +22,11 @@ export function PremiumAccessCard() {
           ? 'Satın alma iptal edildi.'
           : 'Premium erişimin etkinleştirildi.',
       );
+
+      if (result === 'success') {
+        refreshCatalog();
+        setTimeout(refreshCatalog, 2500);
+      }
     } catch {
       // Provider exposes the SDK error without changing account or local progress state.
     }
@@ -31,6 +38,8 @@ export function PremiumAccessCard() {
     try {
       await restore();
       setNotice('Satın alımların kontrol edildi.');
+      refreshCatalog();
+      setTimeout(refreshCatalog, 2500);
     } catch {
       // Provider exposes the SDK error without changing account or local progress state.
     }

@@ -4,6 +4,7 @@ import {
   isPuzzleCatalogApiResponse,
   type PuzzleCatalogApiResponse,
 } from '@cengel/contracts/puzzle-api';
+import { createPuzzleCatalogRequestHeaders } from '@/services/puzzle-catalog-request';
 
 export type PuzzleCatalogFetchResult =
   | { status: 'not-modified' }
@@ -34,6 +35,7 @@ export function getPuzzleCatalogApiUrl(): string | null {
 export async function fetchPuzzleCatalog(
   entityTag?: string,
   signal?: AbortSignal,
+  accessToken?: string,
 ): Promise<PuzzleCatalogFetchResult> {
   const url = getPuzzleCatalogApiUrl();
 
@@ -42,10 +44,7 @@ export async function fetchPuzzleCatalog(
   }
 
   const response = await fetch(url, {
-    headers: {
-      Accept: 'application/json',
-      ...(entityTag ? { 'If-None-Match': entityTag } : {}),
-    },
+    headers: createPuzzleCatalogRequestHeaders(entityTag, accessToken),
     signal,
   });
 
