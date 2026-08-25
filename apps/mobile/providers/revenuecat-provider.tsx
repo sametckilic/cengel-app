@@ -13,9 +13,14 @@ import { useAuth } from '@/providers/auth-provider';
 import { getConfiguredRevenueCatApiKey } from '@/services/revenuecat-config';
 import {
   connectRevenueCat,
+  describePremiumPackage,
   disconnectRevenueCat,
+  getCurrentPremiumPackage,
   getPremiumEntitlement,
+  purchasePremiumPackage,
+  restorePremiumPurchases,
   type PremiumEntitlement,
+  type PremiumPackage,
 } from '@/services/revenuecat-client';
 
 type RevenueCatStatus =
@@ -27,9 +32,13 @@ type RevenueCatStatus =
   | 'unsupported';
 
 type RevenueCatContextValue = {
+  busy: boolean;
   error: string | null;
+  package: PremiumPackage | null;
   premium: PremiumEntitlement;
+  purchase(): Promise<'cancelled' | 'success'>;
   refresh(): Promise<void>;
+  restore(): Promise<void>;
   status: RevenueCatStatus;
 };
 
@@ -46,8 +55,12 @@ export function RevenueCatProvider({ children }: PropsWithChildren) {
   const platform = Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : 'web';
   const apiKey = getConfiguredRevenueCatApiKey(platform);
   const [premium, setPremium] = useState(EMPTY_PREMIUM);
+  const [purchasePackage, setPurchasePackage] = useState<Awaited<
+    ReturnType<typeof getCurrentPremiumPackage>
+  >>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!apiKey || !account) {
@@ -59,10 +72,13 @@ export function RevenueCatProvider({ children }: PropsWithChildren) {
 
     try {
       const customerInfo = await connectRevenueCat(apiKey, account.userId);
+      const currentPackage = await getCurrentPremiumPackage();
       setPremium(getPremiumEntitlement(customerInfo));
+      setPurchasePackage(currentPackage);
       setError(null);
     } catch (reason) {
       setPremium(EMPTY_PREMIUM);
+      setPurchasePackage(null);
       setError(
         reason instanceof Error
           ? reason.message
@@ -73,6 +89,53 @@ export function RevenueCatProvider({ children }: PropsWithChildren) {
     }
   }, [account, apiKey]);
 
+  const purchase = useCallback(async (): Promise<'cancelled' | 'success'> => {
+    if (!purchasePackage || !account) {
+      throw new Error('Satın alınabilir Premium paketi bulunamadı.');
+    }
+
+    setBusy(true);
+    setError(null);
+
+    try {
+      const result = await purchasePremiumPackage(purchasePackage);
+
+      if (result.customerInfo) {
+        setPremium(getPremiumEntitlement(result.customerInfo));
+      }
+
+      return result.status;
+    } catch (reason) {
+      const message =
+        reason instanceof Error ? reason.message : 'Premium satın alma tamamlanamadı.';
+      setError(message);
+      throw reason;
+    } finally {
+      setBusy(false);
+    }
+  }, [account, purchasePackage]);
+
+  const restore = useCallback(async (): Promise<void> => {
+    if (!account) {
+      throw new Error('Satın alımları geri yüklemek için giriş yapmalısın.');
+    }
+
+    setBusy(true);
+    setError(null);
+
+    try {
+      const customerInfo = await restorePremiumPurchases();
+      setPremium(getPremiumEntitlement(customerInfo));
+    } catch (reason) {
+      const message =
+        reason instanceof Error ? reason.message : 'Satın alımlar geri yüklenemedi.';
+      setError(message);
+      throw reason;
+    } finally {
+      setBusy(false);
+    }
+  }, [account]);
+
   useEffect(() => {
     if (authStatus === 'loading') {
       return;
@@ -80,6 +143,7 @@ export function RevenueCatProvider({ children }: PropsWithChildren) {
 
     if (!account) {
       setPremium(EMPTY_PREMIUM);
+      setPurchasePackage(null);
       setError(null);
       void disconnectRevenueCat().catch(() => undefined);
       return;
@@ -101,8 +165,17 @@ export function RevenueCatProvider({ children }: PropsWithChildren) {
               ? 'error'
               : 'ready';
   const value = useMemo<RevenueCatContextValue>(
-    () => ({ error, premium, refresh, status }),
-    [error, premium, refresh, status],
+    () => ({
+      busy,
+      error,
+      package: describePremiumPackage(purchasePackage),
+      premium,
+      purchase,
+      refresh,
+      restore,
+      status,
+    }),
+    [busy, error, premium, purchase, purchasePackage, refresh, restore, status],
   );
 
   return <RevenueCatContext.Provider value={value}>{children}</RevenueCatContext.Provider>;

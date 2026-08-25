@@ -17,6 +17,7 @@ import type { AchievementApiItem } from '@cengel/contracts/achievement-api';
 import { AchievementList } from '@/components/cengel/achievement-list';
 import { EditorialHeader } from '@/components/cengel/editorial-header';
 import { EditorialIcon } from '@/components/cengel/editorial-icon';
+import { PremiumAccessCard } from '@/components/cengel/premium-access-card';
 import { SectionLabel } from '@/components/cengel/section-label';
 import { fonts, layout, palette, spacing, typography } from '@/constants/design';
 import { useAuth } from '@/providers/auth-provider';
@@ -255,12 +256,15 @@ export default function ProfileScreen() {
           <View style={styles.content}>
             {content}
             {status === 'authenticated' ? (
-              <AchievementList
-                error={achievementsError}
-                items={achievements}
-                loading={achievementsLoading}
-                onRetry={() => void loadAchievements()}
-              />
+              <>
+                <PremiumAccessCard />
+                <AchievementList
+                  error={achievementsError}
+                  items={achievements}
+                  loading={achievementsLoading}
+                  onRetry={() => void loadAchievements()}
+                />
+              </>
             ) : null}
             {error ? (
               <View accessibilityLiveRegion="polite" style={styles.errorMessage}>

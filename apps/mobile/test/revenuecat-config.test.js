@@ -2,6 +2,10 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const { getRevenueCatApiKey } = require('../services/revenuecat-config.ts');
+const {
+  describePremiumPackage,
+  isPurchaseCancelled,
+} = require('../services/revenuecat-state.ts');
 
 test('uses the Test Store key only in development native builds', () => {
   assert.equal(
@@ -38,4 +42,29 @@ test('keeps RevenueCat disabled on web', () => {
     }),
     null,
   );
+});
+
+test('describes a dashboard package for the UI', () => {
+  assert.deepEqual(
+    describePremiumPackage({
+      identifier: '$rc_monthly',
+      product: {
+        identifier: 'cengel_premium_monthly',
+        priceString: '₺99,99',
+        title: 'Çengel Premium',
+      },
+    }),
+    {
+      identifier: '$rc_monthly',
+      price: '₺99,99',
+      productId: 'cengel_premium_monthly',
+      title: 'Çengel Premium',
+    },
+  );
+});
+
+test('recognizes only RevenueCat purchase cancellation errors as cancellation', () => {
+  assert.equal(isPurchaseCancelled({ code: '1' }), true);
+  assert.equal(isPurchaseCancelled({ code: '10' }), false);
+  assert.equal(isPurchaseCancelled(new Error('cancelled')), false);
 });
