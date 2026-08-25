@@ -107,6 +107,8 @@ Giriş yapan kullanıcı güncel erişimlerini `GET /v1/me/entitlements` üzerin
 
 Mobil RevenueCat entegrasyonu geliştirme build'lerinde `EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY` kullanır ve yalnızca giriş yapmış kullanıcının Supabase UUID'sini RevenueCat App User ID olarak bağlar. Release build'lerinde Test Store anahtarı kullanılmaz; iOS ve Android için ayrı public SDK anahtarları gerekir. Native satın alma testi Expo Go yerine `expo-dev-client` içeren development build ile yapılır.
 
+Android emulator UAT build'i `com.sametckilic.cengel` package kimliğini ve `eas.json` içindeki `development` profilini kullanır. Expo projesi bağlandıktan sonra build `npx eas-cli build --platform android --profile development` ile üretilir; çıktı emülatöre kurulabilen APK formatındadır.
+
 ## Server build
 
 Expo Router API Routes nedeniyle web çıktısı `server` modundadır; yalnızca statik hosting yeterli değildir.
