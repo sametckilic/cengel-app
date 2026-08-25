@@ -88,6 +88,54 @@ export const userAchievements = pgTable(
   ],
 );
 
+export const subscriptionEvents = pgTable(
+  'subscription_events',
+  {
+    appUserId: text('app_user_id'),
+    environment: text('environment'),
+    eventId: text('event_id').primaryKey(),
+    eventTimestamp: timestamp('event_timestamp', { withTimezone: true }).notNull(),
+    eventType: text('event_type').notNull(),
+    payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
+    processedAt: timestamp('processed_at', { withTimezone: true }).defaultNow().notNull(),
+    receivedAt: timestamp('received_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('subscription_events_user_timestamp_idx').on(
+      table.appUserId,
+      table.eventTimestamp,
+    ),
+  ],
+);
+
+export const userEntitlements = pgTable(
+  'user_entitlements',
+  {
+    active: boolean('active').default(false).notNull(),
+    entitlementId: text('entitlement_id').notNull(),
+    environment: text('environment'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    productId: text('product_id'),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    sourceEventId: text('source_event_id')
+      .notNull()
+      .references(() => subscriptionEvents.eventId, { onDelete: 'restrict' }),
+    sourceEventTimestamp: timestamp('source_event_timestamp', {
+      withTimezone: true,
+    }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    userId: uuid('user_id').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.entitlementId] }),
+    index('user_entitlements_active_idx').on(
+      table.userId,
+      table.active,
+      table.expiresAt,
+    ),
+  ],
+);
+
 export const devices = pgTable(
   'devices',
   {

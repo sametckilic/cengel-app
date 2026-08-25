@@ -101,6 +101,8 @@ Doğrulama bağlantısı olmadan doğrudan kayıt için Supabase projesinde **Au
 
 Giriş yapan kullanıcının ilerlemesi senkronize edilirken ilk tamamlama, ipucusuz tamamlama ve 3/7 günlük seri başarımları sunucuda idempotent olarak değerlendirilir. Profil sekmesi kazanılmış ve kilitli durumları `GET /v1/me/achievements` üzerinden gösterir; misafir kullanım bu endpoint'e bağlı değildir.
 
+RevenueCat abonelik olayları `POST /v1/webhooks/revenuecat` endpoint'inde işlenir. Dashboard webhook ayarındaki Authorization değeri API'deki `REVENUECAT_WEBHOOK_AUTHORIZATION` ile birebir aynı olmalıdır. Olay kimlikleri idempotent saklanır; daha eski sıradan gelen olaylar daha yeni entitlement durumunu ezemez. Bu sunucu secret'ı mobil uygulamaya eklenmez.
+
 ## Server build
 
 Expo Router API Routes nedeniyle web çıktısı `server` modundadır; yalnızca statik hosting yeterli değildir.
