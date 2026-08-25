@@ -1,13 +1,14 @@
 import { createHash } from 'node:crypto';
 
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { and, desc, eq, lt, lte, or, sql } from 'drizzle-orm';
+import { and, desc, eq, exists, gt, isNull, lt, lte, or, sql } from 'drizzle-orm';
 
 import { DatabaseService } from '../database/database.service';
 import {
   clueCatalogVersions,
   puzzlePublications,
   puzzles,
+  userEntitlements,
 } from '../database/schema';
 
 export type PuzzleSummary = {
@@ -45,6 +46,7 @@ type ListOptions = {
   cursor?: string;
   difficulty?: PuzzleSummary['difficulty'];
   limit: number;
+  userId?: string;
   visibleOn: string;
 };
 
@@ -94,12 +96,42 @@ export class ContentService {
     return catalog.id;
   }
 
+  private entitlementCondition(userId?: string) {
+    if (!userId) {
+      return isNull(puzzlePublications.requiredEntitlement);
+    }
+
+    return or(
+      isNull(puzzlePublications.requiredEntitlement),
+      exists(
+        this.database.db
+          .select({ userId: userEntitlements.userId })
+          .from(userEntitlements)
+          .where(
+            and(
+              eq(userEntitlements.userId, userId),
+              eq(
+                userEntitlements.entitlementId,
+                puzzlePublications.requiredEntitlement,
+              ),
+              eq(userEntitlements.active, true),
+              or(
+                isNull(userEntitlements.expiresAt),
+                gt(userEntitlements.expiresAt, new Date()),
+              ),
+            ),
+          ),
+      ),
+    )!;
+  }
+
   async list(options: ListOptions): Promise<PuzzleListResult> {
     const cursor = options.cursor ? decodeCursor(options.cursor) : undefined;
     const conditions = [
       eq(puzzlePublications.status, 'published'),
       lte(puzzlePublications.publicationDate, options.visibleOn),
       eq(puzzles.qualityPassed, true),
+      this.entitlementCondition(options.userId),
     ];
 
     if (options.category) {
@@ -151,7 +183,7 @@ export class ContentService {
     };
   }
 
-  async catalog(visibleOn: string): Promise<PublishedCatalogResult> {
+  async catalog(visibleOn: string, userId?: string): Promise<PublishedCatalogResult> {
     const rows = await this.database.db
       .select({
         checksum: puzzles.checksum,
@@ -166,6 +198,7 @@ export class ContentService {
           eq(puzzlePublications.status, 'published'),
           lte(puzzlePublications.publicationDate, visibleOn),
           eq(puzzles.qualityPassed, true),
+          this.entitlementCondition(userId),
         ),
       )
       .orderBy(desc(puzzlePublications.publicationDate), desc(puzzles.version));
@@ -195,7 +228,7 @@ export class ContentService {
     };
   }
 
-  async findById(id: string, visibleOn: string) {
+  async findById(id: string, visibleOn: string, userId?: string) {
     const [row] = await this.database.db
       .select({ definition: puzzles.definition })
       .from(puzzlePublications)
@@ -206,6 +239,7 @@ export class ContentService {
           eq(puzzles.qualityPassed, true),
           eq(puzzlePublications.status, 'published'),
           lte(puzzlePublications.publicationDate, visibleOn),
+          this.entitlementCondition(userId),
         ),
       )
       .orderBy(desc(puzzles.version))
@@ -221,7 +255,7 @@ export class ContentService {
     };
   }
 
-  async findDaily(date: string) {
+  async findDaily(date: string, userId?: string) {
     const [row] = await this.database.db
       .select({ definition: puzzles.definition })
       .from(puzzlePublications)
@@ -232,6 +266,7 @@ export class ContentService {
           eq(puzzlePublications.publicationDate, date),
           eq(puzzlePublications.status, 'published'),
           eq(puzzles.qualityPassed, true),
+          this.entitlementCondition(userId),
         ),
       )
       .limit(1);

@@ -37,3 +37,22 @@ export class SupabaseAuthGuard implements CanActivate {
     return true;
   }
 }
+
+@Injectable()
+export class OptionalSupabaseAuthGuard implements CanActivate {
+  constructor(private readonly verifier: SupabaseTokenVerifier) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context
+      .switchToHttp()
+      .getRequest<FastifyRequest & { authenticatedUser?: AuthenticatedUser }>();
+
+    if (!request.headers.authorization) {
+      return true;
+    }
+
+    const accessToken = parseBearerToken(request.headers.authorization);
+    request.authenticatedUser = await this.verifier.verify(accessToken);
+    return true;
+  }
+}

@@ -4,9 +4,13 @@ import {
   Get,
   Param,
   Query,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 
+import type { AuthenticatedUser } from '../auth/authenticated-user';
+import { OptionalCurrentUser } from '../auth/optional-current-user.decorator';
+import { OptionalSupabaseAuthGuard } from '../auth/supabase-auth.guard';
 import { ContentCacheInterceptor } from './content-cache.interceptor';
 import { ContentService, type PuzzleSummary } from './content.service';
 
@@ -38,6 +42,7 @@ function parseDate(value: string | undefined): string {
 }
 
 @Controller('v1/puzzles')
+@UseGuards(OptionalSupabaseAuthGuard)
 @UseInterceptors(ContentCacheInterceptor)
 export class ContentController {
   constructor(private readonly content: ContentService) {}
@@ -48,6 +53,7 @@ export class ContentController {
     @Query('cursor') cursor?: string,
     @Query('difficulty') difficulty?: string,
     @Query('limit') rawLimit?: string,
+    @OptionalCurrentUser() user?: AuthenticatedUser,
   ) {
     const limit = rawLimit === undefined ? 20 : Number(rawLimit);
 
@@ -65,6 +71,7 @@ export class ContentController {
         cursor,
         difficulty: difficulty as PuzzleSummary['difficulty'] | undefined,
         limit,
+        userId: user?.userId,
         visibleOn: getIstanbulDateKey(),
       });
 
@@ -78,26 +85,35 @@ export class ContentController {
   }
 
   @Get('daily')
-  async daily(@Query('date') rawDate?: string) {
+  async daily(
+    @Query('date') rawDate?: string,
+    @OptionalCurrentUser() user?: AuthenticatedUser,
+  ) {
     const date = parseDate(rawDate);
 
     if (date > getIstanbulDateKey()) {
       throw new BadRequestException('Future daily puzzles are not available.');
     }
 
-    return { apiVersion: API_VERSION, ...(await this.content.findDaily(date)) };
+    return {
+      apiVersion: API_VERSION,
+      ...(await this.content.findDaily(date, user?.userId)),
+    };
   }
 
   @Get('catalog')
-  async catalog() {
-    return this.content.catalog(getIstanbulDateKey());
+  async catalog(@OptionalCurrentUser() user?: AuthenticatedUser) {
+    return this.content.catalog(getIstanbulDateKey(), user?.userId);
   }
 
   @Get(':id')
-  async detail(@Param('id') id: string) {
+  async detail(
+    @Param('id') id: string,
+    @OptionalCurrentUser() user?: AuthenticatedUser,
+  ) {
     return {
       apiVersion: API_VERSION,
-      ...(await this.content.findById(id, getIstanbulDateKey())),
+      ...(await this.content.findById(id, getIstanbulDateKey(), user?.userId)),
     };
   }
 }

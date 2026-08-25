@@ -103,6 +103,8 @@ Giriş yapan kullanıcının ilerlemesi senkronize edilirken ilk tamamlama, ipuc
 
 RevenueCat abonelik olayları `POST /v1/webhooks/revenuecat` endpoint'inde işlenir. Dashboard webhook ayarındaki Authorization değeri API'deki `REVENUECAT_WEBHOOK_AUTHORIZATION` ile birebir aynı olmalıdır. Olay kimlikleri idempotent saklanır; daha eski sıradan gelen olaylar daha yeni entitlement durumunu ezemez. Bu sunucu secret'ı mobil uygulamaya eklenmez.
 
+Giriş yapan kullanıcı güncel erişimlerini `GET /v1/me/entitlements` üzerinden alır. `required_entitlement` taşıyan premium yayınlar anonim katalogdan gizlenir; geçerli bearer token ile yapılan istekte yalnızca aktif ve süresi dolmamış entitlement eşleşirse liste, günlük ve detay endpoint'lerinden döner. Kimlikli içerik yanıtları paylaşılan cache'e açılmaz.
+
 ## Server build
 
 Expo Router API Routes nedeniyle web çıktısı `server` modundadır; yalnızca statik hosting yeterli değildir.

@@ -46,6 +46,6 @@ describe('ContentController', () => {
 
     await controller.catalog();
 
-    expect(catalog).toHaveBeenCalledWith(getIstanbulDateKey());
+    expect(catalog).toHaveBeenCalledWith(getIstanbulDateKey(), undefined);
   });
 });
