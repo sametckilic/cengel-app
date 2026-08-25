@@ -71,7 +71,16 @@ export type PuzzleRecipe = PuzzleGenerationRequest &
   } &
   (
     | { format?: undefined; topologyId?: undefined }
-    | { format: 'newspaper-arrowword'; topologyId: string }
+    | {
+        format: 'newspaper-arrowword';
+        generatorVersion?: 'newspaper-v1';
+        topologyId: string;
+      }
+    | {
+        format: 'newspaper-arrowword';
+        generatorVersion: 'newspaper-v2';
+        topologyId?: undefined;
+      }
   );
 
 export type GeneratedPuzzleLayout = Pick<

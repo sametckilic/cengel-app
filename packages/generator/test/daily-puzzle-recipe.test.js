@@ -12,6 +12,16 @@ const easyProfile = {
   categories: ['turkce', 'genel_kultur'],
   categoryWeight: 0.6,
 };
+const largeV2Profile = {
+  title: 'Günün Bulmacası',
+  generatorVersion: 'newspaper-v2',
+  rowCount: 10,
+  columnCount: 10,
+  targetWordCount: 29,
+  difficulty: 'easy',
+  categories: ['tarih', 'cografya', 'genel_kultur', 'turkce'],
+  categoryWeight: 0.55,
+};
 
 test('creates an explicit deterministic daily newspaper recipe', () => {
   const input = {
@@ -56,6 +66,33 @@ test('builds the generated daily recipe into a valid fixed puzzle', () => {
   assert.equal(puzzle.format, 'newspaper-arrowword');
   assert.equal(puzzle.cells.filter(({ type }) => type === 'void').length, 0);
   assert.equal(puzzle.words.length, 25);
+});
+
+test('creates and builds a V2 daily recipe without a fixed topology id', () => {
+  const recipe = createDailyPuzzleRecipe({
+    date: '2026-09-01',
+    profile: largeV2Profile,
+    revision: 'schedule-v2',
+  });
+
+  assert.equal(recipe.generatorVersion, 'newspaper-v2');
+  assert.equal(recipe.topologyId, undefined);
+  assert.equal(recipe.rowCount, 10);
+  assert.equal(recipe.columnCount, 10);
+  assert.equal(recipe.targetWordCount, 29);
+  assert.match(recipe.seed, /newspaper-v2-10x10-29/);
+
+  const manifest = buildPuzzleManifest(catalog, {
+    schemaVersion: 1,
+    recipes: [recipe],
+  });
+  const puzzle = manifest.puzzles[0];
+
+  assert.equal(puzzle.generation.generatorVersion, 'newspaper-v2');
+  assert.equal(puzzle.generation.topologyId, 'newspaper-large-10x10-v1');
+  assert.equal(typeof puzzle.generation.topologyFingerprint, 'string');
+  assert.equal(puzzle.cells.some(({ type }) => type === 'void'), false);
+  assert.equal(puzzle.words.length, 29);
 });
 
 test('changes the seed when generation configuration changes', () => {

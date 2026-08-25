@@ -19,6 +19,31 @@ test('rotates daily size, difficulty, and category profiles deterministically', 
   assert.equal(getRotatedProfileIds('2026-08-26')[0], 'medium-literature-balanced');
   assert.equal(getRotatedProfileIds('2026-08-27')[0], 'beginner-geography-compact');
   assert.equal(addDaysToIsoDate('2028-02-28', 1), '2028-02-29');
+  assert.deepEqual(getRotatedProfileIds('2026-08-24', 'newspaper-v2'), [
+    'v2-beginner-geography-compact',
+    'v2-easy-science-wide',
+    'v2-medium-culture-balanced',
+    'v2-easy-history-large',
+    'v2-easy-technology-large',
+  ]);
+});
+
+test('uses the V2 profile rotation when explicitly requested', () => {
+  const profileIds = [];
+
+  createScheduledDailyPublication(
+    catalog,
+    { date: '2026-08-24', revision: 'schedule-v2' },
+    {
+      generatorVersion: 'newspaper-v2',
+      publicationFactory: (_entries, request) => {
+        profileIds.push(request.profileId);
+        return request;
+      },
+    },
+  );
+
+  assert.deepEqual(profileIds, ['v2-beginner-geography-compact']);
 });
 
 test('builds a deterministic seven-day quality-approved schedule', () => {

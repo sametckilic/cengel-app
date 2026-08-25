@@ -7,6 +7,17 @@ const DAILY_PROFILE_ROTATION = Object.freeze([
   'easy-mixed-wide',
   'medium-literature-balanced',
 ]);
+const DAILY_V2_PROFILE_ROTATION = Object.freeze([
+  'v2-beginner-geography-compact',
+  'v2-easy-science-wide',
+  'v2-medium-culture-balanced',
+  'v2-easy-history-large',
+  'v2-easy-technology-large',
+]);
+const DAILY_PROFILE_ROTATIONS = Object.freeze({
+  'newspaper-v1': DAILY_PROFILE_ROTATION,
+  'newspaper-v2': DAILY_V2_PROFILE_ROTATION,
+});
 const DEFAULT_MAX_ATTEMPTS_PER_PROFILE = 5;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -68,18 +79,24 @@ function filterPublicationsAvailableOn(publications, asOfDate) {
     .sort((left, right) => left.date.localeCompare(right.date));
 }
 
-function getRotatedProfileIds(date) {
+function getRotatedProfileIds(date, generatorVersion = 'newspaper-v1') {
+  const profileRotation = DAILY_PROFILE_ROTATIONS[generatorVersion];
+
+  if (!profileRotation) {
+    throw new Error(`Unsupported daily generator version: ${generatorVersion}`);
+  }
+
   const dayDifference = Math.round(
     (parseUtcDate(date).getTime() - parseUtcDate(ROTATION_ANCHOR_DATE).getTime()) /
       MILLISECONDS_PER_DAY,
   );
   const rotationIndex =
-    ((dayDifference % DAILY_PROFILE_ROTATION.length) + DAILY_PROFILE_ROTATION.length) %
-    DAILY_PROFILE_ROTATION.length;
+    ((dayDifference % profileRotation.length) + profileRotation.length) %
+    profileRotation.length;
 
   return [
-    ...DAILY_PROFILE_ROTATION.slice(rotationIndex),
-    ...DAILY_PROFILE_ROTATION.slice(0, rotationIndex),
+    ...profileRotation.slice(rotationIndex),
+    ...profileRotation.slice(0, rotationIndex),
   ];
 }
 
@@ -98,6 +115,7 @@ function createScheduledDailyPublication(
     options.maxAttemptsPerProfile ?? DEFAULT_MAX_ATTEMPTS_PER_PROFILE;
   const publicationFactory =
     options.publicationFactory ?? createDailyPuzzlePublication;
+  const generatorVersion = options.generatorVersion ?? 'newspaper-v1';
 
   if (!Number.isInteger(maxAttemptsPerProfile) || maxAttemptsPerProfile < 1) {
     throw new Error('maxAttemptsPerProfile must be a positive integer.');
@@ -105,7 +123,7 @@ function createScheduledDailyPublication(
 
   const failures = [];
 
-  for (const profileId of getRotatedProfileIds(date)) {
+  for (const profileId of getRotatedProfileIds(date, generatorVersion)) {
     for (let attempt = 1; attempt <= maxAttemptsPerProfile; attempt += 1) {
       const attemptRevision = `${revision}-a${attempt}`;
 
@@ -153,6 +171,8 @@ function createDailyPublicationSchedule(
 
 module.exports = {
   DAILY_PROFILE_ROTATION,
+  DAILY_PROFILE_ROTATIONS,
+  DAILY_V2_PROFILE_ROTATION,
   DEFAULT_MAX_ATTEMPTS_PER_PROFILE,
   ROTATION_ANCHOR_DATE,
   addDaysToIsoDate,

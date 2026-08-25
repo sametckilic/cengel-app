@@ -7,6 +7,10 @@ const { generatePuzzleLayout } = require('./puzzle-layout');
 const { fillNewspaperTopology } = require('./newspaper-fill');
 const { validateNewspaperPuzzle } = require('./newspaper-grid');
 const { createNewspaperTopologyById } = require('./newspaper-topology');
+const {
+  createNewspaperV2GenerationOptions,
+  generateNewspaperPuzzleV2,
+} = require('./newspaper-v2');
 
 const SOURCE_CATALOG = 'data/generated/clue-catalog.json';
 
@@ -35,6 +39,16 @@ function validateRecipeDocument(recipeDocument) {
     validateGenerationRequest(recipe);
 
     if (recipe.format === 'newspaper-arrowword') {
+      if (recipe.generatorVersion === 'newspaper-v2') {
+        if (recipe.topologyId !== undefined) {
+          throw new Error(
+            `V2 newspaper puzzle recipe "${recipe.id}" cannot have a topologyId.`,
+          );
+        }
+
+        continue;
+      }
+
       if (typeof recipe.topologyId !== 'string' || recipe.topologyId.length === 0) {
         throw new Error(
           `Newspaper puzzle recipe "${recipe.id}" must have a topologyId.`,
@@ -159,6 +173,17 @@ function validateGeneratedPuzzle(puzzle) {
 
 function buildPuzzleDefinition(catalogEntries, recipe) {
   if (recipe.format === 'newspaper-arrowword') {
+    if (recipe.generatorVersion === 'newspaper-v2') {
+      const { puzzle } = generateNewspaperPuzzleV2(
+        catalogEntries,
+        recipe,
+        createNewspaperV2GenerationOptions(recipe),
+      );
+
+      validateGeneratedPuzzle(puzzle);
+      return puzzle;
+    }
+
     const topology = createNewspaperTopologyById(recipe.topologyId);
     const { puzzle } = fillNewspaperTopology(catalogEntries, recipe, topology);
 

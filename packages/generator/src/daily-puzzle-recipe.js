@@ -43,13 +43,29 @@ function createDailyPuzzleRecipe({ date, profile, revision }) {
     throw new Error('Daily puzzle profile must contain at least one category.');
   }
 
-  const topology = createNewspaperTopologyById(profile.topologyId);
   const id = `gunun-${normalizedDate}`;
   const categories = [...profile.categories];
+  const isV2 = profile.generatorVersion === 'newspaper-v2';
+
+  if (
+    profile.generatorVersion !== undefined &&
+    profile.generatorVersion !== 'newspaper-v2'
+  ) {
+    throw new Error(`Unsupported daily puzzle generator: ${profile.generatorVersion}`);
+  }
+
+  const topology = isV2 ? null : createNewspaperTopologyById(profile.topologyId);
+  const rowCount = isV2 ? profile.rowCount : topology.rowCount;
+  const columnCount = isV2 ? profile.columnCount : topology.columnCount;
+  const targetWordCount = isV2
+    ? profile.targetWordCount
+    : topology.slots.length;
   const seedParts = [
     id,
     revision,
-    topology.id,
+    isV2
+      ? `newspaper-v2-${rowCount}x${columnCount}-${targetWordCount}`
+      : topology.id,
     profile.difficulty,
     categories.join('+'),
     String(profile.categoryWeight),
@@ -58,14 +74,16 @@ function createDailyPuzzleRecipe({ date, profile, revision }) {
     id,
     title: profile.title ?? 'Günün Bulmacası',
     format: 'newspaper-arrowword',
-    topologyId: topology.id,
-    rowCount: topology.rowCount,
-    columnCount: topology.columnCount,
+    ...(isV2
+      ? { generatorVersion: 'newspaper-v2' }
+      : { topologyId: topology.id }),
+    rowCount,
+    columnCount,
     difficulty: profile.difficulty,
     categories,
     categoryWeight: profile.categoryWeight,
     seed: seedParts.join(':'),
-    targetWordCount: topology.slots.length,
+    targetWordCount,
   };
 
   validateGenerationRequest(recipe);

@@ -15,6 +15,16 @@ function createDailyPuzzlePublication(catalog, { date, profileId, revision }) {
     recipe,
   );
 
+  const v2Diagnostics =
+    puzzle.generation.generatorVersion === 'newspaper-v2'
+      ? {
+          aesthetic: diagnostics.aesthetic,
+          clueText: diagnostics.clueText,
+          failedFillCount: diagnostics.failedFills.length,
+          topologyFingerprint: puzzle.generation.topologyFingerprint,
+        }
+      : {};
+
   return {
     schemaVersion: 1,
     date,
@@ -27,6 +37,7 @@ function createDailyPuzzlePublication(catalog, { date, profileId, revision }) {
     generationDiagnostics: {
       backtrackCount: diagnostics.backtrackCount,
       searchNodeCount: diagnostics.searchNodeCount,
+      ...v2Diagnostics,
     },
     puzzle,
   };

@@ -66,3 +66,32 @@ test('rejects invalid quality policies before publication', () => {
     /non-negative number/,
   );
 });
+
+test('applies the daily quality gate to a readable V2 candidate', () => {
+  const v2Recipe = createDailyPuzzleRecipe({
+    date: '2026-09-01',
+    profile: {
+      title: 'Günün Bulmacası',
+      generatorVersion: 'newspaper-v2',
+      rowCount: 10,
+      columnCount: 10,
+      targetWordCount: 29,
+      difficulty: 'easy',
+      categories: ['tarih', 'cografya', 'genel_kultur', 'turkce'],
+      categoryWeight: 0.55,
+    },
+    revision: 'schedule-v2',
+  });
+  const { diagnostics, puzzle, quality } = buildDailyPuzzleCandidate(
+    catalog.entries,
+    v2Recipe,
+  );
+
+  assert.equal(quality.passed, true);
+  assert.equal(puzzle.generation.generatorVersion, 'newspaper-v2');
+  assert.equal(diagnostics.aesthetic.passed, true);
+  assert.equal(quality.policy.maximumFallbackWordShare, 0.36);
+  assert.equal(quality.policy.minimumAnswerLengthAverage, 3.4);
+  assert.ok(diagnostics.clueText.maximumSingleUnits <= 24);
+  assert.ok(diagnostics.clueText.maximumSplitUnits <= 18);
+});

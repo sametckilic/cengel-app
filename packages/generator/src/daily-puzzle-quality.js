@@ -1,6 +1,10 @@
 const { fillNewspaperTopology } = require('./newspaper-fill');
 const { analyzeNewspaperPuzzle } = require('./newspaper-grid');
 const { createNewspaperTopologyById } = require('./newspaper-topology');
+const {
+  createNewspaperV2GenerationOptions,
+  generateNewspaperPuzzleV2,
+} = require('./newspaper-v2');
 const { validateGeneratedPuzzle, validateRecipeDocument } = require('./puzzle-manifest');
 
 const DEFAULT_DAILY_QUALITY_POLICY = Object.freeze({
@@ -8,6 +12,11 @@ const DEFAULT_DAILY_QUALITY_POLICY = Object.freeze({
   minimumAnswerLengthAverage: 3.5,
   minimumDirectionShare: 0.3,
   minimumIntersectionRatio: 0.6,
+});
+const DEFAULT_V2_DAILY_QUALITY_POLICY = Object.freeze({
+  ...DEFAULT_DAILY_QUALITY_POLICY,
+  maximumFallbackWordShare: 0.36,
+  minimumAnswerLengthAverage: 3.4,
 });
 
 function roundRatio(value) {
@@ -128,15 +137,25 @@ function evaluateDailyPuzzleQuality(puzzle, diagnostics, policyOverrides) {
 
 function buildDailyPuzzleCandidate(catalogEntries, recipe, policyOverrides) {
   validateRecipeDocument({ schemaVersion: 1, recipes: [recipe] });
-  const topology = createNewspaperTopologyById(recipe.topologyId);
-  const { diagnostics, puzzle } = fillNewspaperTopology(
-    catalogEntries,
-    recipe,
-    topology,
-  );
+  const { diagnostics, puzzle } =
+    recipe.generatorVersion === 'newspaper-v2'
+      ? generateNewspaperPuzzleV2(
+          catalogEntries,
+          recipe,
+          createNewspaperV2GenerationOptions(recipe),
+        )
+      : fillNewspaperTopology(
+          catalogEntries,
+          recipe,
+          createNewspaperTopologyById(recipe.topologyId),
+        );
 
   validateGeneratedPuzzle(puzzle);
-  const quality = evaluateDailyPuzzleQuality(puzzle, diagnostics, policyOverrides);
+  const qualityPolicy =
+    recipe.generatorVersion === 'newspaper-v2'
+      ? { ...DEFAULT_V2_DAILY_QUALITY_POLICY, ...policyOverrides }
+      : policyOverrides;
+  const quality = evaluateDailyPuzzleQuality(puzzle, diagnostics, qualityPolicy);
 
   if (!quality.passed) {
     throw new Error(
@@ -149,6 +168,7 @@ function buildDailyPuzzleCandidate(catalogEntries, recipe, policyOverrides) {
 
 module.exports = {
   DEFAULT_DAILY_QUALITY_POLICY,
+  DEFAULT_V2_DAILY_QUALITY_POLICY,
   buildDailyPuzzleCandidate,
   evaluateDailyPuzzleQuality,
   resolveQualityPolicy,

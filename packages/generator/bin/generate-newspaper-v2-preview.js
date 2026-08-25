@@ -3,7 +3,10 @@
 const { mkdir, readFile, writeFile } = require('node:fs/promises');
 const path = require('node:path');
 
-const { generateNewspaperPuzzleV2 } = require('../src/newspaper-v2');
+const {
+  createNewspaperV2GenerationOptions,
+  generateNewspaperPuzzleV2,
+} = require('../src/newspaper-v2');
 const { validateGeneratedPuzzle } = require('../src/puzzle-manifest');
 
 const CATALOG_PATH = path.resolve(
@@ -101,34 +104,13 @@ function parseArguments(argumentsList) {
   return options;
 }
 
-function generationOptions(request) {
-  if (request.rowCount >= 10) {
-    return {
-      maximumFillAttempts: 1,
-      maximumSuccessfulFills: 1,
-      maxSearchNodesPerTopology: 25_000,
-      topology: { maxCandidates: 1, maxMutationDepth: 0 },
-    };
-  }
-
-  return {
-    maximumFillAttempts: 6,
-    maximumSuccessfulFills: 2,
-    maxSearchNodesPerTopology: 25_000,
-    topology:
-      request.rowCount === 9
-        ? { beamWidth: 400, maxCandidates: 6, maxMutationDepth: 4 }
-        : { beamWidth: 1_000, maxCandidates: 6, maxMutationDepth: 5 },
-  };
-}
-
 async function createPreviewManifest() {
   const catalog = JSON.parse(await readFile(CATALOG_PATH, 'utf8'));
   const results = PREVIEW_REQUESTS.map((request) =>
     generateNewspaperPuzzleV2(
       catalog.entries,
       request,
-      generationOptions(request),
+      createNewspaperV2GenerationOptions(request),
     ),
   );
 

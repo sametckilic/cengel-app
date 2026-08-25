@@ -10,6 +10,27 @@ const DEFAULT_V2_OPTIONS = Object.freeze({
   maxSearchNodesPerTopology: 25_000,
 });
 
+function createNewspaperV2GenerationOptions(request) {
+  if (request.rowCount >= 10) {
+    return {
+      maximumFillAttempts: 1,
+      maximumSuccessfulFills: 1,
+      maxSearchNodesPerTopology: 25_000,
+      topology: { maxCandidates: 1, maxMutationDepth: 0 },
+    };
+  }
+
+  return {
+    maximumFillAttempts: 6,
+    maximumSuccessfulFills: 2,
+    maxSearchNodesPerTopology: 25_000,
+    topology:
+      request.rowCount === 9
+        ? { beamWidth: 400, maxCandidates: 6, maxMutationDepth: 4 }
+        : { beamWidth: 1_000, maxCandidates: 6, maxMutationDepth: 5 },
+  };
+}
+
 function resolveV2Options(overrides = {}) {
   const options = {
     ...DEFAULT_V2_OPTIONS,
@@ -150,6 +171,7 @@ function generateNewspaperPuzzleV2(catalogEntries, request, optionOverrides = {}
 
 module.exports = {
   DEFAULT_V2_OPTIONS,
+  createNewspaperV2GenerationOptions,
   generateNewspaperPuzzleV2,
   resolveV2Options,
   scoreFilledCandidate,
