@@ -34,9 +34,9 @@ UAT kapısı: staging API yeni katalog sürümünü göstermeli ve üretilen bul
 
 Amaç: Mobilde etkinleşen aboneliği güvenilir biçimde backend entitlement kaydına dönüştürmek.
 
-- [ ] Railway staging için `REVENUECAT_WEBHOOK_AUTHORIZATION` secret'ı oluştur.
-- [ ] RevenueCat Webhooks entegrasyonuna staging endpoint ve aynı Authorization değerini ekle.
-- [ ] Sandbox/Test Store olaylarını aç; dashboard test event'ini `200` ile doğrula.
+- [x] Railway staging için `REVENUECAT_WEBHOOK_AUTHORIZATION` secret'ı oluştur.
+- [x] RevenueCat Webhooks entegrasyonuna staging endpoint ve aynı Authorization değerini ekle.
+- [x] Sandbox/Test Store olaylarını aç; dashboard test event'ini `200` ile doğrula.
 - [ ] Başarılı test satın alımının `premium_access` kaydını oluşturduğunu doğrula; gerekirse olayı Retry ile yeniden gönder.
 - [ ] Duplicate, eski sırada gelen, renewal, cancellation, expiration ve transfer olaylarını staging'de doğrula.
 - [ ] `GET /v1/me/entitlements` ile mobil SDK durumunun aynı olduğunu doğrula.
