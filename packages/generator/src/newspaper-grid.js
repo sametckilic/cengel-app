@@ -1,9 +1,21 @@
 const NEWSPAPER_DIRECTIONS = new Set(['down', 'right']);
+const NEWSPAPER_ARROWS = new Set([
+  'down',
+  'down-right',
+  'right',
+  'right-down',
+]);
 const NEWSPAPER_CELL_TYPES = new Set(['clue', 'letter', 'split-clue']);
 
 function getCellClues(cell) {
   if (cell?.type === 'clue') {
-    return [{ direction: cell.direction, label: cell.label }];
+    return [
+      {
+        ...(cell.arrow === undefined ? {} : { arrow: cell.arrow }),
+        direction: cell.direction,
+        label: cell.label,
+      },
+    ];
   }
 
   if (cell?.type === 'split-clue' && Array.isArray(cell.clues)) {
@@ -17,8 +29,22 @@ function getWordStep(direction, columnCount) {
   return direction === 'right' ? 1 : columnCount;
 }
 
-function getClueKey(cellIndex, direction) {
-  return `${cellIndex}:${direction}`;
+function getClueArrow(clue) {
+  return clue?.arrow ?? clue?.direction;
+}
+
+function getArrowDirection(arrow) {
+  return arrow === 'right' || arrow === 'down-right' ? 'right' : 'down';
+}
+
+function getArrowFirstCellIndex(clueCellIndex, arrow, columnCount) {
+  return arrow === 'right' || arrow === 'right-down'
+    ? clueCellIndex + 1
+    : clueCellIndex + columnCount;
+}
+
+function getClueKey(cellIndex, arrow) {
+  return `${cellIndex}:${arrow}`;
 }
 
 function roundRatio(value) {
@@ -65,8 +91,12 @@ function analyzeNewspaperPuzzle(puzzle) {
     cellTypeCounts[cell.type] += 1;
 
     for (const clue of getCellClues(cell)) {
+      const arrow = getClueArrow(clue);
+
       if (
         !NEWSPAPER_DIRECTIONS.has(clue?.direction) ||
+        !NEWSPAPER_ARROWS.has(arrow) ||
+        getArrowDirection(arrow) !== clue?.direction ||
         typeof clue?.label !== 'string' ||
         clue.label.trim().length === 0
       ) {
@@ -74,7 +104,7 @@ function analyzeNewspaperPuzzle(puzzle) {
         continue;
       }
 
-      const clueKey = getClueKey(cellIndex, clue.direction);
+      const clueKey = getClueKey(cellIndex, arrow);
 
       if (clueByKey.has(clueKey)) {
         duplicateClueKeys.add(clueKey);
@@ -102,6 +132,12 @@ function analyzeNewspaperPuzzle(puzzle) {
   const conflictingCellIndices = new Set();
   const invalidWordIds = new Set();
   const directionCounts = { down: 0, right: 0 };
+  const arrowCounts = {
+    down: 0,
+    'down-right': 0,
+    right: 0,
+    'right-down': 0,
+  };
 
   for (const [wordIndex, word] of words.entries()) {
     const wordId = typeof word?.id === 'string' ? word.id : `word-${wordIndex}`;
@@ -129,14 +165,28 @@ function analyzeNewspaperPuzzle(puzzle) {
 
     const step = getWordStep(word.direction, columnCount);
     const firstCellIndex = word.cellIndices[0];
-    const clueCellIndex = firstCellIndex - step;
-    const clueKey = getClueKey(clueCellIndex, word.direction);
+    const clueArrow = word.clueArrow ?? word.direction;
+    const clueCellIndex = Number.isInteger(word.clueCellIndex)
+      ? word.clueCellIndex
+      : clueArrow === 'right' || clueArrow === 'right-down'
+        ? firstCellIndex - 1
+        : firstCellIndex - columnCount;
+    const clueKey = getClueKey(clueCellIndex, clueArrow);
     const clue = clueByKey.get(clueKey);
 
-    if (!clue || clue.label !== word.clue) {
+    if (
+      !NEWSPAPER_ARROWS.has(clueArrow) ||
+      getArrowDirection(clueArrow) !== word.direction ||
+      getArrowFirstCellIndex(clueCellIndex, clueArrow, columnCount) !==
+        firstCellIndex ||
+      !clue ||
+      clue.direction !== word.direction ||
+      clue.label !== word.clue
+    ) {
       wordIsValid = false;
     } else {
       usedClueKeys.add(clueKey);
+      arrowCounts[clueArrow] += 1;
     }
 
     for (const [letterIndex, cellIndex] of word.cellIndices.entries()) {
@@ -224,6 +274,8 @@ function analyzeNewspaperPuzzle(puzzle) {
   return {
     answerLengthAverage:
       words.length > 0 ? roundRatio(answerLengthTotal / words.length) : 0,
+    arrowCounts,
+    bentArrowCount: arrowCounts['down-right'] + arrowCounts['right-down'],
     cellTypeCounts,
     clueSlotCount: clueByKey.size,
     columnCount,

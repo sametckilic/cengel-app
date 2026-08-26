@@ -20,7 +20,10 @@ import Animated, {
 
 import { fonts, layout, palette, spacing, typography } from '@/constants/design';
 import { useKeyboardFeedback } from '@/hooks/use-keyboard-feedback';
-import type { PuzzleClueSummary } from '@cengel/puzzle-core/puzzle';
+import {
+  getPuzzleClueArrowSymbol,
+  type PuzzleClueSummary,
+} from '@cengel/puzzle-core/puzzle';
 
 const KEY_HEIGHT = 48;
 const KEY_GAP = 4;
@@ -519,8 +522,7 @@ type TurkishKeyboardProps = {
 };
 
 function getClueLabel(clue: PuzzleClueSummary) {
-  const arrow = clue.direction === 'right' ? '→' : '↓';
-  return `${arrow} ${clue.label}`;
+  return `${getPuzzleClueArrowSymbol(clue)} ${clue.label}`;
 }
 
 export function TurkishKeyboard({

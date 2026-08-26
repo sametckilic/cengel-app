@@ -38,7 +38,7 @@ const PREVIEW_REQUESTS = Object.freeze([
     difficulty: 'medium',
     rowCount: 8,
     seed: 'newspaper-v2-preview-8x8-a',
-    targetWordCount: 15,
+    targetWordCount: 18,
   },
   {
     id: 'newspaper-v2-preview-9x10',
@@ -55,7 +55,7 @@ const PREVIEW_REQUESTS = Object.freeze([
     id: 'newspaper-v2-preview-10x10',
     title: 'Tarih ve Coğrafya',
     categories: ['tarih', 'cografya', 'genel_kultur', 'turkce'],
-    categoryWeight: 0.55,
+    categoryWeight: 0.51,
     columnCount: 10,
     difficulty: 'easy',
     rowCount: 10,
@@ -136,6 +136,10 @@ async function createPreviewManifest() {
       words: puzzle.words.length,
       topologyFingerprint: puzzle.generation.topologyFingerprint,
       aestheticScore: puzzle.generation.aestheticScore,
+      bentArrows: puzzle.words.filter(
+        ({ clueArrow, direction }) =>
+          clueArrow !== undefined && clueArrow !== direction,
+      ).length,
       clueText: diagnostics.clueText,
       failedFillAttempts: diagnostics.failedFills.length,
     })),

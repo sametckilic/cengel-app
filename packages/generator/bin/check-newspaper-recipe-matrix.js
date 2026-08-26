@@ -39,6 +39,10 @@ async function main() {
     }
 
     const { metrics } = publication.quality;
+    const bentArrows = publication.puzzle.words.filter(
+      ({ clueArrow, direction }) =>
+        clueArrow !== undefined && clueArrow !== direction,
+    );
     const expectedRequiredThemedWordCount = Math.ceil(
       expectedProfile.targetWordCount * expectedProfile.categoryWeight,
     );
@@ -56,7 +60,9 @@ async function main() {
       ) ||
       metrics.requiredThemedWordCount !== expectedRequiredThemedWordCount ||
       metrics.themedWordCount < expectedRequiredThemedWordCount ||
-      metrics.themedWordCount <= publication.puzzle.words.length / 2
+      metrics.themedWordCount <= publication.puzzle.words.length / 2 ||
+      !bentArrows.some(({ clueArrow }) => clueArrow === 'right-down') ||
+      !bentArrows.some(({ clueArrow }) => clueArrow === 'down-right')
     ) {
       throw new Error(
         `Matrix profile "${expectedProfile.profileId}" produced an invalid contract.`,
@@ -65,6 +71,7 @@ async function main() {
 
     summaries.push({
       date,
+      bentArrows: bentArrows.length,
       difficulty: publication.puzzle.difficulty,
       generationAttempt: Number(publication.revision.match(/-a(\d+)$/)?.[1]),
       profileId: publication.profileId,

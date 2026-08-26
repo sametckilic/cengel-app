@@ -13,6 +13,13 @@ const rectangularRequest = {
   targetWordCount: 25,
 };
 
+function assertHasBentArrowPair(topology) {
+  const arrows = topology.slots.map(({ arrow, direction }) => arrow ?? direction);
+
+  assert.ok(arrows.includes('right-down'));
+  assert.ok(arrows.includes('down-right'));
+}
+
 test('generates deterministic aesthetic topology candidates for a rectangular grid', () => {
   const first = generateNewspaperTopologyCandidates(rectangularRequest, {
     beamWidth: 400,
@@ -37,6 +44,7 @@ test('generates deterministic aesthetic topology candidates for a rectangular gr
     assert.equal(candidate.topology.rowCount, rectangularRequest.rowCount);
     assert.equal(candidate.topology.columnCount, rectangularRequest.columnCount);
     assert.equal(candidate.topology.slots.length, rectangularRequest.targetWordCount);
+    assertHasBentArrowPair(candidate.topology);
     assert.doesNotThrow(() => validateNewspaperTopology(candidate.topology));
   }
 });
@@ -80,6 +88,28 @@ test('supports a compact non-square-independent topology family', () => {
   assert.ok(result.candidates.length >= 1);
   assert.ok(result.candidates.every(({ aesthetic }) => aesthetic.passed));
   assert.ok(result.candidates.every(({ topology }) => topology.slots.length === 14));
+  result.candidates.forEach(({ topology }) => assertHasBentArrowPair(topology));
+});
+
+test('supports a dense 8x8 topology with newspaper-style bent arrows', () => {
+  const result = generateNewspaperTopologyCandidates(
+    {
+      columnCount: 8,
+      rowCount: 8,
+      seed: 'balanced-bent-preview',
+      targetWordCount: 18,
+    },
+    {
+      beamWidth: 1_000,
+      maxCandidates: 2,
+      maxMutationDepth: 5,
+    },
+  );
+
+  assert.ok(result.candidates.length >= 1);
+  assert.ok(result.candidates.every(({ aesthetic }) => aesthetic.passed));
+  assert.ok(result.candidates.every(({ topology }) => topology.slots.length === 18));
+  result.candidates.forEach(({ topology }) => assertHasBentArrowPair(topology));
 });
 
 test('supports large square and rectangular topology families without mutation', () => {
@@ -98,6 +128,7 @@ test('supports large square and rectangular topology families without mutation',
     assert.equal(result.candidates[0].mutationDepth, 0);
     assert.equal(result.candidates[0].aesthetic.passed, true);
     assert.equal(result.candidates[0].topology.slots.length, request.targetWordCount);
+    assertHasBentArrowPair(result.candidates[0].topology);
   }
 });
 

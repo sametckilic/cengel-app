@@ -1,4 +1,3 @@
-import { MaterialIcons } from '@expo/vector-icons';
 import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -12,11 +11,16 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { fonts, layout, palette, spacing } from '@/constants/design';
+import { ClueArrow } from '@/components/cengel/clue-arrow';
 import type {
+  PuzzleClueArrow,
   PuzzleClueSummary,
   PuzzleDefinition,
-  PuzzleDirection,
   PuzzleEntries,
+} from '@cengel/puzzle-core/puzzle';
+import {
+  getPuzzleClueArrow,
+  getPuzzleWordClueCellIndex,
 } from '@cengel/puzzle-core/puzzle';
 import { getWordsAtCell } from '@cengel/puzzle-core/puzzle-selection';
 
@@ -32,37 +36,17 @@ const ZOOM_LIMIT_SPRING = {
   stiffness: 220,
 } as const;
 
-function getDirectionIcon(direction: PuzzleDirection) {
-  return direction === 'right' ? 'arrow-forward' : 'arrow-downward';
-}
-
-function getDirectionStep(direction: PuzzleDirection, columnCount: number) {
-  return direction === 'right' ? 1 : columnCount;
-}
-
-function DirectionArrow({
-  active = false,
-  direction,
-  size,
-}: {
-  active?: boolean;
-  direction: PuzzleDirection;
-  size: number;
-}) {
-  return (
-    <MaterialIcons
-      color={active ? palette.secondary : palette.ink}
-      name={getDirectionIcon(direction)}
-      size={size}
-    />
-  );
+function arrowStartsRight(clue: PuzzleClueSummary) {
+  const arrow = getPuzzleClueArrow(clue);
+  return arrow === 'right' || arrow === 'right-down';
 }
 
 function SingleClueCell({
+  active,
+  arrow,
   cellSize,
   direction,
   label,
-  active,
 }: PuzzleClueSummary & { active: boolean; cellSize: number }) {
   const arrowSize = Math.max(8, Math.round(cellSize * 0.2));
   const fontSize = Math.max(7, Math.min(9, cellSize * 0.185));
@@ -86,8 +70,18 @@ function SingleClueCell({
         ]}>
         {label}
       </Text>
-      <View style={direction === 'right' ? styles.rightArrow : styles.downArrow}>
-        <DirectionArrow active={active} direction={direction} size={arrowSize} />
+      <View
+        style={
+          arrowStartsRight({ arrow, direction, label })
+            ? styles.rightArrow
+            : styles.downArrow
+        }>
+        <ClueArrow
+          active={active}
+          arrow={arrow}
+          direction={direction}
+          size={arrowSize}
+        />
       </View>
     </View>
   );
@@ -119,8 +113,9 @@ function SplitClueSection({
         ]}>
         {clue.label}
       </Text>
-      <DirectionArrow
+      <ClueArrow
         active={selected}
+        arrow={clue.arrow}
         direction={clue.direction}
         size={Math.max(7, cellSize * 0.16)}
       />
@@ -131,14 +126,13 @@ function SplitClueSection({
 function SplitClueCell({
   cellSize,
   clues,
-  selectedDirection,
+  selectedArrow,
 }: {
   cellSize: number;
   clues: readonly [PuzzleClueSummary, PuzzleClueSummary];
-  selectedDirection?: PuzzleDirection;
+  selectedArrow?: PuzzleClueArrow;
 }) {
-  const rightClue = clues.find(({ direction }) => direction === 'right') ?? clues[0];
-  const downClue = clues.find(({ direction }) => direction === 'down') ?? clues[1];
+  const [topClue, bottomClue] = clues;
 
   return (
     <View
@@ -151,15 +145,15 @@ function SplitClueCell({
       <View style={styles.splitDivider} />
       <SplitClueSection
         cellSize={cellSize}
-        clue={rightClue}
+        clue={topClue}
         position="top"
-        selected={selectedDirection === 'right'}
+        selected={selectedArrow === getPuzzleClueArrow(topClue)}
       />
       <SplitClueSection
         cellSize={cellSize}
-        clue={downClue}
+        clue={bottomClue}
         position="bottom"
-        selected={selectedDirection === 'down'}
+        selected={selectedArrow === getPuzzleClueArrow(bottomClue)}
       />
     </View>
   );
@@ -305,9 +299,11 @@ export function NewspaperPreviewGrid({
     throw new Error(`Puzzle is missing active word "${activeWordId}".`);
   }
 
-  const activeClueCellIndex =
-    activeWord.cellIndices[0] -
-    getDirectionStep(activeWord.direction, puzzle.columnCount);
+  const activeClueCellIndex = getPuzzleWordClueCellIndex(
+    activeWord,
+    puzzle.columnCount,
+  );
+  const activeClueArrow = activeWord.clueArrow ?? activeWord.direction;
 
   useEffect(() => {
     if (!centerActiveCell) {
@@ -345,9 +341,9 @@ export function NewspaperPreviewGrid({
                     cellSize={cellSize}
                     clues={cell.clues}
                     key={cellIndex}
-                    selectedDirection={
+                    selectedArrow={
                       cellIndex === activeClueCellIndex
-                        ? activeWord.direction
+                        ? activeClueArrow
                         : undefined
                     }
                   />
@@ -358,6 +354,7 @@ export function NewspaperPreviewGrid({
                 return (
                   <SingleClueCell
                     cellSize={cellSize}
+                    arrow={cell.arrow}
                     direction={cell.direction}
                     key={cellIndex}
                     label={cell.label}

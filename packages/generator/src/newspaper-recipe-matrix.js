@@ -16,9 +16,18 @@ const NEWSPAPER_V2_SIZE_VARIANTS = Object.freeze([
   Object.freeze({
     columnCount: 8,
     rowCount: 8,
-    targetWordCount: 15,
+    targetWordCount: 18,
     profileSuffix: 'culture-balanced',
     categories: Object.freeze(['edebiyat', 'sanat', 'tarih']),
+    categoryOverrides: Object.freeze({
+      beginner: Object.freeze([
+        'edebiyat',
+        'sanat',
+        'tarih',
+        'turkce',
+        'genel_kultur',
+      ]),
+    }),
     categoryWeight: 0.55,
   }),
   Object.freeze({
@@ -40,7 +49,7 @@ const NEWSPAPER_V2_SIZE_VARIANTS = Object.freeze([
       'genel_kultur',
       'turkce',
     ]),
-    categoryWeight: 0.55,
+    categoryWeight: 0.51,
   }),
   Object.freeze({
     columnCount: 12,
@@ -58,8 +67,11 @@ const NEWSPAPER_V2_SIZE_VARIANTS = Object.freeze([
 ]);
 
 function createMatrixEntry(sizeVariant, difficulty) {
+  const categories =
+    sizeVariant.categoryOverrides?.[difficulty] ?? sizeVariant.categories;
+
   return Object.freeze({
-    categories: sizeVariant.categories,
+    categories,
     categoryWeight: sizeVariant.categoryWeight,
     columnCount: sizeVariant.columnCount,
     difficulty,

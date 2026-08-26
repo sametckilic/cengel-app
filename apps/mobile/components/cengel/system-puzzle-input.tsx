@@ -25,7 +25,10 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { fonts, layout, palette, spacing } from '@/constants/design';
-import type { PuzzleClueSummary } from '@cengel/puzzle-core/puzzle';
+import {
+  getPuzzleClueArrowSymbol,
+  type PuzzleClueSummary,
+} from '@cengel/puzzle-core/puzzle';
 
 const SUPPORTED_INPUT_CHARACTER = /^[A-Za-zÇĞİÖŞÜçğıöşü]$/;
 
@@ -69,7 +72,7 @@ const CHECK_PRESENTATIONS = {
 } as const;
 
 function getClueLabel(clue: PuzzleClueSummary) {
-  return `${clue.direction === 'right' ? '→' : '↓'} ${clue.label}`;
+  return `${getPuzzleClueArrowSymbol(clue)} ${clue.label}`;
 }
 
 export const SystemPuzzleInput = forwardRef<

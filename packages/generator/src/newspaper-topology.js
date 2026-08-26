@@ -1,4 +1,10 @@
 const TOPOLOGY_DIRECTIONS = new Set(['down', 'right']);
+const TOPOLOGY_ARROWS = new Set([
+  'down',
+  'down-right',
+  'right',
+  'right-down',
+]);
 const TOPOLOGY_CELL_TYPES = new Set(['clue', 'letter']);
 const PROTOTYPE_PATTERN = [
   '##.....#',
@@ -104,6 +110,69 @@ function createSlotsFromPattern(pattern, columnCount) {
   }
 
   return { clueCellIndices, slots };
+}
+
+function getNewspaperSlotArrow(slot) {
+  return slot.arrow ?? slot.direction;
+}
+
+function getArrowDirection(arrow) {
+  return arrow === 'right' || arrow === 'down-right' ? 'right' : 'down';
+}
+
+function getArrowFirstCellIndex(clueCellIndex, arrow, columnCount) {
+  return arrow === 'right' || arrow === 'right-down'
+    ? clueCellIndex + 1
+    : clueCellIndex + columnCount;
+}
+
+function createBentArrowTopology(topology) {
+  validateNewspaperTopology(topology);
+  const slotsByFirstCell = topology.slots.reduce((slotsByCell, slot) => {
+    const firstCellIndex = slot.cellIndices[0];
+    const slots = slotsByCell.get(firstCellIndex) ?? [];
+    slots.push(slot);
+    slotsByCell.set(firstCellIndex, slots);
+    return slotsByCell;
+  }, new Map());
+  const replacements = new Map();
+
+  for (const slots of slotsByFirstCell.values()) {
+    const rightSlot = slots.find(
+      (slot) =>
+        slot.direction === 'right' && getNewspaperSlotArrow(slot) === 'right',
+    );
+    const downSlot = slots.find(
+      (slot) =>
+        slot.direction === 'down' && getNewspaperSlotArrow(slot) === 'down',
+    );
+
+    if (!rightSlot || !downSlot) {
+      continue;
+    }
+
+    replacements.set(rightSlot.id, {
+      arrow: 'down-right',
+      clueCellIndex: downSlot.clueCellIndex,
+    });
+    replacements.set(downSlot.id, {
+      arrow: 'right-down',
+      clueCellIndex: rightSlot.clueCellIndex,
+    });
+  }
+
+  const decoratedTopology = {
+    ...topology,
+    cells: topology.cells.map((cell) => ({ ...cell })),
+    slots: topology.slots.map((slot) => ({
+      ...slot,
+      ...(replacements.get(slot.id) ?? {}),
+      cellIndices: [...slot.cellIndices],
+    })),
+  };
+
+  validateNewspaperTopology(decoratedTopology);
+  return decoratedTopology;
 }
 
 function createNewspaperTopology(id, pattern) {
@@ -235,8 +304,14 @@ function validateNewspaperTopology(topology) {
 
     slotIds.add(slot.id);
 
+    const arrow = getNewspaperSlotArrow(slot);
+
     if (!TOPOLOGY_DIRECTIONS.has(slot.direction)) {
       throw new Error(`Slot "${slot.id}" has an unsupported direction.`);
+    }
+
+    if (!TOPOLOGY_ARROWS.has(arrow) || getArrowDirection(arrow) !== slot.direction) {
+      throw new Error(`Slot "${slot.id}" has an unsupported clue arrow.`);
     }
 
     if (cells[slot.clueCellIndex]?.type !== 'clue') {
@@ -249,7 +324,7 @@ function validateNewspaperTopology(topology) {
 
     const step = slot.direction === 'right' ? 1 : columnCount;
     const firstCellIndex = slot.cellIndices[0];
-    const clueDirectionKey = `${slot.clueCellIndex}:${slot.direction}`;
+    const clueDirectionKey = `${slot.clueCellIndex}:${arrow}`;
 
     if (clueDirections.has(clueDirectionKey)) {
       throw new Error(`Topology contains duplicate clue direction ${clueDirectionKey}.`);
@@ -257,7 +332,10 @@ function validateNewspaperTopology(topology) {
 
     clueDirections.add(clueDirectionKey);
 
-    if (firstCellIndex !== slot.clueCellIndex + step) {
+    if (
+      firstCellIndex !==
+      getArrowFirstCellIndex(slot.clueCellIndex, arrow, columnCount)
+    ) {
       throw new Error(`Slot "${slot.id}" is not adjacent to its clue cell.`);
     }
 
@@ -285,7 +363,7 @@ function validateNewspaperTopology(topology) {
     }
 
     const clueUses = usesByClueCell.get(slot.clueCellIndex) ?? [];
-    clueUses.push(slot.direction);
+    clueUses.push(arrow);
     usesByClueCell.set(slot.clueCellIndex, clueUses);
   }
 
@@ -316,6 +394,7 @@ function validateNewspaperTopology(topology) {
 }
 
 module.exports = {
+  createBentArrowTopology,
   createNewspaper9x10Topology,
   createNewspaperBeginner7x7Topology,
   createNewspaperMedium8x8Topology,
@@ -324,5 +403,6 @@ module.exports = {
   createNewspaperTopology,
   createNewspaperTopologyById,
   createNewspaperPrototypeTopology,
+  getNewspaperSlotArrow,
   validateNewspaperTopology,
 };

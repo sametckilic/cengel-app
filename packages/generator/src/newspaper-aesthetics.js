@@ -115,9 +115,9 @@ function evaluateNewspaperTopologyAesthetics(topology, policyOverrides) {
     clueUseCount.set(slot.clueCellIndex, (clueUseCount.get(slot.clueCellIndex) ?? 0) + 1);
 
     if (slot.direction === 'right') {
-      rightSlotsByRow[Math.floor(slot.clueCellIndex / columnCount)].push(slot);
+      rightSlotsByRow[Math.floor(slot.cellIndices[0] / columnCount)].push(slot);
     } else {
-      downSlotsByColumn[slot.clueCellIndex % columnCount].push(slot);
+      downSlotsByColumn[slot.cellIndices[0] % columnCount].push(slot);
     }
   }
 

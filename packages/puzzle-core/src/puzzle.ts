@@ -2,7 +2,13 @@ import type { GameplayDifficulty } from './clue-catalog';
 
 export type PuzzleDirection = 'down' | 'right';
 
+export type PuzzleClueArrow =
+  | PuzzleDirection
+  | 'down-right'
+  | 'right-down';
+
 export type PuzzleClueSummary = {
+  arrow?: PuzzleClueArrow;
   direction: PuzzleDirection;
   label: string;
 };
@@ -20,6 +26,8 @@ export type PuzzleWord = {
   category: string;
   cellIndices: readonly number[];
   clue: string;
+  clueArrow?: PuzzleClueArrow;
+  clueCellIndex?: number;
   direction: PuzzleDirection;
   id: string;
 };
@@ -101,6 +109,44 @@ export type PuzzleManifest = {
 };
 
 export type PuzzleEntries = Record<number, string | undefined>;
+
+export function getPuzzleClueArrow(
+  clue: Pick<PuzzleClueSummary, 'arrow' | 'direction'>,
+): PuzzleClueArrow {
+  return clue.arrow ?? clue.direction;
+}
+
+export function getPuzzleClueArrowSymbol(
+  clue: Pick<PuzzleClueSummary, 'arrow' | 'direction'>,
+): '→' | '↓' | '↳' | '↴' {
+  const arrow = getPuzzleClueArrow(clue);
+
+  if (arrow === 'right-down') {
+    return '↴';
+  }
+
+  if (arrow === 'down-right') {
+    return '↳';
+  }
+
+  return arrow === 'right' ? '→' : '↓';
+}
+
+export function getPuzzleWordClueCellIndex(
+  word: PuzzleWord,
+  columnCount: number,
+): number {
+  if (word.clueCellIndex !== undefined) {
+    return word.clueCellIndex;
+  }
+
+  const firstCellIndex = word.cellIndices[0];
+  const arrow = word.clueArrow ?? word.direction;
+
+  return arrow === 'right' || arrow === 'right-down'
+    ? firstCellIndex - 1
+    : firstCellIndex - columnCount;
+}
 
 export function createInitialPuzzleEntries(puzzle: PuzzleDefinition): PuzzleEntries {
   return Object.fromEntries(

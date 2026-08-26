@@ -36,6 +36,8 @@ test('selects a deterministic, readable and aesthetic filled topology', () => {
   assert.equal(first.puzzle.words.length, request.targetWordCount);
   assert.equal(first.puzzle.cells.length, request.rowCount * request.columnCount);
   assert.ok(first.puzzle.cells.every(({ type }) => type !== 'void'));
+  assert.ok(first.puzzle.words.some(({ clueArrow }) => clueArrow === 'right-down'));
+  assert.ok(first.puzzle.words.some(({ clueArrow }) => clueArrow === 'down-right'));
   assert.equal(first.diagnostics.aesthetic.passed, true);
   assert.ok(first.diagnostics.clueText.maximumSingleUnits <= 24);
   assert.ok(first.diagnostics.clueText.maximumSplitUnits <= 18);
@@ -52,7 +54,7 @@ test('continues with another topology when a fill attempt reaches its node limit
     {
       ...options,
       maximumSuccessfulFills: 1,
-      maxSearchNodesPerTopology: 100,
+      maxSearchNodesPerTopology: 50,
     },
   );
 

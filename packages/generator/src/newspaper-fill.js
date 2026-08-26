@@ -5,11 +5,14 @@ const {
   resolveClueTextPolicy,
 } = require('./clue-text-fit');
 const { validateNewspaperPuzzle } = require('./newspaper-grid');
-const { validateNewspaperTopology } = require('./newspaper-topology');
+const {
+  getNewspaperSlotArrow,
+  validateNewspaperTopology,
+} = require('./newspaper-topology');
 
 const DEFAULT_MAX_SEARCH_NODES = 500_000;
 const CLUE_TEXT_ORDERING_BAND_UNITS = 6;
-const CLUE_DIRECTION_ORDER = ['right', 'down'];
+const CLUE_ARROW_ORDER = ['right', 'right-down', 'down', 'down-right'];
 
 function shuffleDeterministically(entries, seed) {
   const shuffled = [...entries];
@@ -153,13 +156,19 @@ function buildPuzzleCells(topology, assignments) {
 
     const clueSlots = slotsByClueCell.get(cellIndex);
     const clues = clueSlots
-      .map((slot) => ({
-        direction: slot.direction,
-        label: assignments.get(slot.id).shortClue,
-      }))
+      .map((slot) => {
+        const arrow = getNewspaperSlotArrow(slot);
+
+        return {
+          ...(arrow === slot.direction ? {} : { arrow }),
+          direction: slot.direction,
+          label: assignments.get(slot.id).shortClue,
+        };
+      })
       .sort(
-        ({ direction: left }, { direction: right }) =>
-          CLUE_DIRECTION_ORDER.indexOf(left) - CLUE_DIRECTION_ORDER.indexOf(right),
+        (left, right) =>
+          CLUE_ARROW_ORDER.indexOf(left.arrow ?? left.direction) -
+          CLUE_ARROW_ORDER.indexOf(right.arrow ?? right.direction),
       );
 
     if (clues.length === 1) {
@@ -252,10 +261,21 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
   }
 
   function chooseNextSlot() {
-    return topology.slots
+    const candidateStates = topology.slots
       .filter((slot) => !assignments.has(slot.id))
-      .map(getCandidateState)
-      .sort(compareCandidateStates)[0];
+      .map(getCandidateState);
+    const possibleThemedSlotCount = candidateStates.filter(({ candidates }) =>
+      candidates.some(({ category }) => categorySet.has(category)),
+    ).length;
+
+    if (
+      themedWordCount + possibleThemedSlotCount <
+      requiredThemedWordCount
+    ) {
+      return undefined;
+    }
+
+    return candidateStates.sort(compareCandidateStates)[0];
   }
 
   function orderCandidates(candidates) {
@@ -346,12 +366,19 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
 
   const words = topology.slots.map((slot) => {
     const entry = assignments.get(slot.id);
+    const clueArrow = getNewspaperSlotArrow(slot);
 
     return {
       id: `${request.id}-${slot.id}`,
       answer: entry.answer,
       category: entry.category,
       clue: entry.shortClue,
+      ...(clueArrow === slot.direction
+        ? {}
+        : {
+            clueArrow,
+            clueCellIndex: slot.clueCellIndex,
+          }),
       direction: slot.direction,
       cellIndices: slot.cellIndices,
     };

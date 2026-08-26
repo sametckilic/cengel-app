@@ -58,3 +58,23 @@ test('varies both size and difficulty on consecutive V2 rotation days', () => {
     );
   }
 });
+
+test('keeps the compact beginner culture profile fillable without narrowing other tiers', () => {
+  const beginner = NEWSPAPER_V2_RECIPE_MATRIX.find(
+    ({ difficulty, rowCount, columnCount }) =>
+      difficulty === 'beginner' && rowCount === 8 && columnCount === 8,
+  );
+  const medium = NEWSPAPER_V2_RECIPE_MATRIX.find(
+    ({ difficulty, rowCount, columnCount }) =>
+      difficulty === 'medium' && rowCount === 8 && columnCount === 8,
+  );
+
+  assert.deepEqual(beginner.categories, [
+    'edebiyat',
+    'sanat',
+    'tarih',
+    'turkce',
+    'genel_kultur',
+  ]);
+  assert.deepEqual(medium.categories, ['edebiyat', 'sanat', 'tarih']);
+});

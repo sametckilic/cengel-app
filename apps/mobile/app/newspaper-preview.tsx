@@ -584,7 +584,11 @@ export function NewspaperPuzzleScreen({
             return enterPuzzleLetter(puzzle, entryState, letter, lockedCellIndices);
           });
         }}
-        primaryClue={{ direction: activeWord.direction, label: activeWord.clue }}
+        primaryClue={{
+          arrow: activeWord.clueArrow,
+          direction: activeWord.direction,
+          label: activeWord.clue,
+        }}
       />
 
       {completionVisible ? (

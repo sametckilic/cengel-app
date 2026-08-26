@@ -1,32 +1,17 @@
-import { MaterialIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { ClueArrow } from '@/components/cengel/clue-arrow';
 import { layout, palette, spacing, typography } from '@/constants/design';
 import type {
   PuzzleClueSummary,
   PuzzleDefinition,
-  PuzzleDirection,
   PuzzleEntries,
 } from '@cengel/puzzle-core/puzzle';
+import { getPuzzleClueArrow } from '@cengel/puzzle-core/puzzle';
 
-function getDirectionIcon(direction: PuzzleDirection) {
-  return direction === 'right' ? 'arrow-right-alt' : 'arrow-downward';
-}
-
-function DirectionArrow({
-  direction,
-  compact = false,
-}: {
-  direction: PuzzleDirection;
-  compact?: boolean;
-}) {
-  return (
-    <MaterialIcons
-      color={palette.ink}
-      name={getDirectionIcon(direction)}
-      size={compact ? 12 : 16}
-    />
-  );
+function arrowStartsRight(clue: PuzzleClueSummary) {
+  const arrow = getPuzzleClueArrow(clue);
+  return arrow === 'right' || arrow === 'right-down';
 }
 
 function SplitClueCell({
@@ -61,13 +46,21 @@ function SplitClueCell({
           <Text numberOfLines={1} style={styles.splitClueText}>
             {topClue.label}
           </Text>
-          <DirectionArrow compact direction={topClue.direction} />
+          <ClueArrow
+            arrow={topClue.arrow}
+            direction={topClue.direction}
+            size={12}
+          />
         </View>
         <View style={styles.splitClueRow}>
           <Text numberOfLines={1} style={styles.splitClueText}>
             {bottomClue.label}
           </Text>
-          <DirectionArrow compact direction={bottomClue.direction} />
+          <ClueArrow
+            arrow={bottomClue.arrow}
+            direction={bottomClue.direction}
+            size={12}
+          />
         </View>
       </View>
     </View>
@@ -75,21 +68,20 @@ function SplitClueCell({
 }
 
 function ClueCell({
+  arrow,
   cellSize,
   direction,
   label,
-}: {
-  cellSize: number;
-  direction: PuzzleDirection;
-  label: string;
-}) {
+}: PuzzleClueSummary & { cellSize: number }) {
+  const clue = { arrow, direction, label };
+
   return (
     <View style={[styles.cell, styles.clueCell, { height: cellSize, width: cellSize }]}>
       <Text numberOfLines={4} style={styles.clueText}>
         {label}
       </Text>
-      <View style={direction === 'right' ? styles.rightArrow : styles.downArrow}>
-        <DirectionArrow direction={direction} />
+      <View style={arrowStartsRight(clue) ? styles.rightArrow : styles.downArrow}>
+        <ClueArrow arrow={arrow} direction={direction} size={16} />
       </View>
     </View>
   );
@@ -193,6 +185,7 @@ export function PuzzleGrid({
               return (
                 <ClueCell
                   cellSize={cellSize}
+                  arrow={cell.arrow}
                   direction={cell.direction}
                   key={cellKey}
                   label={cell.label}

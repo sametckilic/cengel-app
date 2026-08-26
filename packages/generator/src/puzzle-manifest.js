@@ -72,14 +72,37 @@ function validateRecipeDocument(recipeDocument) {
   }
 }
 
-function hasMatchingClue(cell, direction, label) {
+function getClueArrow(clue) {
+  return clue?.arrow ?? clue?.direction;
+}
+
+function getArrowDirection(arrow) {
+  return arrow === 'right' || arrow === 'down-right' ? 'right' : 'down';
+}
+
+function getArrowFirstCellIndex(clueCellIndex, arrow, columnCount) {
+  return arrow === 'right' || arrow === 'right-down'
+    ? clueCellIndex + 1
+    : clueCellIndex + columnCount;
+}
+
+function hasMatchingClue(cell, direction, label, arrow) {
   if (cell?.type === 'clue') {
-    return cell.direction === direction && cell.label === label;
+    return (
+      cell.direction === direction &&
+      cell.label === label &&
+      getClueArrow(cell) === arrow
+    );
   }
 
   return (
     cell?.type === 'split-clue' &&
-    cell.clues.some((clue) => clue.direction === direction && clue.label === label)
+    cell.clues.some(
+      (clue) =>
+        clue.direction === direction &&
+        clue.label === label &&
+        getClueArrow(clue) === arrow,
+    )
   );
 }
 
@@ -119,10 +142,23 @@ function validateGeneratedPuzzle(puzzle) {
     }
 
     const indexStep = word.direction === 'right' ? 1 : puzzle.columnCount;
-    const clueCellIndex = word.cellIndices[0] - indexStep;
+    const clueArrow = word.clueArrow ?? word.direction;
+    const clueCellIndex = Number.isInteger(word.clueCellIndex)
+      ? word.clueCellIndex
+      : clueArrow === 'right' || clueArrow === 'right-down'
+        ? word.cellIndices[0] - 1
+        : word.cellIndices[0] - puzzle.columnCount;
     const clueCell = puzzle.cells[clueCellIndex];
 
-    if (!hasMatchingClue(clueCell, word.direction, word.clue)) {
+    if (
+      getArrowDirection(clueArrow) !== word.direction ||
+      getArrowFirstCellIndex(
+        clueCellIndex,
+        clueArrow,
+        puzzle.columnCount,
+      ) !== word.cellIndices[0] ||
+      !hasMatchingClue(clueCell, word.direction, word.clue, clueArrow)
+    ) {
       throw new Error(`Puzzle "${puzzle.id}" has an invalid clue cell for "${word.id}".`);
     }
 

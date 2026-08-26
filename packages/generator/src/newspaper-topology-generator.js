@@ -4,6 +4,7 @@ const {
   evaluateNewspaperTopologyAesthetics,
 } = require('./newspaper-aesthetics');
 const {
+  createBentArrowTopology,
   createNewspaper9x10Topology,
   createNewspaperBeginner7x7Topology,
   createNewspaperLarge10x10Topology,
@@ -15,6 +16,7 @@ const {
 
 const DEFAULT_BEAM_WIDTH = 1_000;
 const DEFAULT_MAX_CANDIDATES = 12;
+const DEFAULT_MINIMUM_BENT_ARROW_COUNT = 2;
 const DEFAULT_MAX_MUTATION_DEPTH = 5;
 const DEFAULT_SCORE_WINDOW = 4;
 
@@ -35,6 +37,20 @@ function topologyToPattern(topology) {
 
 function patternFingerprint(pattern) {
   return createHash('sha256').update(pattern.join('\n')).digest('hex').slice(0, 16);
+}
+
+function topologyFingerprint(pattern, topology) {
+  const clueStarts = topology.slots
+    .map(
+      ({ arrow, clueCellIndex, direction, id }) =>
+        `${id}:${clueCellIndex}:${arrow ?? direction}`,
+    )
+    .join('\n');
+
+  return createHash('sha256')
+    .update(`${pattern.join('\n')}\n${clueStarts}`)
+    .digest('hex')
+    .slice(0, 16);
 }
 
 function togglePatternCell(pattern, cellIndex, columnCount) {
@@ -122,20 +138,45 @@ function validateOptions(request, options) {
     throw new Error('maxMutationDepth must be a non-negative integer.');
   }
 
+  if (
+    !Number.isInteger(options.minimumBentArrowCount) ||
+    options.minimumBentArrowCount < 0
+  ) {
+    throw new Error('minimumBentArrowCount must be a non-negative integer.');
+  }
+
   if (typeof options.scoreWindow !== 'number' || options.scoreWindow < 0) {
     throw new Error('scoreWindow must be a non-negative number.');
   }
 }
 
 function createState(topology, pattern, baseTopologyId, mutationDepth) {
+  const decoratedTopology = createBentArrowTopology(topology);
+
   return {
-    aesthetic: evaluateNewspaperTopologyAesthetics(topology),
+    aesthetic: evaluateNewspaperTopologyAesthetics(decoratedTopology),
     baseTopologyId,
-    fingerprint: patternFingerprint(pattern),
+    fingerprint: topologyFingerprint(pattern, decoratedTopology),
     mutationDepth,
     pattern,
-    topology,
+    topology: decoratedTopology,
   };
+}
+
+function hasRequiredBentArrows(state, minimumBentArrowCount) {
+  const bentArrowCount = state.topology.slots.filter(
+    ({ arrow, direction }) => arrow !== undefined && arrow !== direction,
+  ).length;
+
+  return bentArrowCount >= minimumBentArrowCount;
+}
+
+function isCandidate(state, request, options) {
+  return (
+    state.aesthetic.passed &&
+    state.topology.slots.length === request.targetWordCount &&
+    hasRequiredBentArrows(state, options.minimumBentArrowCount)
+  );
 }
 
 function compareBeamStates(left, right, request) {
@@ -164,6 +205,7 @@ function generateNewspaperTopologyCandidates(request, optionOverrides = {}) {
   const options = {
     beamWidth: DEFAULT_BEAM_WIDTH,
     maxCandidates: DEFAULT_MAX_CANDIDATES,
+    minimumBentArrowCount: DEFAULT_MINIMUM_BENT_ARROW_COUNT,
     maxMutationDepth: DEFAULT_MAX_MUTATION_DEPTH,
     scoreWindow: DEFAULT_SCORE_WINDOW,
     ...optionOverrides,
@@ -185,7 +227,7 @@ function generateNewspaperTopologyCandidates(request, optionOverrides = {}) {
   });
   const candidatesByFingerprint = new Map(
     beam.flatMap((state) =>
-      state.aesthetic.passed && state.topology.slots.length === request.targetWordCount
+      isCandidate(state, request, options)
         ? [[state.fingerprint, state]]
         : [],
     ),
@@ -229,10 +271,7 @@ function generateNewspaperTopologyCandidates(request, optionOverrides = {}) {
           structurallyValidPatternCount += 1;
           nextBeam.push(nextState);
 
-          if (
-            nextState.aesthetic.passed &&
-            topology.slots.length === request.targetWordCount
-          ) {
+          if (isCandidate(nextState, request, options)) {
             candidatesByFingerprint.set(nextState.fingerprint, nextState);
           }
         } catch {
@@ -256,7 +295,8 @@ function generateNewspaperTopologyCandidates(request, optionOverrides = {}) {
   if (discoveredCandidates.length === 0) {
     throw new Error(
       `Could not generate an aesthetic ${request.rowCount}x${request.columnCount} ` +
-        `topology with ${request.targetWordCount} words within ` +
+        `topology with ${request.targetWordCount} words and at least ` +
+        `${options.minimumBentArrowCount} bent arrow(s) within ` +
         `${options.maxMutationDepth} mutation step(s).`,
     );
   }
@@ -278,6 +318,7 @@ function generateNewspaperTopologyCandidates(request, optionOverrides = {}) {
     })),
     diagnostics: {
       discoveredCandidateCount: discoveredCandidates.length,
+      minimumBentArrowCount: options.minimumBentArrowCount,
       returnedCandidateCount: highQualityCandidates.length,
       structurallyValidPatternCount,
       visitedPatternCount: visitedPatterns.size,
@@ -288,8 +329,10 @@ function generateNewspaperTopologyCandidates(request, optionOverrides = {}) {
 module.exports = {
   DEFAULT_BEAM_WIDTH,
   DEFAULT_MAX_CANDIDATES,
+  DEFAULT_MINIMUM_BENT_ARROW_COUNT,
   DEFAULT_MAX_MUTATION_DEPTH,
   generateNewspaperTopologyCandidates,
   patternFingerprint,
+  topologyFingerprint,
   topologyToPattern,
 };
