@@ -51,6 +51,42 @@ function buildSlotMetadata(topology) {
   );
 }
 
+function buildCrossingsBySlot(topology) {
+  const usesByCell = new Map();
+
+  for (const slot of topology.slots) {
+    slot.cellIndices.forEach((cellIndex, letterIndex) => {
+      const uses = usesByCell.get(cellIndex) ?? [];
+      uses.push({ letterIndex, slotId: slot.id });
+      usesByCell.set(cellIndex, uses);
+    });
+  }
+
+  const crossingsBySlot = new Map(
+    topology.slots.map(({ id }) => [id, []]),
+  );
+
+  for (const uses of usesByCell.values()) {
+    if (uses.length !== 2) {
+      continue;
+    }
+
+    const [first, second] = uses;
+    crossingsBySlot.get(first.slotId).push({
+      otherLetterIndex: second.letterIndex,
+      otherSlotId: second.slotId,
+      ownLetterIndex: first.letterIndex,
+    });
+    crossingsBySlot.get(second.slotId).push({
+      otherLetterIndex: first.letterIndex,
+      otherSlotId: first.slotId,
+      ownLetterIndex: second.letterIndex,
+    });
+  }
+
+  return crossingsBySlot;
+}
+
 function orderDomainForClueCell(candidates, isSplitClue, clueTextPolicy) {
   if (!clueTextPolicy && !isSplitClue) {
     return candidates;
@@ -194,6 +230,7 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
   }
 
   const maxSearchNodes = options.maxSearchNodes ?? DEFAULT_MAX_SEARCH_NODES;
+  const preferCrossingSupport = options.preferCrossingSupport ?? false;
   const clueTextPolicy = options.clueTextPolicy
     ? resolveClueTextPolicy(options.clueTextPolicy)
     : null;
@@ -202,7 +239,12 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
     throw new Error('maxSearchNodes must be a positive integer.');
   }
 
+  if (typeof preferCrossingSupport !== 'boolean') {
+    throw new Error('preferCrossingSupport must be a boolean.');
+  }
+
   const domains = createCandidateDomains(entries, request, topology, clueTextPolicy);
+  const crossingsBySlot = buildCrossingsBySlot(topology);
   const metadataBySlot = buildSlotMetadata(topology);
   const clueUseCountByCell = topology.slots.reduce((counts, slot) => {
     counts.set(slot.clueCellIndex, (counts.get(slot.clueCellIndex) ?? 0) + 1);
@@ -275,18 +317,98 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
       return undefined;
     }
 
-    return candidateStates.sort(compareCandidateStates)[0];
+    return {
+      candidateStates,
+      selectedState: candidateStates.sort(compareCandidateStates)[0],
+    };
   }
 
-  function orderCandidates(candidates) {
-    if (themedWordCount >= requiredThemedWordCount) {
+  function orderCandidates(candidateState, candidateStates) {
+    const themeOrderingRequired = themedWordCount < requiredThemedWordCount;
+    const candidates = themeOrderingRequired
+      ? [
+          ...candidateState.candidates.filter(({ category }) =>
+            categorySet.has(category),
+          ),
+          ...candidateState.candidates.filter(
+            ({ category }) => !categorySet.has(category),
+          ),
+        ]
+      : candidateState.candidates;
+
+    if (!preferCrossingSupport) {
       return candidates;
     }
 
-    return [
-      ...candidates.filter(({ category }) => categorySet.has(category)),
-      ...candidates.filter(({ category }) => !categorySet.has(category)),
-    ];
+    const candidateStateBySlotId = new Map(
+      candidateStates.map((state) => [state.slot.id, state]),
+    );
+    const crossingSupports = (crossingsBySlot.get(candidateState.slot.id) ?? [])
+      .flatMap(({ otherLetterIndex, otherSlotId, ownLetterIndex }) => {
+        const otherState = candidateStateBySlotId.get(otherSlotId);
+
+        if (!otherState) {
+          return [];
+        }
+
+        const supportByCharacter = otherState.candidates.reduce(
+          (support, entry) => {
+            const character = entry.answer[otherLetterIndex];
+            const characterSupport = support.get(character) ?? {
+              answers: new Set(),
+              count: 0,
+            };
+
+            characterSupport.answers.add(entry.answer);
+            characterSupport.count += 1;
+            support.set(character, characterSupport);
+            return support;
+          },
+          new Map(),
+        );
+
+        return [{ ownLetterIndex, supportByCharacter }];
+      });
+
+    if (crossingSupports.length === 0) {
+      return candidates;
+    }
+
+    return candidates
+      .map((entry, originalIndex) => {
+        const supportCounts = crossingSupports.map(
+          ({ ownLetterIndex, supportByCharacter }) => {
+            const support = supportByCharacter.get(entry.answer[ownLetterIndex]);
+
+            if (!support) {
+              return 0;
+            }
+
+            return support.count - Number(support.answers.has(entry.answer));
+          },
+        );
+
+        return {
+          entry,
+          minimumSupport: Math.min(...supportCounts),
+          originalIndex,
+          themeRank:
+            themeOrderingRequired && !categorySet.has(entry.category) ? 1 : 0,
+          totalSupport: supportCounts.reduce(
+            (total, supportCount) => total + Math.log1p(supportCount),
+            0,
+          ),
+        };
+      })
+      .filter(({ minimumSupport }) => minimumSupport > 0)
+      .sort(
+        (left, right) =>
+          left.themeRank - right.themeRank ||
+          right.minimumSupport - left.minimumSupport ||
+          right.totalSupport - left.totalSupport ||
+          left.originalIndex - right.originalIndex,
+      )
+      .map(({ entry }) => entry);
   }
 
   function search() {
@@ -301,13 +423,15 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
       return false;
     }
 
-    const candidateState = chooseNextSlot();
+    const selection = chooseNextSlot();
 
-    if (!candidateState || candidateState.candidates.length === 0) {
+    if (!selection || selection.selectedState.candidates.length === 0) {
       return false;
     }
 
-    for (const entry of orderCandidates(candidateState.candidates)) {
+    const { candidateStates, selectedState: candidateState } = selection;
+
+    for (const entry of orderCandidates(candidateState, candidateStates)) {
       if (searchNodeCount >= maxSearchNodes) {
         return false;
       }

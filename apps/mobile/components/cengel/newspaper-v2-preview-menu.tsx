@@ -68,8 +68,8 @@ export function NewspaperV2PreviewMenu() {
             <SectionLabel>GÖRSEL KONTROL</SectionLabel>
             <Text style={styles.introTitle}>Beş farklı düzeni karşılaştır</Text>
             <Text style={styles.introDescription}>
-              İlk satır dağılımını, yatay-dikey dengeyi ve ipucu metinlerinin
-              okunabilirliğini kontrol et. Bu bulmacalar henüz günlük üretime bağlı değil.
+              Dağınık ipucu yerleşimini, cevap hücresinden başlayan düz ve köşe
+              oklarını, yatay-dikey dengeyi ve metinlerin okunabilirliğini kontrol et.
             </Text>
           </View>
 

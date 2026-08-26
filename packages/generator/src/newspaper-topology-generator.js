@@ -4,21 +4,97 @@ const {
   evaluateNewspaperTopologyAesthetics,
 } = require('./newspaper-aesthetics');
 const {
-  createBentArrowTopology,
-  createNewspaper9x10Topology,
-  createNewspaperBeginner7x7Topology,
-  createNewspaperLarge10x10Topology,
-  createNewspaperLarge10x12Topology,
-  createNewspaperMedium8x8Topology,
-  createNewspaperPrototypeTopology,
-  createNewspaperTopology,
+  createNewspaperArrowwordTopology,
 } = require('./newspaper-topology');
 
-const DEFAULT_BEAM_WIDTH = 1_000;
+const DEFAULT_BEAM_WIDTH = 200;
 const DEFAULT_MAX_CANDIDATES = 12;
 const DEFAULT_MINIMUM_BENT_ARROW_COUNT = 2;
-const DEFAULT_MAX_MUTATION_DEPTH = 5;
+const DEFAULT_MAX_MUTATION_DEPTH = 1;
 const DEFAULT_SCORE_WINDOW = 4;
+const SCATTERED_BASE_PATTERNS = Object.freeze({
+  '7x7': Object.freeze([
+    '##.#...',
+    '.......',
+    '...#..#',
+    '.#.....',
+    '...#...',
+    '#..#...',
+    '#......',
+  ]),
+  '8x8': Object.freeze([
+    '##....#.',
+    '........',
+    '.#.#..##',
+    '#.......',
+    '........',
+    '...#....',
+    '#..#....',
+    '...#....',
+  ]),
+  '9x10': Object.freeze([
+    Object.freeze([
+      '#.#...#...',
+      '#.#.......',
+      '..#...####',
+      '#.#.......',
+      '...##.....',
+      '.#........',
+      '.....#....',
+      '..........',
+      '#..#......',
+    ]),
+    Object.freeze([
+      '#.....#...',
+      '#.#.......',
+      '..#...####',
+      '..#..#....',
+      '.#.##.....',
+      '..........',
+      '.....#..#.',
+      '..........',
+      '#..#......',
+    ]),
+  ]),
+  '10x10': Object.freeze([
+    '##...##...',
+    '..##...#..',
+    '.#........',
+    '..#...#..#',
+    '..#....#..',
+    '##....#...',
+    '........#.',
+    '.##.#.....',
+    '..........',
+    '..........',
+  ]),
+  '10x12': Object.freeze([
+    Object.freeze([
+      '##..#.##..##',
+      '.#.......#..',
+      '.##....#....',
+      '..#...#...#.',
+      '#.##...#...#',
+      '.#.......#..',
+      '..##..##..#.',
+      '.....#...#.#',
+      '.....#......',
+      '.....#......',
+    ]),
+    Object.freeze([
+      '##..#.#...##',
+      '.#....#..#..',
+      '.##....#....',
+      '..#...#...#.',
+      '#.##...#...#',
+      '.#.......#..',
+      '..##..##..#.',
+      '.....#...#.#',
+      '.....#......',
+      '.....#......',
+    ]),
+  ]),
+});
 
 function hashFraction(value) {
   const hash = createHash('sha256').update(value).digest();
@@ -64,18 +140,14 @@ function togglePatternCell(pattern, cellIndex, columnCount) {
   return nextPattern;
 }
 
-function createBaseTopologies(rowCount, columnCount) {
-  return [
-    createNewspaperPrototypeTopology(),
-    createNewspaper9x10Topology(),
-    createNewspaperBeginner7x7Topology(),
-    createNewspaperMedium8x8Topology(),
-    createNewspaperLarge10x10Topology(),
-    createNewspaperLarge10x12Topology(),
-  ].filter(
-    (topology) =>
-      topology.rowCount === rowCount && topology.columnCount === columnCount,
-  );
+function createBasePatterns(rowCount, columnCount) {
+  const pattern = SCATTERED_BASE_PATTERNS[`${rowCount}x${columnCount}`];
+
+  if (!pattern) {
+    return [];
+  }
+
+  return typeof pattern[0] === 'string' ? [pattern] : pattern;
 }
 
 function policyPenalty(report) {
@@ -104,7 +176,21 @@ function policyPenalty(report) {
     Math.max(0, policy.minimumClueDensity - metrics.clueDensity) * 20 +
     Math.max(0, metrics.clueDensity - policy.maximumClueDensity) * 20 +
     Math.max(0, policy.minimumSplitClueShare - metrics.splitClueShare) * 10 +
-    Math.max(0, metrics.splitClueShare - policy.maximumSplitClueShare) * 10
+    Math.max(0, metrics.splitClueShare - policy.maximumSplitClueShare) * 10 +
+    Math.max(0, policy.minimumBentArrowShare - metrics.bentArrowShare) * 20 +
+    Math.max(
+      0,
+      policy.minimumIndependentBentArrowCount -
+        metrics.independentBentArrowCount,
+    ) * 3 +
+    Math.max(0, policy.minimumClueRowCoverage - metrics.clueRowCoverage) * 15 +
+    Math.max(0, policy.minimumClueColumnCoverage - metrics.clueColumnCoverage) *
+      15 +
+    Math.max(0, policy.minimumInteriorClueShare - metrics.interiorClueShare) * 15 +
+    Math.max(
+      0,
+      metrics.leadingEdgeClueShare - policy.maximumLeadingEdgeClueShare,
+    ) * 15
   );
 }
 
@@ -150,16 +236,21 @@ function validateOptions(request, options) {
   }
 }
 
-function createState(topology, pattern, baseTopologyId, mutationDepth) {
-  const decoratedTopology = createBentArrowTopology(topology);
+function createState(pattern, baseTopologyId, mutationDepth, seed) {
+  const fingerprint = patternFingerprint(pattern);
+  const topology = createNewspaperArrowwordTopology(
+    `newspaper-scattered-${pattern.length}x${pattern[0].length}-${fingerprint}`,
+    pattern,
+    `${seed}:${fingerprint}`,
+  );
 
   return {
-    aesthetic: evaluateNewspaperTopologyAesthetics(decoratedTopology),
+    aesthetic: evaluateNewspaperTopologyAesthetics(topology),
     baseTopologyId,
-    fingerprint: topologyFingerprint(pattern, decoratedTopology),
+    fingerprint: topologyFingerprint(pattern, topology),
     mutationDepth,
     pattern,
-    topology: decoratedTopology,
+    topology,
   };
 }
 
@@ -211,19 +302,23 @@ function generateNewspaperTopologyCandidates(request, optionOverrides = {}) {
     ...optionOverrides,
   };
   validateOptions(request, options);
-  const baseTopologies = createBaseTopologies(request.rowCount, request.columnCount);
+  const basePatterns = createBasePatterns(request.rowCount, request.columnCount);
 
-  if (baseTopologies.length === 0) {
+  if (basePatterns.length === 0) {
     throw new Error(
       `No newspaper topology family supports ${request.rowCount}x${request.columnCount}.`,
     );
   }
 
   const visitedPatterns = new Set();
-  let beam = baseTopologies.map((topology) => {
-    const pattern = topologyToPattern(topology);
+  let beam = basePatterns.map((pattern, basePatternIndex) => {
     visitedPatterns.add(pattern.join(''));
-    return createState(topology, pattern, topology.id, 0);
+    return createState(
+      pattern,
+      `newspaper-scattered-${request.rowCount}x${request.columnCount}-base-${basePatternIndex + 1}`,
+      0,
+      request.seed,
+    );
   });
   const candidatesByFingerprint = new Map(
     beam.flatMap((state) =>
@@ -257,16 +352,11 @@ function generateNewspaperTopologyCandidates(request, optionOverrides = {}) {
         visitedPatterns.add(patternKey);
 
         try {
-          const fingerprint = patternFingerprint(pattern);
-          const topology = createNewspaperTopology(
-            `newspaper-generated-${request.rowCount}x${request.columnCount}-${fingerprint}`,
-            pattern,
-          );
           const nextState = createState(
-            topology,
             pattern,
             state.baseTopologyId,
             mutationDepth,
+            request.seed,
           );
           structurallyValidPatternCount += 1;
           nextBeam.push(nextState);
@@ -302,13 +392,24 @@ function generateNewspaperTopologyCandidates(request, optionOverrides = {}) {
   }
 
   const bestScore = discoveredCandidates[0].aesthetic.score;
-  const highQualityCandidates = discoveredCandidates
+  const seededHighQualityCandidates = discoveredCandidates
     .filter(({ aesthetic }) => aesthetic.score >= bestScore - options.scoreWindow)
-    .sort((left, right) => compareFinalCandidates(left, right, request.seed))
+    .sort((left, right) => compareFinalCandidates(left, right, request.seed));
+  const baseCandidates = discoveredCandidates
+    .filter(({ mutationDepth }) => mutationDepth === 0)
     .slice(0, options.maxCandidates);
+  const baseFingerprints = new Set(
+    baseCandidates.map(({ fingerprint }) => fingerprint),
+  );
+  const selectedCandidates = [
+    ...seededHighQualityCandidates
+      .filter(({ fingerprint }) => !baseFingerprints.has(fingerprint))
+      .slice(0, options.maxCandidates - baseCandidates.length),
+    ...baseCandidates,
+  ];
 
   return {
-    candidates: highQualityCandidates.map((candidate) => ({
+    candidates: selectedCandidates.map((candidate) => ({
       aesthetic: candidate.aesthetic,
       baseTopologyId: candidate.baseTopologyId,
       fingerprint: candidate.fingerprint,
@@ -319,7 +420,7 @@ function generateNewspaperTopologyCandidates(request, optionOverrides = {}) {
     diagnostics: {
       discoveredCandidateCount: discoveredCandidates.length,
       minimumBentArrowCount: options.minimumBentArrowCount,
-      returnedCandidateCount: highQualityCandidates.length,
+      returnedCandidateCount: selectedCandidates.length,
       structurallyValidPatternCount,
       visitedPatternCount: visitedPatterns.size,
     },

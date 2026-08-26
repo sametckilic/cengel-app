@@ -89,7 +89,10 @@ test('creates and builds a V2 daily recipe without a fixed topology id', () => {
   const puzzle = manifest.puzzles[0];
 
   assert.equal(puzzle.generation.generatorVersion, 'newspaper-v2');
-  assert.equal(puzzle.generation.topologyId, 'newspaper-large-10x10-v1');
+  assert.match(
+    puzzle.generation.topologyId,
+    /^newspaper-scattered-10x10-/,
+  );
   assert.equal(typeof puzzle.generation.topologyFingerprint, 'string');
   assert.equal(puzzle.cells.some(({ type }) => type === 'void'), false);
   assert.equal(puzzle.words.length, 29);

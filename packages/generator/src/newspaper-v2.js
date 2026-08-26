@@ -13,21 +13,18 @@ const DEFAULT_V2_OPTIONS = Object.freeze({
 function createNewspaperV2GenerationOptions(request) {
   if (request.rowCount >= 10) {
     return {
-      maximumFillAttempts: 1,
+      maximumFillAttempts: 2,
       maximumSuccessfulFills: 1,
-      maxSearchNodesPerTopology: 25_000,
-      topology: { maxCandidates: 1, maxMutationDepth: 0 },
+      maxSearchNodesPerTopology: 5_000,
+      topology: { maxCandidates: 2, maxMutationDepth: 0 },
     };
   }
 
   return {
-    maximumFillAttempts: 6,
-    maximumSuccessfulFills: 2,
-    maxSearchNodesPerTopology: 25_000,
-    topology:
-      request.rowCount === 9
-        ? { beamWidth: 400, maxCandidates: 6, maxMutationDepth: 4 }
-        : { beamWidth: 1_000, maxCandidates: 6, maxMutationDepth: 5 },
+    maximumFillAttempts: 8,
+    maximumSuccessfulFills: 1,
+    maxSearchNodesPerTopology: 5_000,
+    topology: { beamWidth: 200, maxCandidates: 8, maxMutationDepth: 1 },
   };
 }
 
@@ -105,13 +102,18 @@ function generateNewspaperPuzzleV2(catalogEntries, request, optionOverrides = {}
 
   for (const [attemptIndex, { candidate }] of topologyAttempts.entries()) {
     try {
+      const maxSearchNodes =
+        candidate.mutationDepth === 0
+          ? options.maxSearchNodesPerTopology
+          : Math.min(options.maxSearchNodesPerTopology, 2_500);
       const fillResult = fillNewspaperTopology(
         catalogEntries,
         request,
         candidate.topology,
         {
           clueTextPolicy: options.clueTextPolicy,
-          maxSearchNodes: options.maxSearchNodesPerTopology,
+          maxSearchNodes,
+          preferCrossingSupport: true,
         },
       );
       const score = scoreFilledCandidate(

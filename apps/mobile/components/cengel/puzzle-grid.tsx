@@ -16,6 +16,11 @@ function SplitClueCell({
   clues: readonly [PuzzleClueSummary, PuzzleClueSummary];
 }) {
   const [topClue, bottomClue] = clues;
+  const clueFontSize = Math.max(6, Math.min(10, cellSize * 0.18));
+  const clueTextSize = {
+    fontSize: clueFontSize,
+    lineHeight: Math.ceil(clueFontSize * 1.1),
+  };
 
   return (
     <View
@@ -25,24 +30,23 @@ function SplitClueCell({
         styles.splitClueCell,
         { height: cellSize, width: cellSize },
       ]}>
-      <View
-        style={[
-          styles.diagonalDivider,
-          {
-            left: -cellSize * 0.2,
-            top: cellSize / 2,
-            width: cellSize * 1.4,
-          },
-        ]}
-      />
+      <View style={styles.splitDivider} />
       <View style={styles.splitClueContent}>
         <View style={[styles.splitClueRow, styles.splitClueTopRow]}>
-          <Text numberOfLines={1} style={styles.splitClueText}>
+          <Text
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+            numberOfLines={2}
+            style={[styles.splitClueText, clueTextSize]}>
             {topClue.label}
           </Text>
         </View>
         <View style={styles.splitClueRow}>
-          <Text numberOfLines={1} style={styles.splitClueText}>
+          <Text
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+            numberOfLines={2}
+            style={[styles.splitClueText, clueTextSize]}>
             {bottomClue.label}
           </Text>
         </View>
@@ -55,9 +59,21 @@ function ClueCell({
   cellSize,
   label,
 }: PuzzleClueSummary & { cellSize: number }) {
+  const clueFontSize = Math.max(6, Math.min(10, cellSize * 0.18));
+
   return (
     <View style={[styles.cell, styles.clueCell, { height: cellSize, width: cellSize }]}>
-      <Text numberOfLines={4} style={styles.clueText}>
+      <Text
+        adjustsFontSizeToFit
+        minimumFontScale={0.85}
+        numberOfLines={4}
+        style={[
+          styles.clueText,
+          {
+            fontSize: clueFontSize,
+            lineHeight: Math.ceil(clueFontSize * 1.1),
+          },
+        ]}>
         {label}
       </Text>
     </View>
@@ -240,16 +256,17 @@ const styles = StyleSheet.create({
   clueCell: {
     alignItems: 'center',
     backgroundColor: palette.cellLocked,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     overflow: 'hidden',
     padding: 2,
   },
   clueText: {
     ...typography.gridHint,
     color: palette.ink,
-    marginTop: 2,
+    includeFontPadding: false,
     paddingHorizontal: 1,
     textAlign: 'center',
+    textAlignVertical: 'center',
   },
   activeWord: {
     backgroundColor: palette.selectionBlue,
@@ -260,13 +277,15 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   splitClueCell: {
-    padding: 3,
+    padding: 2,
   },
-  diagonalDivider: {
-    backgroundColor: palette.outlineVariant,
+  splitDivider: {
+    backgroundColor: palette.gridLine,
     height: 1,
+    left: 0,
     position: 'absolute',
-    transform: [{ rotate: '-45deg' }],
+    right: 0,
+    top: '50%',
   },
   splitClueContent: {
     flex: 1,
@@ -275,8 +294,7 @@ const styles = StyleSheet.create({
   splitClueRow: {
     alignItems: 'center',
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
   splitClueTopRow: {
     borderBottomColor: palette.gridLine,
@@ -285,5 +303,9 @@ const styles = StyleSheet.create({
   splitClueText: {
     ...typography.gridHint,
     color: palette.ink,
+    includeFontPadding: false,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    width: '100%',
   },
 });

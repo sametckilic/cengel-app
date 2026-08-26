@@ -90,8 +90,8 @@ test('applies the daily quality gate to a readable V2 candidate', () => {
   assert.equal(quality.passed, true);
   assert.equal(puzzle.generation.generatorVersion, 'newspaper-v2');
   assert.equal(diagnostics.aesthetic.passed, true);
-  assert.equal(quality.policy.maximumFallbackWordShare, 0.36);
-  assert.equal(quality.policy.minimumAnswerLengthAverage, 3.4);
+  assert.equal(quality.policy.maximumFallbackWordShare, 0.4);
+  assert.equal(quality.policy.minimumAnswerLengthAverage, 3.2);
   assert.ok(diagnostics.clueText.maximumSingleUnits <= 24);
   assert.ok(diagnostics.clueText.maximumSplitUnits <= 18);
 });

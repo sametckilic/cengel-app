@@ -15,7 +15,7 @@ type AnswerStartArrowProps = {
   direction: PuzzleDirection;
 };
 
-const ARROW_PATHS: Record<PuzzleDirection, { path: string; points: string }> = {
+const ARROW_PATHS: Record<PuzzleClueArrow, { path: string; points: string }> = {
   right: {
     path: 'M0 12 H18',
     points: '17,7 23,12 17,17',
@@ -23,6 +23,14 @@ const ARROW_PATHS: Record<PuzzleDirection, { path: string; points: string }> = {
   down: {
     path: 'M12 0 V18',
     points: '7,17 12,23 17,17',
+  },
+  'right-down': {
+    path: 'M0 5 H9 Q13 5 13 9 V18',
+    points: '8,17 13,23 18,17',
+  },
+  'down-right': {
+    path: 'M5 0 V9 Q5 13 9 13 H18',
+    points: '17,8 23,13 17,18',
   },
 };
 
@@ -33,10 +41,9 @@ export function AnswerStartArrow({
   direction,
 }: AnswerStartArrowProps) {
   const resolvedArrow = getPuzzleClueArrow({ arrow, direction });
-  const geometry = ARROW_PATHS[direction];
+  const geometry = ARROW_PATHS[resolvedArrow];
   const color = active ? palette.secondary : palette.ink;
   const size = Math.max(8, Math.min(12, Math.round(cellSize * 0.2)));
-  const cornerOffset = Math.max(2, Math.round(cellSize * 0.08));
   const position =
     resolvedArrow === 'right'
       ? {
@@ -50,16 +57,20 @@ export function AnswerStartArrow({
           }
         : resolvedArrow === 'right-down'
           ? {
-              left: cornerOffset,
+              left: -1,
               top: -1,
             }
           : {
               left: -1,
-              top: cornerOffset,
+              top: -1,
             };
 
   return (
-    <View pointerEvents="none" style={[{ position: 'absolute', zIndex: 2 }, position]}>
+    <View
+      style={[
+        { pointerEvents: 'none', position: 'absolute', zIndex: 2 },
+        position,
+      ]}>
       <Svg
         accessibilityElementsHidden
         height={size}

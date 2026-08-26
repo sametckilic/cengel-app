@@ -15,8 +15,8 @@ const DEFAULT_DAILY_QUALITY_POLICY = Object.freeze({
 });
 const DEFAULT_V2_DAILY_QUALITY_POLICY = Object.freeze({
   ...DEFAULT_DAILY_QUALITY_POLICY,
-  maximumFallbackWordShare: 0.36,
-  minimumAnswerLengthAverage: 3.4,
+  maximumFallbackWordShare: 0.4,
+  minimumAnswerLengthAverage: 3.2,
 });
 
 function roundRatio(value) {

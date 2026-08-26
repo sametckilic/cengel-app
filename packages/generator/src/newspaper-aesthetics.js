@@ -1,15 +1,21 @@
 const { validateNewspaperTopology } = require('./newspaper-topology');
 
 const DEFAULT_NEWSPAPER_AESTHETIC_POLICY = Object.freeze({
-  dominantSingleRightRowMinimumShare: 0.5,
-  maximumClueDensity: 0.35,
-  maximumConsecutiveDominantSingleRightRows: 2,
-  maximumSingleRightRowShare: 0.7,
-  maximumSplitClueShare: 0.45,
+  dominantSingleRightRowMinimumShare: 0.6,
+  maximumClueDensity: 0.36,
+  maximumConsecutiveDominantSingleRightRows: 6,
+  maximumLeadingEdgeClueShare: 0.75,
+  maximumSingleRightRowShare: 0.9,
+  maximumSplitClueShare: 0.65,
   maximumTopRowSingleRightShare: 0.5,
-  minimumClueDensity: 0.18,
-  minimumColumnDownCoverage: 0.75,
+  minimumBentArrowShare: 0.1,
+  minimumClueColumnCoverage: 0.5,
+  minimumClueDensity: 0.14,
+  minimumClueRowCoverage: 0.5,
+  minimumColumnDownCoverage: 0.7,
   minimumDirectionShare: 0.35,
+  minimumInteriorClueShare: 0.3,
+  minimumIndependentBentArrowCount: 1,
   minimumSplitClueShare: 0.1,
   minimumTopRowDownStarts: 2,
 });
@@ -35,12 +41,17 @@ function resolveAestheticPolicy(overrides = {}) {
   const ratioFields = [
     'dominantSingleRightRowMinimumShare',
     'maximumClueDensity',
+    'maximumLeadingEdgeClueShare',
     'maximumSingleRightRowShare',
     'maximumSplitClueShare',
     'maximumTopRowSingleRightShare',
+    'minimumBentArrowShare',
+    'minimumClueColumnCoverage',
     'minimumClueDensity',
+    'minimumClueRowCoverage',
     'minimumColumnDownCoverage',
     'minimumDirectionShare',
+    'minimumInteriorClueShare',
     'minimumSplitClueShare',
   ];
 
@@ -69,6 +80,13 @@ function resolveAestheticPolicy(overrides = {}) {
     throw new Error('minimumTopRowDownStarts must be a non-negative integer.');
   }
 
+  if (
+    !Number.isInteger(policy.minimumIndependentBentArrowCount) ||
+    policy.minimumIndependentBentArrowCount < 0
+  ) {
+    throw new Error('minimumIndependentBentArrowCount must be a non-negative integer.');
+  }
+
   return policy;
 }
 
@@ -83,20 +101,19 @@ function scoreAestheticMetrics(metrics) {
     (Math.min(metrics.topRowRightSlotCount, 2) / 2 +
       Math.min(metrics.topRowDownStartCount, 2) / 2) /
     2;
-  const consecutiveRunControl = Math.max(
-    0,
-    1 - metrics.maximumConsecutiveDominantSingleRightRows / 4,
-  );
   const slotLengthVariety = Math.min(metrics.distinctSlotLengths.length / 6, 1);
+  const bentArrowVariety = Math.min(metrics.bentArrowShare / 0.25, 1);
   const score =
-    metrics.columnDownCoverage * 20 +
-    (1 - metrics.singleRightSlotRowShare) * 15 +
-    directionBalance * 15 +
-    clueDensityFit * 15 +
-    splitClueFit * 10 +
-    topRowVariety * 15 +
-    consecutiveRunControl * 5 +
-    slotLengthVariety * 5;
+    metrics.columnDownCoverage * 12 +
+    directionBalance * 12 +
+    clueDensityFit * 12 +
+    splitClueFit * 8 +
+    topRowVariety * 10 +
+    slotLengthVariety * 6 +
+    metrics.clueRowCoverage * 12 +
+    metrics.clueColumnCoverage * 10 +
+    metrics.interiorClueShare * 8 +
+    bentArrowVariety * 10;
 
   return roundRatio(score);
 }
@@ -143,9 +160,48 @@ function evaluateNewspaperTopologyAesthetics(topology, policyOverrides) {
   const minorityDirectionShare =
     slots.length > 0 ? Math.min(downSlots.length, rightSlots.length) / slots.length : 0;
   const slotLengths = slots.map(({ cellIndices }) => cellIndices.length);
+  const clueCellIndices = topology.cells.flatMap((cell, cellIndex) =>
+    cell.type === 'clue' ? [cellIndex] : [],
+  );
+  const clueRowIndices = new Set(
+    clueCellIndices.map((cellIndex) => Math.floor(cellIndex / columnCount)),
+  );
+  const clueColumnIndices = new Set(
+    clueCellIndices.map((cellIndex) => cellIndex % columnCount),
+  );
+  const interiorClueCount = clueCellIndices.filter((cellIndex) => {
+    const rowIndex = Math.floor(cellIndex / columnCount);
+    const columnIndex = cellIndex % columnCount;
+
+    return rowIndex > 0 && columnIndex > 0;
+  }).length;
+  const leadingEdgeClueCount = clueCellIndices.filter((cellIndex) => {
+    const rowIndex = Math.floor(cellIndex / columnCount);
+    const columnIndex = cellIndex % columnCount;
+
+    return rowIndex === 0 || columnIndex === 0;
+  }).length;
+  const bentArrowCount = slots.filter(
+    ({ arrow, direction }) => arrow !== undefined && arrow !== direction,
+  ).length;
+  const slotStartUseCount = slots.reduce((counts, { cellIndices }) => {
+    const firstCellIndex = cellIndices[0];
+    counts.set(firstCellIndex, (counts.get(firstCellIndex) ?? 0) + 1);
+    return counts;
+  }, new Map());
+  const independentBentArrowCount = slots.filter(
+    ({ arrow, cellIndices, direction }) =>
+      arrow !== undefined &&
+      arrow !== direction &&
+      slotStartUseCount.get(cellIndices[0]) === 1,
+  ).length;
   const metrics = {
+    bentArrowCount,
+    bentArrowShare: roundRatio(bentArrowCount / slots.length),
     clueCellCount,
+    clueColumnCoverage: roundRatio(clueColumnIndices.size / columnCount),
     clueDensity: roundRatio(clueCellCount / (rowCount * columnCount)),
+    clueRowCoverage: roundRatio(clueRowIndices.size / rowCount),
     columnDownCoverage: roundRatio(columnsWithDownSlot / columnCount),
     columnsWithDownSlot,
     directionCounts,
@@ -153,8 +209,13 @@ function evaluateNewspaperTopologyAesthetics(topology, policyOverrides) {
     dominantSingleRightRowIndices: dominantSingleRightRows.flatMap((isDominant, rowIndex) =>
       isDominant ? [rowIndex] : [],
     ),
+    independentBentArrowCount,
     maximumConsecutiveDominantSingleRightRows:
       longestConsecutiveRun(dominantSingleRightRows),
+    interiorClueCount,
+    interiorClueShare: roundRatio(interiorClueCount / clueCellCount),
+    leadingEdgeClueCount,
+    leadingEdgeClueShare: roundRatio(leadingEdgeClueCount / clueCellCount),
     maximumDownSlotLength: Math.max(...downSlots.map(({ cellIndices }) => cellIndices.length), 0),
     maximumRightSlotLength: Math.max(
       ...rightSlots.map(({ cellIndices }) => cellIndices.length),
@@ -214,6 +275,51 @@ function evaluateNewspaperTopologyAesthetics(topology, policyOverrides) {
     issues.push(
       `Down-slot column coverage ${metrics.columnDownCoverage} is below ` +
         `${policy.minimumColumnDownCoverage}.`,
+    );
+  }
+
+  if (metrics.bentArrowShare < policy.minimumBentArrowShare) {
+    issues.push(
+      `Bent-arrow share ${metrics.bentArrowShare} is below ` +
+        `${policy.minimumBentArrowShare}.`,
+    );
+  }
+
+  if (
+    metrics.independentBentArrowCount <
+    policy.minimumIndependentBentArrowCount
+  ) {
+    issues.push(
+      `Independent bent-arrow count ${metrics.independentBentArrowCount} is below ` +
+        `${policy.minimumIndependentBentArrowCount}.`,
+    );
+  }
+
+  if (metrics.clueRowCoverage < policy.minimumClueRowCoverage) {
+    issues.push(
+      `Clue-row coverage ${metrics.clueRowCoverage} is below ` +
+        `${policy.minimumClueRowCoverage}.`,
+    );
+  }
+
+  if (metrics.clueColumnCoverage < policy.minimumClueColumnCoverage) {
+    issues.push(
+      `Clue-column coverage ${metrics.clueColumnCoverage} is below ` +
+        `${policy.minimumClueColumnCoverage}.`,
+    );
+  }
+
+  if (metrics.interiorClueShare < policy.minimumInteriorClueShare) {
+    issues.push(
+      `Interior-clue share ${metrics.interiorClueShare} is below ` +
+        `${policy.minimumInteriorClueShare}.`,
+    );
+  }
+
+  if (metrics.leadingEdgeClueShare > policy.maximumLeadingEdgeClueShare) {
+    issues.push(
+      `Leading-edge clue share ${metrics.leadingEdgeClueShare} exceeds ` +
+        `${policy.maximumLeadingEdgeClueShare}.`,
     );
   }
 

@@ -18,12 +18,12 @@ const request = {
 };
 const options = {
   maximumFillAttempts: 4,
-  maximumSuccessfulFills: 2,
-  maxSearchNodesPerTopology: 25_000,
+  maximumSuccessfulFills: 1,
+  maxSearchNodesPerTopology: 5_000,
   topology: {
-    beamWidth: 400,
+    beamWidth: 200,
     maxCandidates: 4,
-    maxMutationDepth: 4,
+    maxMutationDepth: 1,
   },
 };
 
@@ -48,13 +48,28 @@ test('selects a deterministic, readable and aesthetic filled topology', () => {
 });
 
 test('continues with another topology when a fill attempt reaches its node limit', () => {
+  const retryRequest = {
+    ...request,
+    id: 'newspaper-v2-retry-test-9x10',
+    categories: ['bilim', 'teknoloji', 'genel_kultur'],
+    difficulty: 'beginner',
+    seed:
+      'gunun-2026-09-05:matrix-v1-a1:newspaper-v2-9x10-25:' +
+      'beginner:bilim+teknoloji+genel_kultur:0.6',
+  };
   const result = generateNewspaperPuzzleV2(
     catalog.entries,
-    { ...request, seed: 'newspaper-v2-fallback-1' },
+    retryRequest,
     {
       ...options,
+      maximumFillAttempts: 8,
       maximumSuccessfulFills: 1,
-      maxSearchNodesPerTopology: 50,
+      maxSearchNodesPerTopology: 5_000,
+      topology: {
+        beamWidth: 200,
+        maxCandidates: 8,
+        maxMutationDepth: 1,
+      },
     },
   );
 

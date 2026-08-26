@@ -7,9 +7,8 @@ const {
 } = require('../src/newspaper-aesthetics');
 const {
   createNewspaper9x10Topology,
+  createNewspaperArrowwordTopology,
   createNewspaperBeginner7x7Topology,
-  createNewspaperLarge10x10Topology,
-  createNewspaperLarge10x12Topology,
   createNewspaperMedium8x8Topology,
   createNewspaperTopology,
   createNewspaperPrototypeTopology,
@@ -63,7 +62,7 @@ test('reports local newspaper-layout weaknesses in the current topology library'
   );
 });
 
-test('accepts a balanced topology with a varied top row under the default policy', () => {
+test('rejects a straight-only layout even when its former row metrics are balanced', () => {
   const topology = createNewspaperTopology('balanced-9x10-fixture', [
     '##..#..#..',
     '.#...#...#',
@@ -77,24 +76,34 @@ test('accepts a balanced topology with a varied top row under the default policy
   ]);
   const report = evaluateNewspaperTopologyAesthetics(topology);
 
-  assert.equal(report.passed, true);
-  assert.deepEqual(report.issues, []);
+  assert.equal(report.passed, false);
+  assert.ok(report.issues.some((issue) => issue.includes('Bent-arrow share')));
   assert.deepEqual(report.metrics.topRowRightSlotLengths, [2, 2, 2]);
   assert.equal(report.metrics.columnDownCoverage, 0.8);
 });
 
-test('accepts the large preview topology families', () => {
-  for (const topology of [
-    createNewspaperLarge10x10Topology(),
-    createNewspaperLarge10x12Topology(),
-  ]) {
-    const report = evaluateNewspaperTopologyAesthetics(topology);
+test('accepts a scattered arrowword layout with independently bent starts', () => {
+  const topology = createNewspaperArrowwordTopology(
+    'scattered-8x8-fixture',
+    [
+      '##....#.',
+      '........',
+      '.#.#..##',
+      '#.......',
+      '........',
+      '...#....',
+      '#..#....',
+      '...#....',
+    ],
+    'scattered-aesthetic-test',
+  );
+  const report = evaluateNewspaperTopologyAesthetics(topology);
 
-    assert.equal(report.passed, true);
-    assert.ok(report.metrics.topRowRightSlotCount > 1);
-    assert.ok(report.metrics.columnDownCoverage >= 0.75);
-    assert.ok(report.metrics.minorityDirectionShare >= 0.35);
-  }
+  assert.equal(report.passed, true);
+  assert.ok(report.metrics.clueRowCoverage >= 0.5);
+  assert.ok(report.metrics.clueColumnCoverage >= 0.5);
+  assert.ok(report.metrics.bentArrowShare >= 0.1);
+  assert.ok(report.metrics.interiorClueShare >= 0.3);
 });
 
 test('rejects invalid aesthetic policy ranges', () => {
