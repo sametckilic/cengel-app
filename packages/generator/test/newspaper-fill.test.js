@@ -61,8 +61,9 @@ test('fills the prototype deterministically from the real clue catalog', () => {
   assert.equal(puzzle.cells.filter(({ type }) => type === 'split-clue').length, 2);
   assert.ok(
     puzzle.words.every((word) => {
-      const catalogEntry = catalog.entries.find(({ answer }) => answer === word.answer);
-      return word.clue === catalogEntry?.shortClue;
+      return catalog.entries.some(
+        ({ answer, shortClue }) => answer === word.answer && shortClue === word.clue,
+      );
     }),
   );
   assert.ok(puzzle.cells.every(({ type }) => type !== 'void'));

@@ -49,7 +49,7 @@ test('continues with another topology when a fill attempt reaches its node limit
   const result = generateNewspaperPuzzleV2(catalog.entries, request, {
     ...options,
     maximumSuccessfulFills: 1,
-    maxSearchNodesPerTopology: 50,
+    maxSearchNodesPerTopology: 100,
   });
 
   assert.ok(result.diagnostics.failedFills.length >= 1);

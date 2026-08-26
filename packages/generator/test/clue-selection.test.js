@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
 const test = require('node:test');
 
 const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
@@ -22,6 +23,15 @@ const baseRequest = {
   targetWordCount: 12,
 };
 
+const readySourceRecords = readFileSync(
+  'datasets/crossword_clues_gameplay_ready.jsonl',
+  'utf8',
+)
+  .trim()
+  .split(/\r?\n/)
+  .map(JSON.parse)
+  .filter(({ gameplay_status: gameplayStatus }) => gameplayStatus === 'ready');
+
 test('the same request and seed produce the same candidates', () => {
   const first = selectClueCandidates(catalog.entries, baseRequest).map(({ id }) => id);
   const second = selectClueCandidates(catalog.entries, baseRequest).map(({ id }) => id);
@@ -39,10 +49,24 @@ test('catalog preserves full clues and exposes short clues for the grid', () => 
   assert.ok(entry.shortClue.length > 0);
 });
 
+test('catalog keeps every gameplay-ready clue, including alternative clues for an answer', () => {
+  const sourceAnswerCount = new Set(
+    readySourceRecords.map(({ answer_normalized: answer }) => normalizeGridAnswer(answer)),
+  ).size;
+  const catalogAnswerCount = new Set(catalog.entries.map(({ answer }) => answer)).size;
+
+  assert.equal(catalog.filters.gameplayStatus, 'ready');
+  assert.equal(catalog.filters.gameplayScoreMin, null);
+  assert.equal(catalog.filters.clueQualityMin, null);
+  assert.equal(catalog.entries.length, readySourceRecords.length);
+  assert.equal(catalogAnswerCount, sourceAnswerCount);
+  assert.ok(catalog.entries.length > catalogAnswerCount);
+});
+
 test('catalog marks validated two-letter answers as fallback-only candidates', () => {
   const twoLetterEntries = catalog.entries.filter(({ answerLength }) => answerLength === 2);
 
-  assert.equal(catalog.filters.answerLengthMin, 2);
+  assert.equal(catalog.filters.answerLengthMin, null);
   assert.equal(catalog.filters.answerLengthMax, null);
   assert.ok(twoLetterEntries.length > 0);
   assert.ok(twoLetterEntries.every(({ fallbackOnly }) => fallbackOnly));
@@ -156,6 +180,43 @@ test('two-letter answers are selected only after standard candidates are exhaust
   );
 });
 
+test('selection keeps answer variants in the pool but never repeats an answer in one puzzle', () => {
+  const entries = [
+    {
+      answer: 'AYNI',
+      answerLength: 4,
+      category: 'turkce',
+      difficulty: 'easy',
+      fallbackOnly: false,
+      id: 'same-answer-first-clue',
+    },
+    {
+      answer: 'AYNI',
+      answerLength: 4,
+      category: 'turkce',
+      difficulty: 'easy',
+      fallbackOnly: false,
+      id: 'same-answer-second-clue',
+    },
+    {
+      answer: 'BASKA',
+      answerLength: 5,
+      category: 'turkce',
+      difficulty: 'easy',
+      fallbackOnly: false,
+      id: 'different-answer',
+    },
+  ];
+  const selected = selectClueCandidates(entries, {
+    ...baseRequest,
+    categoryWeight: 1,
+    targetWordCount: 2,
+  });
+
+  assert.equal(selected.length, 2);
+  assert.equal(new Set(selected.map(({ answer }) => answer)).size, 2);
+});
+
 test('an impossible request fails with a descriptive error', () => {
   assert.throws(
     () =>
@@ -164,7 +225,7 @@ test('an impossible request fails with a descriptive error', () => {
         categories: ['__missing_category__'],
         targetWordCount: 2,
       }),
-    /0 themed clue\(s\) match/,
+    /0 themed answer\(s\) match/,
   );
 });
 

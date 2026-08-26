@@ -15,13 +15,14 @@ export type ClueCatalogEntry = {
 export type ClueCatalog = {
   entries: readonly ClueCatalogEntry[];
   filters: {
-    ambiguityScoreMax: number;
+    ambiguityScoreMax: number | null;
     answerLengthMax: number | null;
-    answerLengthMin: number;
-    clarityScoreMin: number;
-    clueQualityMin: number;
-    factualityScoreMin: number;
-    gameplayScoreMin: number;
+    answerLengthMin: number | null;
+    clarityScoreMin: number | null;
+    clueQualityMin: number | null;
+    factualityScoreMin: number | null;
+    gameplayScoreMin: number | null;
+    gameplayStatus: 'ready';
   };
   rights: {
     basis: 'project-owned';

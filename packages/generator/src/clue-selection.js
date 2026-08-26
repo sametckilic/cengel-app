@@ -94,20 +94,53 @@ function findEligibleClueCandidates(entries, request) {
     .sort((left, right) => left.id.localeCompare(right.id));
 }
 
-function selectPreferredCandidates(entries, targetCount, seed) {
+function getAnswerKey(entry) {
+  return typeof entry.answer === 'string' ? entry.answer : entry.id;
+}
+
+function takeUniqueCandidates(entries, targetCount, seed, selectedAnswerKeys) {
+  if (targetCount <= 0) {
+    return [];
+  }
+
+  const selected = [];
+
+  for (const entry of shuffleDeterministically(entries, seed)) {
+    const answerKey = getAnswerKey(entry);
+
+    if (selectedAnswerKeys.has(answerKey)) {
+      continue;
+    }
+
+    selected.push(entry);
+    selectedAnswerKeys.add(answerKey);
+
+    if (selected.length === targetCount) {
+      break;
+    }
+  }
+
+  return selected;
+}
+
+function selectPreferredCandidates(entries, targetCount, seed, selectedAnswerKeys) {
   const standardEntries = entries.filter(({ fallbackOnly }) => !fallbackOnly);
   const fallbackEntries = entries.filter(({ fallbackOnly }) => fallbackOnly);
-  const selectedStandard = shuffleDeterministically(standardEntries, seed).slice(
-    0,
+  const selectedStandard = takeUniqueCandidates(
+    standardEntries,
     targetCount,
+    seed,
+    selectedAnswerKeys,
   );
   const remainingCount = targetCount - selectedStandard.length;
 
   return [
     ...selectedStandard,
-    ...shuffleDeterministically(fallbackEntries, `${seed}:two-letter`).slice(
-      0,
+    ...takeUniqueCandidates(
+      fallbackEntries,
       remainingCount,
+      `${seed}:two-letter`,
+      selectedAnswerKeys,
     ),
   ];
 }
@@ -121,37 +154,42 @@ function selectClueCandidates(entries, request) {
     categorySet.size === 0
       ? 0
       : Math.ceil(request.targetWordCount * request.categoryWeight);
+  const uniqueEligibleCount = new Set(eligibleEntries.map(getAnswerKey)).size;
+  const uniqueThemedCount = new Set(themedEntries.map(getAnswerKey)).size;
 
   if (
-    eligibleEntries.length < request.targetWordCount ||
-    themedEntries.length < themedTarget
+    uniqueEligibleCount < request.targetWordCount ||
+    uniqueThemedCount < themedTarget
   ) {
     const categoryLabel = request.categories.length > 0 ? request.categories.join(', ') : 'none';
     throw new Error(
-      `Only ${eligibleEntries.length} total and ${themedEntries.length} themed clue(s) match ` +
+      `Only ${uniqueEligibleCount} total and ${uniqueThemedCount} themed answer(s) match ` +
         `difficulty "${request.difficulty}", categories "${categoryLabel}", and ` +
         `${request.rowCount}x${request.columnCount}; ${request.targetWordCount} total and ` +
         `${themedTarget} themed requested.`,
     );
   }
 
+  const selectedAnswerKeys = new Set();
   const selectedThemed = selectPreferredCandidates(
     themedEntries,
     themedTarget,
     `${request.seed}:themed`,
+    selectedAnswerKeys,
   );
   const mixedTarget = request.targetWordCount - selectedThemed.length;
   const selectedMixed = selectPreferredCandidates(
     mixedEntries,
     mixedTarget,
     `${request.seed}:mixed`,
+    selectedAnswerKeys,
   );
   const fallbackTarget = request.targetWordCount - selectedThemed.length - selectedMixed.length;
-  const selectedIds = new Set([...selectedThemed, ...selectedMixed].map(({ id }) => id));
   const fallbackEntries = selectPreferredCandidates(
-    eligibleEntries.filter(({ id }) => !selectedIds.has(id)),
+    eligibleEntries,
     fallbackTarget,
     `${request.seed}:fallback`,
+    selectedAnswerKeys,
   );
 
   return shuffleDeterministically(

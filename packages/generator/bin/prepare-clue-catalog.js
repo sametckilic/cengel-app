@@ -12,23 +12,16 @@ const {
 
 const SOURCE_FILE = 'datasets/crossword_clues_gameplay_ready.jsonl';
 const SOURCE_PATH = path.resolve(process.cwd(), SOURCE_FILE);
-const ALLOWED_SCREEN_FITS = new Set(['acceptable', 'ideal']);
 const SOURCE_DIFFICULTIES = new Set(['beginner', 'easy', 'medium', 'hard', 'expert']);
-const DISALLOWED_FLAGS = new Set([
-  'ambiguous_clue',
-  'answer_leaked',
-  'sensitive_content',
-  'temporal_fact',
-  'typo_suspected',
-]);
 const FILTERS = Object.freeze({
-  ambiguityScoreMax: 20,
+  ambiguityScoreMax: null,
   answerLengthMax: null,
-  answerLengthMin: 2,
-  clarityScoreMin: 90,
-  clueQualityMin: 85,
-  factualityScoreMin: 95,
-  gameplayScoreMin: 90,
+  answerLengthMin: null,
+  clarityScoreMin: null,
+  clueQualityMin: null,
+  factualityScoreMin: null,
+  gameplayScoreMin: null,
+  gameplayStatus: 'ready',
 });
 
 function parseArguments(argumentsList) {
@@ -146,23 +139,8 @@ function normalizeRecord(record) {
   };
 }
 
-function isQualityCandidate(record) {
-  const hasSupportedGridFit =
-    record.grid_fit === 'ideal' ||
-    (record.answer_length === 2 && record.grid_fit === 'acceptable');
-
-  return (
-    record.gameplay_status === 'ready' &&
-    record.answer_length >= FILTERS.answerLengthMin &&
-    record.gameplay_score >= FILTERS.gameplayScoreMin &&
-    record.clue_quality >= FILTERS.clueQualityMin &&
-    record.clarity_score >= FILTERS.clarityScoreMin &&
-    record.ambiguity_score <= FILTERS.ambiguityScoreMax &&
-    record.factuality_score >= FILTERS.factualityScoreMin &&
-    ALLOWED_SCREEN_FITS.has(record.screen_fit) &&
-    hasSupportedGridFit &&
-    !record.flags.some((flag) => DISALLOWED_FLAGS.has(flag))
-  );
+function isReadyRecord(record) {
+  return record.gameplay_status === FILTERS.gameplayStatus;
 }
 
 function compareRecordQuality(left, right) {
@@ -175,21 +153,12 @@ function compareRecordQuality(left, right) {
   );
 }
 
-function deduplicateByAnswer(records) {
-  const bestByAnswer = new Map();
-
-  for (const record of records) {
-    const current = bestByAnswer.get(record.answer_normalized);
-
-    if (!current || compareRecordQuality(record, current) < 0) {
-      bestByAnswer.set(record.answer_normalized, record);
-    }
-  }
-
-  return [...bestByAnswer.values()].sort(
+function sortCatalogRecords(records) {
+  return [...records].sort(
     (left, right) =>
       left.answer_length - right.answer_length ||
-      left.answer_normalized.localeCompare(right.answer_normalized, 'tr'),
+      left.answer_normalized.localeCompare(right.answer_normalized, 'tr') ||
+      compareRecordQuality(left, right),
   );
 }
 
@@ -244,12 +213,16 @@ async function main() {
     );
   }
 
-  const qualityCandidates = records.filter(isQualityCandidate);
-  const qualityEntries = deduplicateByAnswer(qualityCandidates);
+  const readyRecords = sortCatalogRecords(records.filter(isReadyRecord));
+  const uniqueReadyAnswers = new Set(
+    readyRecords.map((record) => record.answer_normalized),
+  ).size;
   const report = {
     totalRecords: records.length,
-    qualityCandidates: qualityCandidates.length,
-    qualityEntriesAfterDeduplication: qualityEntries.length,
+    readyRecords: readyRecords.length,
+    catalogEntries: readyRecords.length,
+    uniqueReadyAnswers,
+    alternativeClueVariants: readyRecords.length - uniqueReadyAnswers,
     legacyCommercialUseAllowedRows: records.filter(
       (record) => record.commercial_use_allowed === 1,
     ).length,
@@ -261,8 +234,8 @@ async function main() {
     return;
   }
 
-  if (qualityEntries.length === 0) {
-    throw new Error('No entries passed the catalog quality filters.');
+  if (readyRecords.length === 0) {
+    throw new Error('The dataset contains no gameplay-ready entries.');
   }
 
   const catalog = {
@@ -274,7 +247,7 @@ async function main() {
       confirmedAt: '2026-08-19',
     },
     filters: FILTERS,
-    entries: qualityEntries.map(toCatalogEntry),
+    entries: readyRecords.map(toCatalogEntry),
   };
 
   await mkdir(path.dirname(options.outputPath), { recursive: true });
