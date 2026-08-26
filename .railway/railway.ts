@@ -32,10 +32,8 @@ export default defineRailway(() => {
     deploy: {
       restartPolicyType: "ALWAYS",
     },
-    preDeploy: [
-      "node apps/api/dist/database/migrate.js",
-      "node apps/api/dist/content/import-content.js",
-    ],
+    preDeploy:
+      "node apps/api/dist/database/migrate.js && node apps/api/dist/content/import-content.js",
     healthcheck: "/ready",
     healthcheckTimeout: 300,
     replicas: { "ams": 1 },
