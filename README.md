@@ -39,6 +39,19 @@ npm run dataset:build
 npm run puzzles:build
 ```
 
+Release katalog hazırlığı tek komutla ham dataseti doğrular, katalog artefaktını
+yeniden üretir ve generator ile bulmaca kalite kapılarını çalıştırır:
+
+```bash
+npm run content:release:prepare
+```
+
+`main` dalına yeni dataset geldiğinde Railway API image'ı kataloğu kaynak
+JSONL'den yeniden üretir. Başarılı image build'inden sonra pre-deploy adımı önce
+veritabanı migration'larını, ardından idempotent katalog importunu çalıştırır.
+Import başarısız olursa yeni deployment trafiğe açılmaz; generator worker bir
+sonraki çalışmasında PostgreSQL'deki en yeni başarılı katalog sürümünü kullanır.
+
 Tek bir günlük yayın üretmek:
 
 ```bash

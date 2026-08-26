@@ -23,6 +23,7 @@ export default defineRailway(() => {
       watchPatterns: [
         "apps/api/**",
         "apps/mobile/data/generated/**",
+        "datasets/**",
         "packages/**",
         "package.json",
         "package-lock.json",
@@ -31,7 +32,10 @@ export default defineRailway(() => {
     deploy: {
       restartPolicyType: "ALWAYS",
     },
-    preDeploy: "node apps/api/dist/database/migrate.js",
+    preDeploy: [
+      "node apps/api/dist/database/migrate.js",
+      "node apps/api/dist/content/import-content.js",
+    ],
     healthcheck: "/ready",
     healthcheckTimeout: 300,
     replicas: { "ams": 1 },

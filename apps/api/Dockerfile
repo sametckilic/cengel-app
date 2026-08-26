@@ -13,7 +13,10 @@ COPY packages/puzzle-core/package.json packages/puzzle-core/package.json
 RUN npm ci
 
 COPY apps/api apps/api
+COPY apps/mobile/data apps/mobile/data
+COPY datasets datasets
 COPY packages packages
+RUN npm run content:release:prepare
 RUN npm run api:build
 RUN npm prune --omit=dev
 
@@ -25,8 +28,8 @@ WORKDIR /app
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/drizzle ./apps/api/drizzle
+COPY --from=build /app/apps/mobile/data/generated ./apps/mobile/data/generated
 COPY --from=build /app/packages/achievement-core ./packages/achievement-core
-COPY apps/mobile/data/generated ./apps/mobile/data/generated
 COPY package.json ./package.json
 COPY apps/api/package.json ./apps/api/package.json
 

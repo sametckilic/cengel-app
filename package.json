@@ -23,6 +23,7 @@
     "reset-project": "npm --workspace @cengel/mobile run reset-project --",
     "dataset:check": "node ./packages/generator/bin/prepare-clue-catalog.js --check",
     "dataset:build": "node ./packages/generator/bin/prepare-clue-catalog.js --output ./apps/mobile/data/generated/clue-catalog.json",
+    "content:release:prepare": "npm run dataset:build && npm run dataset:check && npm run test:generator && npm run puzzles:check",
     "topologies:analyze": "node ./packages/generator/bin/analyze-newspaper-topologies.js",
     "puzzles:check": "node ./packages/generator/bin/generate-puzzle-manifest.js --check",
     "puzzles:build": "node ./packages/generator/bin/generate-puzzle-manifest.js --output ./apps/mobile/data/generated/puzzles.json",

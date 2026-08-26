@@ -30,16 +30,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Prepare clue catalog
-        run: npm run dataset:build
+      - name: Prepare release content
+        run: npm run content:release:prepare
 
       - name: Verify generated content
         run: |
           npm run lint
           npx tsc --noEmit
-          npm run dataset:check
-          npm run test:generator
-          npm run puzzles:check
           npm run test:engine
           npm run test:progress
           npm run test:achievements

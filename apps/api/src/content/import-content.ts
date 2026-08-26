@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { count, eq, sql } from 'drizzle-orm';
+import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { z } from 'zod';
 
@@ -14,6 +15,18 @@ import {
   puzzlePublications,
   puzzles,
 } from '../database/schema';
+
+const IMPORT_SCHEMA = {
+  clueCatalogVersions,
+  clues,
+  generationRuns,
+  puzzlePublications,
+  puzzles,
+};
+export type ImportTransaction = NodePgDatabase<typeof IMPORT_SCHEMA>;
+export type ImportTransactionRunner = <T>(
+  callback: (transaction: ImportTransaction) => Promise<T>,
+) => Promise<T>;
 
 const difficultySchema = z.enum(['beginner', 'easy', 'medium', 'hard']);
 const puzzleSchema = z
@@ -73,11 +86,31 @@ type PuzzleImport = {
   publicationKey: string;
 };
 type ImportSummary = {
+  catalogEntries: number;
+  catalogVersionId: string;
   catalogVersionsInserted: number;
   cluesInserted: number;
   generationRunsInserted: number;
   publicationsInserted: number;
   puzzlesInserted: number;
+};
+
+export type GeneratedContentPaths = {
+  catalogPath: string;
+  dailyDirectory: string;
+  manifestPath: string;
+  prototypePath: string;
+};
+
+export type ImportGeneratedContentOptions = {
+  connection?: {
+    connectionTimeoutMillis?: number;
+    databaseUrl: string;
+    maxConnections?: number;
+    ssl?: boolean;
+  };
+  paths?: GeneratedContentPaths;
+  transactionRunner?: ImportTransactionRunner;
 };
 
 const REPOSITORY_ROOT = path.resolve(__dirname, '../../../..');
@@ -97,6 +130,12 @@ const DAILY_DIRECTORY = path.join(
   REPOSITORY_ROOT,
   'apps/mobile/data/generated/daily',
 );
+const DEFAULT_CONTENT_PATHS: GeneratedContentPaths = {
+  catalogPath: CATALOG_PATH,
+  dailyDirectory: DAILY_DIRECTORY,
+  manifestPath: MANIFEST_PATH,
+  prototypePath: PROTOTYPE_PATH,
+};
 
 function checksum(value: string): string {
   return createHash('sha256').update(value).digest('hex');
@@ -106,25 +145,27 @@ function parseJson<T>(contents: string, schema: z.ZodType<T>, source: string): T
   const result = schema.safeParse(JSON.parse(contents) as unknown);
 
   if (!result.success) {
-    throw new Error(`Invalid generated content in ${source}: ${z.prettifyError(result.error)}`);
+    throw new Error(
+      `Invalid generated content in ${source}: ${z.prettifyError(result.error)}`,
+    );
   }
 
   return result.data;
 }
 
-async function readDailyPublications(): Promise<
+async function readDailyPublications(dailyDirectory: string): Promise<
   readonly {
     contents: string;
     publication: z.infer<typeof dailyPublicationSchema>;
   }[]
 > {
-  const fileNames = (await readdir(DAILY_DIRECTORY))
+  const fileNames = (await readdir(dailyDirectory))
     .filter((fileName) => fileName.endsWith('.json'))
     .sort();
 
   return Promise.all(
     fileNames.map(async (fileName) => {
-      const filePath = path.join(DAILY_DIRECTORY, fileName);
+      const filePath = path.join(dailyDirectory, fileName);
       const contents = await readFile(filePath, 'utf8');
 
       return {
@@ -184,18 +225,41 @@ function collectPuzzleImports(
   );
 }
 
-export async function importGeneratedContent(): Promise<ImportSummary> {
-  const environment = validateEnvironment(process.env);
+export async function importGeneratedContent(
+  options: ImportGeneratedContentOptions = {},
+): Promise<ImportSummary> {
+  const environment = options.connection || options.transactionRunner
+    ? undefined
+    : validateEnvironment(process.env);
+  const connection =
+    options.connection ??
+    (environment
+      ? {
+          connectionTimeoutMillis: environment.DB_CONNECTION_TIMEOUT_MS,
+          databaseUrl: environment.DATABASE_URL,
+          maxConnections: environment.DB_POOL_MAX,
+          ssl: environment.DATABASE_SSL,
+        }
+      : undefined);
+  const paths = options.paths ?? DEFAULT_CONTENT_PATHS;
   const [catalogContents, manifestContents, prototypeContents, dailyDocuments] =
     await Promise.all([
-      readFile(CATALOG_PATH, 'utf8'),
-      readFile(MANIFEST_PATH, 'utf8'),
-      readFile(PROTOTYPE_PATH, 'utf8'),
-      readDailyPublications(),
+      readFile(paths.catalogPath, 'utf8'),
+      readFile(paths.manifestPath, 'utf8'),
+      readFile(paths.prototypePath, 'utf8'),
+      readDailyPublications(paths.dailyDirectory),
     ]);
-  const catalog = parseJson(catalogContents, catalogSchema, CATALOG_PATH);
-  const manifest = parseJson(manifestContents, manifestSchema, MANIFEST_PATH);
-  const prototype = parseJson(prototypeContents, puzzleSchema, PROTOTYPE_PATH);
+  const catalog = parseJson(catalogContents, catalogSchema, paths.catalogPath);
+  const manifest = parseJson(
+    manifestContents,
+    manifestSchema,
+    paths.manifestPath,
+  );
+  const prototype = parseJson(
+    prototypeContents,
+    puzzleSchema,
+    paths.prototypePath,
+  );
   const catalogChecksum = checksum(catalogContents);
   const catalogVersionId = `catalog-${catalogChecksum.slice(0, 16)}`;
   const puzzleImports = collectPuzzleImports(
@@ -204,24 +268,32 @@ export async function importGeneratedContent(): Promise<ImportSummary> {
     dailyDocuments,
     catalog.rights.confirmedAt,
   );
-  const pool = new Pool({
-    connectionString: environment.DATABASE_URL,
-    connectionTimeoutMillis: environment.DB_CONNECTION_TIMEOUT_MS,
-    max: environment.DB_POOL_MAX,
-    ssl: environment.DATABASE_SSL ? { rejectUnauthorized: false } : undefined,
-  });
-  const database = drizzle(pool, {
-    schema: {
-      clueCatalogVersions,
-      clues,
-      generationRuns,
-      puzzlePublications,
-      puzzles,
-    },
-  });
+  let pool: Pool | undefined;
+  let transactionRunner = options.transactionRunner;
+
+  if (!transactionRunner) {
+    if (!connection) {
+      throw new Error('Content import database connection is not configured.');
+    }
+
+    pool = new Pool({
+      connectionString: connection.databaseUrl,
+      connectionTimeoutMillis: connection.connectionTimeoutMillis ?? 5_000,
+      max: connection.maxConnections ?? 5,
+      ssl: connection.ssl ? { rejectUnauthorized: false } : undefined,
+    });
+    const database = drizzle(pool, { schema: IMPORT_SCHEMA });
+    transactionRunner = (callback) =>
+      database.transaction((transaction) =>
+        callback(transaction as unknown as ImportTransaction),
+      );
+  }
 
   try {
-    return await database.transaction(async (transaction) => {
+    return await transactionRunner(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtext('cengel:content-import'))`,
+      );
       const insertedCatalogVersions = await transaction
         .insert(clueCatalogVersions)
         .values({
@@ -235,18 +307,32 @@ export async function importGeneratedContent(): Promise<ImportSummary> {
         .returning({ id: clueCatalogVersions.id });
       let cluesInserted = 0;
 
-      for (let offset = 0; offset < catalog.entries.length; offset += 500) {
-        const insertedClues = await transaction
-          .insert(clues)
-          .values(
-            catalog.entries.slice(offset, offset + 500).map((entry) => ({
-              ...entry,
-              catalogVersionId,
-            })),
-          )
-          .onConflictDoNothing()
-          .returning({ id: clues.id });
-        cluesInserted += insertedClues.length;
+      if (insertedCatalogVersions.length > 0) {
+        for (let offset = 0; offset < catalog.entries.length; offset += 500) {
+          const insertedClues = await transaction
+            .insert(clues)
+            .values(
+              catalog.entries.slice(offset, offset + 500).map((entry) => ({
+                ...entry,
+                catalogVersionId,
+              })),
+            )
+            .onConflictDoNothing()
+            .returning({ id: clues.id });
+          cluesInserted += insertedClues.length;
+        }
+      }
+
+      const [persistedCatalog] = await transaction
+        .select({ entryCount: count() })
+        .from(clues)
+        .where(eq(clues.catalogVersionId, catalogVersionId));
+
+      if (persistedCatalog?.entryCount !== catalog.entries.length) {
+        throw new Error(
+          `Catalog "${catalogVersionId}" contains ${persistedCatalog?.entryCount ?? 0} ` +
+            `persisted clues; ${catalog.entries.length} expected.`,
+        );
       }
 
       const puzzleRecordIds = new Map<string, string>();
@@ -317,7 +403,28 @@ export async function importGeneratedContent(): Promise<ImportSummary> {
           })
           .onConflictDoNothing()
           .returning({ id: puzzlePublications.id });
-        publicationsInserted += inserted.length;
+
+        if (inserted.length > 0) {
+          publicationsInserted += inserted.length;
+          continue;
+        }
+
+        const existing = await transaction.query.puzzlePublications.findFirst({
+          columns: { puzzleRecordId: true },
+          where: (table, operators) =>
+            operators.and(
+              operators.eq(table.publicationDate, entry.publicationDate),
+              operators.eq(table.publicationKey, entry.publicationKey),
+              operators.eq(table.status, 'published'),
+            ),
+        });
+
+        if (!existing || existing.puzzleRecordId !== puzzleRecordId) {
+          throw new Error(
+            `Publication "${entry.publicationDate}/${entry.publicationKey}" ` +
+              'conflicts with the stored published puzzle.',
+          );
+        }
       }
 
       let generationRunsInserted = 0;
@@ -343,6 +450,8 @@ export async function importGeneratedContent(): Promise<ImportSummary> {
       }
 
       return {
+        catalogEntries: catalog.entries.length,
+        catalogVersionId,
         catalogVersionsInserted: insertedCatalogVersions.length,
         cluesInserted,
         generationRunsInserted,
@@ -351,10 +460,18 @@ export async function importGeneratedContent(): Promise<ImportSummary> {
       };
     });
   } finally {
-    await pool.end();
+    await pool?.end();
   }
 }
 
-void importGeneratedContent().then((summary) => {
-  process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
-});
+if (require.main === module) {
+  void importGeneratedContent()
+    .then((summary) => {
+      process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+    })
+    .catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      process.stderr.write(`${message}\n`);
+      process.exitCode = 1;
+    });
+}
