@@ -51,6 +51,7 @@ export async function connectRevenueCat(
     await Purchases.logIn(userId);
   }
 
+  await Purchases.invalidateCustomerInfoCache();
   return Purchases.getCustomerInfo();
 }
 
