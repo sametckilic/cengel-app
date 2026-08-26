@@ -1,18 +1,12 @@
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { ClueArrow } from '@/components/cengel/clue-arrow';
+import { AnswerStartArrow } from '@/components/cengel/clue-arrow';
 import { layout, palette, spacing, typography } from '@/constants/design';
 import type {
   PuzzleClueSummary,
   PuzzleDefinition,
   PuzzleEntries,
 } from '@cengel/puzzle-core/puzzle';
-import { getPuzzleClueArrow } from '@cengel/puzzle-core/puzzle';
-
-function arrowStartsRight(clue: PuzzleClueSummary) {
-  const arrow = getPuzzleClueArrow(clue);
-  return arrow === 'right' || arrow === 'right-down';
-}
 
 function SplitClueCell({
   cellSize,
@@ -46,21 +40,11 @@ function SplitClueCell({
           <Text numberOfLines={1} style={styles.splitClueText}>
             {topClue.label}
           </Text>
-          <ClueArrow
-            arrow={topClue.arrow}
-            direction={topClue.direction}
-            size={12}
-          />
         </View>
         <View style={styles.splitClueRow}>
           <Text numberOfLines={1} style={styles.splitClueText}>
             {bottomClue.label}
           </Text>
-          <ClueArrow
-            arrow={bottomClue.arrow}
-            direction={bottomClue.direction}
-            size={12}
-          />
         </View>
       </View>
     </View>
@@ -68,21 +52,14 @@ function SplitClueCell({
 }
 
 function ClueCell({
-  arrow,
   cellSize,
-  direction,
   label,
 }: PuzzleClueSummary & { cellSize: number }) {
-  const clue = { arrow, direction, label };
-
   return (
     <View style={[styles.cell, styles.clueCell, { height: cellSize, width: cellSize }]}>
       <Text numberOfLines={4} style={styles.clueText}>
         {label}
       </Text>
-      <View style={arrowStartsRight(clue) ? styles.rightArrow : styles.downArrow}>
-        <ClueArrow arrow={arrow} direction={direction} size={16} />
-      </View>
     </View>
   );
 }
@@ -94,6 +71,7 @@ function LetterCell({
   cellSize,
   columnCount,
   onPress,
+  startingWords,
   value,
 }: {
   activeCell?: boolean;
@@ -102,6 +80,7 @@ function LetterCell({
   cellSize: number;
   columnCount: number;
   onPress?: () => void;
+  startingWords: PuzzleDefinition['words'];
   value?: string;
 }) {
   const row = Math.floor(cellIndex / columnCount) + 1;
@@ -122,6 +101,14 @@ function LetterCell({
         pressed && styles.letterCellPressed,
         { height: cellSize, width: cellSize },
       ]}>
+      {startingWords.map((word) => (
+        <AnswerStartArrow
+          arrow={word.clueArrow}
+          cellSize={cellSize}
+          direction={word.direction}
+          key={word.id}
+        />
+      ))}
       {value ? <Text style={styles.letter}>{value}</Text> : null}
     </Pressable>
   );
@@ -206,6 +193,9 @@ export function PuzzleGrid({
                     ? () => onActiveCellPress(cellKey)
                     : undefined
                 }
+                startingWords={puzzle.words.filter(
+                  ({ cellIndices }) => cellIndices[0] === cellKey,
+                )}
                 value={entries[cellKey]}
               />
             );
@@ -260,20 +250,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     paddingHorizontal: 1,
     textAlign: 'center',
-  },
-  rightArrow: {
-    bottom: 0,
-    justifyContent: 'center',
-    position: 'absolute',
-    right: 2,
-    top: 0,
-  },
-  downArrow: {
-    alignItems: 'center',
-    bottom: 2,
-    left: 0,
-    position: 'absolute',
-    right: 0,
   },
   activeWord: {
     backgroundColor: palette.selectionBlue,

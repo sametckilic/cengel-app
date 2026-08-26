@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -11,12 +11,13 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { fonts, layout, palette, spacing } from '@/constants/design';
-import { ClueArrow } from '@/components/cengel/clue-arrow';
+import { AnswerStartArrow } from '@/components/cengel/clue-arrow';
 import type {
   PuzzleClueArrow,
   PuzzleClueSummary,
   PuzzleDefinition,
   PuzzleEntries,
+  PuzzleWord,
 } from '@cengel/puzzle-core/puzzle';
 import {
   getPuzzleClueArrow,
@@ -36,19 +37,11 @@ const ZOOM_LIMIT_SPRING = {
   stiffness: 220,
 } as const;
 
-function arrowStartsRight(clue: PuzzleClueSummary) {
-  const arrow = getPuzzleClueArrow(clue);
-  return arrow === 'right' || arrow === 'right-down';
-}
-
 function SingleClueCell({
   active,
-  arrow,
   cellSize,
-  direction,
   label,
 }: PuzzleClueSummary & { active: boolean; cellSize: number }) {
-  const arrowSize = Math.max(8, Math.round(cellSize * 0.2));
   const fontSize = Math.max(7, Math.min(9, cellSize * 0.185));
 
   return (
@@ -70,19 +63,6 @@ function SingleClueCell({
         ]}>
         {label}
       </Text>
-      <View
-        style={
-          arrowStartsRight({ arrow, direction, label })
-            ? styles.rightArrow
-            : styles.downArrow
-        }>
-        <ClueArrow
-          active={active}
-          arrow={arrow}
-          direction={direction}
-          size={arrowSize}
-        />
-      </View>
     </View>
   );
 }
@@ -113,12 +93,6 @@ function SplitClueSection({
         ]}>
         {clue.label}
       </Text>
-      <ClueArrow
-        active={selected}
-        arrow={clue.arrow}
-        direction={clue.direction}
-        size={Math.max(7, cellSize * 0.16)}
-      />
     </View>
   );
 }
@@ -294,6 +268,18 @@ export function NewspaperPreviewGrid({
     ],
   }));
   const activeWord = puzzle.words.find(({ id }) => id === activeWordId);
+  const startingWordsByCell = useMemo(
+    () =>
+      puzzle.words.reduce((wordsByCell, word) => {
+        const firstCellIndex = word.cellIndices[0];
+        const startingWords = wordsByCell.get(firstCellIndex) ?? [];
+
+        startingWords.push(word);
+        wordsByCell.set(firstCellIndex, startingWords);
+        return wordsByCell;
+      }, new Map<number, PuzzleWord[]>()),
+    [puzzle.words],
+  );
 
   if (!activeWord) {
     throw new Error(`Puzzle is missing active word "${activeWordId}".`);
@@ -378,6 +364,7 @@ export function NewspaperPreviewGrid({
               const isPlayable = getWordsAtCell(puzzle, cellIndex).some(
                 ({ id }) => !solvedWordIds.has(id),
               );
+              const startingWords = startingWordsByCell.get(cellIndex) ?? [];
 
               return (
                 <Pressable
@@ -399,6 +386,15 @@ export function NewspaperPreviewGrid({
                     pressed && styles.pressedLetterCell,
                     { height: cellSize, width: cellSize },
                   ]}>
+                  {startingWords.map((word) => (
+                    <AnswerStartArrow
+                      active={word.id === activeWordId}
+                      arrow={word.clueArrow}
+                      cellSize={cellSize}
+                      direction={word.direction}
+                      key={word.id}
+                    />
+                  ))}
                   {entries[cellIndex] ? (
                     <Text
                       style={[
@@ -485,18 +481,6 @@ const styles = StyleSheet.create({
   activeClueText: {
     color: palette.secondary,
   },
-  rightArrow: {
-    bottom: 1,
-    position: 'absolute',
-    right: 1,
-  },
-  downArrow: {
-    alignItems: 'center',
-    bottom: 1,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-  },
   splitClueCell: {
     padding: 0,
   },
@@ -510,7 +494,6 @@ const styles = StyleSheet.create({
   },
   splitTop: {
     alignItems: 'center',
-    flexDirection: 'row',
     height: '50%',
     justifyContent: 'center',
     left: 1,
@@ -521,7 +504,6 @@ const styles = StyleSheet.create({
   splitBottom: {
     alignItems: 'center',
     bottom: 1,
-    flexDirection: 'row',
     height: '50%',
     justifyContent: 'center',
     left: 1,
