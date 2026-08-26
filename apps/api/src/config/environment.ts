@@ -18,6 +18,24 @@ const environmentSchema = z.object({
   HOST: z.string().min(1).default('0.0.0.0'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
+  REVENUECAT_ALLOWED_ENVIRONMENTS: z
+    .string()
+    .default('SANDBOX')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((environment) => environment.trim().toUpperCase())
+        .filter(Boolean),
+    )
+    .refine(
+      (environments) =>
+        environments.length > 0 &&
+        environments.every(
+          (environment) =>
+            environment === 'SANDBOX' || environment === 'PRODUCTION',
+        ),
+      'REVENUECAT_ALLOWED_ENVIRONMENTS must contain SANDBOX and/or PRODUCTION.',
+    ),
   REVENUECAT_WEBHOOK_AUTHORIZATION: z.string().min(16).optional(),
   SUPABASE_URL: z.url().optional(),
 });

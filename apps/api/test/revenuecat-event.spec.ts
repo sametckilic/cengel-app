@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  createEntitlementTransfer,
   createEntitlementMutation,
   parseRevenueCatEvent,
   resolveRevenueCatUserId,
@@ -60,6 +61,54 @@ describe('RevenueCat webhook events', () => {
 
   it('does not revoke access early for cancellation notifications', () => {
     expect(createEntitlementMutation(createEvent({ type: 'CANCELLATION' }))).toBeNull();
+  });
+
+  it.each(['BILLING_ISSUE', 'SUBSCRIPTION_PAUSED'])(
+    'does not revoke access early for %s notifications',
+    (type) => {
+      expect(createEntitlementMutation(createEvent({ type }))).toBeNull();
+    },
+  );
+
+  it.each(['PURCHASE_REDEEMED', 'REFUND_REVERSED'])(
+    'restores entitlement access for %s notifications',
+    (type) => {
+      expect(createEntitlementMutation(createEvent({ type }))).toMatchObject({
+        active: true,
+        entitlementIds: ['premium_access'],
+        userId: USER_ID,
+      });
+    },
+  );
+
+  it('resolves valid account ids for entitlement transfers', () => {
+    const destinationUserId = '00000000-0000-4000-8000-000000000002';
+    const transfer = createEntitlementTransfer(
+      createEvent({
+        app_user_id: undefined,
+        entitlement_ids: undefined,
+        transferred_from: ['$RCAnonymousID:old', USER_ID, USER_ID],
+        transferred_to: ['$RCAnonymousID:new', destinationUserId],
+        type: 'TRANSFER',
+      }),
+    );
+
+    expect(transfer).toEqual({
+      fromUserIds: [USER_ID],
+      toUserIds: [destinationUserId],
+    });
+  });
+
+  it('ignores transfer events without two distinct known accounts', () => {
+    expect(
+      createEntitlementTransfer(
+        createEvent({
+          transferred_from: [USER_ID],
+          transferred_to: [USER_ID],
+          type: 'TRANSFER',
+        }),
+      ),
+    ).toBeNull();
   });
 
   it('supports the deprecated singular entitlement field', () => {

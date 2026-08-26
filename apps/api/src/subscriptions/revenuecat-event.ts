@@ -34,10 +34,17 @@ export type EntitlementMutation = {
   userId: string;
 };
 
+export type EntitlementTransfer = {
+  fromUserIds: string[];
+  toUserIds: string[];
+};
+
 const ACTIVATING_EVENTS = new Set([
   'INITIAL_PURCHASE',
   'NON_RENEWING_PURCHASE',
   'PRODUCT_CHANGE',
+  'PURCHASE_REDEEMED',
+  'REFUND_REVERSED',
   'RENEWAL',
   'SUBSCRIPTION_EXTENDED',
   'UNCANCELLATION',
@@ -69,6 +76,30 @@ export function resolveRevenueCatUserId(event: RevenueCatEvent): string | null {
   }
 
   return null;
+}
+
+function uniqueUuidValues(values: readonly string[]): string[] {
+  return values.flatMap((value) => {
+    const userId = asUuid(value);
+    return userId ? [userId] : [];
+  }).filter((value, index, candidates) => candidates.indexOf(value) === index);
+}
+
+export function createEntitlementTransfer(
+  event: RevenueCatEvent,
+): EntitlementTransfer | null {
+  if (event.type !== 'TRANSFER') {
+    return null;
+  }
+
+  const fromUserIds = uniqueUuidValues(event.transferred_from ?? []);
+  const toUserIds = uniqueUuidValues(event.transferred_to ?? []).filter(
+    (userId) => !fromUserIds.includes(userId),
+  );
+
+  return fromUserIds.length > 0 && toUserIds.length > 0
+    ? { fromUserIds, toUserIds }
+    : null;
 }
 
 export function getEventEntitlementIds(event: RevenueCatEvent): string[] {

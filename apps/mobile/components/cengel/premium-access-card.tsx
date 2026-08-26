@@ -5,11 +5,19 @@ import { EditorialIcon } from '@/components/cengel/editorial-icon';
 import { SectionLabel } from '@/components/cengel/section-label';
 import { fonts, palette, spacing, typography } from '@/constants/design';
 import { useRevenueCat } from '@/providers/revenuecat-provider';
-import { usePuzzleCatalog } from '@/providers/puzzle-catalog-provider';
 
 export function PremiumAccessCard() {
-  const { busy, error, package: offer, premium, purchase, restore, status } = useRevenueCat();
-  const { refreshCatalog } = usePuzzleCatalog();
+  const {
+    backendSync,
+    busy,
+    error,
+    package: offer,
+    premium,
+    purchase,
+    restore,
+    retryBackendSync,
+    status,
+  } = useRevenueCat();
   const [notice, setNotice] = useState<string | null>(null);
 
   async function runPurchase() {
@@ -23,10 +31,6 @@ export function PremiumAccessCard() {
           : 'Premium erişimin etkinleştirildi.',
       );
 
-      if (result === 'success') {
-        refreshCatalog();
-        setTimeout(refreshCatalog, 2500);
-      }
     } catch {
       // Provider exposes the SDK error without changing account or local progress state.
     }
@@ -38,8 +42,6 @@ export function PremiumAccessCard() {
     try {
       await restore();
       setNotice('Satın alımların kontrol edildi.');
-      refreshCatalog();
-      setTimeout(refreshCatalog, 2500);
     } catch {
       // Provider exposes the SDK error without changing account or local progress state.
     }
@@ -76,6 +78,32 @@ export function PremiumAccessCard() {
         <View style={styles.loadingRow}>
           <ActivityIndicator color={palette.ink} size="small" />
           <Text style={styles.supportingText}>Abonelik bilgisi yükleniyor…</Text>
+        </View>
+      ) : null}
+
+      {backendSync === 'syncing' ? (
+        <View style={styles.loadingRow}>
+          <ActivityIndicator color={palette.ink} size="small" />
+          <Text style={styles.supportingText}>Premium içerikler etkinleştiriliyor…</Text>
+        </View>
+      ) : null}
+
+      {backendSync === 'delayed' ? (
+        <View style={styles.syncWarning}>
+          <Text style={styles.supportingText}>
+            Satın alma doğrulandı; premium içerik senkronizasyonu gecikiyor.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => void retryBackendSync()}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              busy && styles.buttonDisabled,
+              pressed && styles.buttonPressed,
+            ]}>
+            <Text style={styles.secondaryButtonText}>Tekrar Dene</Text>
+          </Pressable>
         </View>
       ) : null}
 
@@ -135,6 +163,7 @@ const styles = StyleSheet.create({
   titleCopy: { flex: 1, gap: 4 },
   title: { ...typography.headlineMd, color: palette.ink },
   supportingText: { ...typography.bodyClue, color: palette.onSurfaceVariant },
+  syncWarning: { gap: 10 },
   icon: {
     alignItems: 'center',
     backgroundColor: palette.surfaceContainer,

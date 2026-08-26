@@ -6,6 +6,10 @@ const {
   describePremiumPackage,
   isPurchaseCancelled,
 } = require('../services/revenuecat-state.ts');
+const {
+  isAccountEntitlementsResponse,
+  pollEntitlementState,
+} = require('../services/entitlement-state.ts');
 
 test('uses the Test Store key only in development native builds', () => {
   assert.equal(
@@ -67,4 +71,41 @@ test('recognizes only RevenueCat purchase cancellation errors as cancellation', 
   assert.equal(isPurchaseCancelled({ code: '1' }), true);
   assert.equal(isPurchaseCancelled({ code: '10' }), false);
   assert.equal(isPurchaseCancelled(new Error('cancelled')), false);
+});
+
+test('validates backend entitlement responses', () => {
+  assert.equal(
+    isAccountEntitlementsResponse({
+      apiVersion: 1,
+      items: [
+        {
+          active: true,
+          entitlementId: 'premium_access',
+          expiresAt: null,
+          productId: 'premium_monthly',
+        },
+      ],
+    }),
+    true,
+  );
+  assert.equal(
+    isAccountEntitlementsResponse({ apiVersion: 1, items: [{ active: 'yes' }] }),
+    false,
+  );
+});
+
+test('polls until the backend entitlement matches the SDK state', async () => {
+  const states = [false, false, true];
+  const delays = [];
+  const synchronized = await pollEntitlementState({
+    delaysMs: [0, 10, 20],
+    expectedActive: true,
+    readActive: async () => states.shift() ?? null,
+    wait: async (delayMs) => {
+      delays.push(delayMs);
+    },
+  });
+
+  assert.equal(synchronized, true);
+  assert.deepEqual(delays, [10, 20]);
 });

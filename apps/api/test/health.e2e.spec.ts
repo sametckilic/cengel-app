@@ -109,7 +109,24 @@ describe('API configuration', () => {
       HOST: '0.0.0.0',
       NODE_ENV: 'development',
       PORT: 3000,
+      REVENUECAT_ALLOWED_ENVIRONMENTS: ['SANDBOX'],
     });
+  });
+
+  it('normalizes and isolates RevenueCat event environments', () => {
+    expect(
+      validateEnvironment({
+        DATABASE_URL: 'postgresql://cengel:cengel@localhost:54329/cengel',
+        REVENUECAT_ALLOWED_ENVIRONMENTS: 'sandbox, PRODUCTION',
+      }).REVENUECAT_ALLOWED_ENVIRONMENTS,
+    ).toEqual(['SANDBOX', 'PRODUCTION']);
+
+    expect(() =>
+      validateEnvironment({
+        DATABASE_URL: 'postgresql://cengel:cengel@localhost:54329/cengel',
+        REVENUECAT_ALLOWED_ENVIRONMENTS: 'TEST',
+      }),
+    ).toThrow('Invalid API configuration');
   });
 
   it('rejects invalid ports', () => {

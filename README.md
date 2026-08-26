@@ -101,7 +101,7 @@ Doğrulama bağlantısı olmadan doğrudan kayıt için Supabase projesinde **Au
 
 Giriş yapan kullanıcının ilerlemesi senkronize edilirken ilk tamamlama, ipucusuz tamamlama ve 3/7 günlük seri başarımları sunucuda idempotent olarak değerlendirilir. Profil sekmesi kazanılmış ve kilitli durumları `GET /v1/me/achievements` üzerinden gösterir; misafir kullanım bu endpoint'e bağlı değildir.
 
-RevenueCat abonelik olayları `POST /v1/webhooks/revenuecat` endpoint'inde işlenir. Dashboard webhook ayarındaki Authorization değeri API'deki `REVENUECAT_WEBHOOK_AUTHORIZATION` ile birebir aynı olmalıdır. Olay kimlikleri idempotent saklanır; daha eski sıradan gelen olaylar daha yeni entitlement durumunu ezemez. Bu sunucu secret'ı mobil uygulamaya eklenmez.
+RevenueCat abonelik olayları `POST /v1/webhooks/revenuecat` endpoint'inde işlenir. Dashboard webhook ayarındaki Authorization değeri API'deki `REVENUECAT_WEBHOOK_AUTHORIZATION` ile birebir aynı olmalıdır. `REVENUECAT_ALLOWED_ENVIRONMENTS` staging için `SANDBOX`, production için `PRODUCTION` olmalıdır; böylece test olayları gerçek entitlement durumunu ezemez. Olay kimlikleri idempotent saklanır; daha eski veya aynı zamandaki daha düşük kimlikli olaylar daha yeni entitlement durumunu ezemez. Transfer olayları geçerli Supabase UUID'leri arasında aktif entitlement'ları taşır. Bu sunucu secret'ı mobil uygulamaya eklenmez.
 
 Giriş yapan kullanıcı güncel erişimlerini `GET /v1/me/entitlements` üzerinden alır. `required_entitlement` taşıyan premium yayınlar anonim katalogdan gizlenir; geçerli bearer token ile yapılan istekte yalnızca aktif ve süresi dolmamış entitlement eşleşirse liste, günlük ve detay endpoint'lerinden döner. Kimlikli içerik yanıtları paylaşılan cache'e açılmaz.
 
