@@ -48,8 +48,8 @@ UAT kapısı: RevenueCat, API ve PostgreSQL aynı kullanıcı için aynı aktif/
 Amaç: Günün bulmacası dışındaki bütün kullanıcı içeriklerini aynı gazete tipi üretim hattına taşımak.
 
 - [x] Dataset build ve katalog importunu kontrollü deployment adımı haline getir; yeni dataset pushlandığında elle veri taşıma gerektirmesin.
-- [ ] 7×7, 8×8, 9×10, 10×10 ve 10×12 için başlangıç/kolay/orta/zor recipe matrisi oluştur.
-- [ ] Kategori ağırlıklı tariflerde adlandırılmış kategorilerin payını `%50` üzerinde garanti et; kalan kelimeleri aynı zorluktaki karma havuzdan seç.
+- [x] 7×7, 8×8, 9×10, 10×10 ve 10×12 için başlangıç/kolay/orta/zor recipe matrisi oluştur.
+- [x] Kategori ağırlıklı tariflerde adlandırılmış kategorilerin payını `%50` üzerinde garanti et; kalan kelimeleri aynı zorluktaki karma havuzdan seç.
 - [ ] Arşiv ve tematik paket bulmacalarını V2 gazete formatında backend üzerinden üretip yayımla.
 - [ ] Ücretsiz, premium ve günlük yayın politikasını tanımlayıp `required_entitlement` alanlarına uygula.
 - [ ] Premium katalog/list/detail erişiminin aktif hesapta açıldığını, anonim veya süresi dolmuş hesapta kapalı kaldığını UAT et.

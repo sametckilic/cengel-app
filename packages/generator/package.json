@@ -15,6 +15,7 @@
     },
     "./newspaper-fill": "./src/newspaper-fill.js",
     "./newspaper-grid": "./src/newspaper-grid.js",
+    "./newspaper-recipe-matrix": "./src/newspaper-recipe-matrix.js",
     "./newspaper-topology": "./src/newspaper-topology.js",
     "./newspaper-topology-generator": "./src/newspaper-topology-generator.js",
     "./newspaper-v2": "./src/newspaper-v2.js",

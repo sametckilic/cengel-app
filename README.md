@@ -46,6 +46,11 @@ yeniden üretir ve generator ile bulmaca kalite kapılarını çalıştırır:
 npm run content:release:prepare
 ```
 
+Bu kapı ayrıca V2 recipe matrisindeki 5 boyut × 4 zorluk kombinasyonunun
+tamamını gerçek katalogdan üretir; her profil kendi hücresinde kalite ve `%50`
+üzeri kategori ağırlığı koşullarını geçmeden release hazırlanmış sayılmaz.
+Tek başına çalıştırmak için `npm run newspaper:matrix:check` kullanılabilir.
+
 `main` dalına yeni dataset geldiğinde Railway API image'ı kataloğu kaynak
 JSONL'den yeniden üretir. Başarılı image build'inden sonra pre-deploy adımı önce
 veritabanı migration'larını, ardından idempotent katalog importunu çalıştırır.

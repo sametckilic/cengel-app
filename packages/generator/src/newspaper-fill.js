@@ -8,6 +8,7 @@ const { validateNewspaperPuzzle } = require('./newspaper-grid');
 const { validateNewspaperTopology } = require('./newspaper-topology');
 
 const DEFAULT_MAX_SEARCH_NODES = 500_000;
+const CLUE_TEXT_ORDERING_BAND_UNITS = 6;
 const CLUE_DIRECTION_ORDER = ['right', 'down'];
 
 function shuffleDeterministically(entries, seed) {
@@ -47,6 +48,26 @@ function buildSlotMetadata(topology) {
   );
 }
 
+function orderDomainForClueCell(candidates, isSplitClue, clueTextPolicy) {
+  if (!clueTextPolicy && !isSplitClue) {
+    return candidates;
+  }
+
+  return [...candidates].sort((left, right) => {
+    const leftUnits = measureClueTextUnits(left.shortClue);
+    const rightUnits = measureClueTextUnits(right.shortClue);
+
+    if (clueTextPolicy) {
+      return (
+        Math.floor(leftUnits / CLUE_TEXT_ORDERING_BAND_UNITS) -
+        Math.floor(rightUnits / CLUE_TEXT_ORDERING_BAND_UNITS)
+      );
+    }
+
+    return leftUnits - rightUnits || left.id.localeCompare(right.id);
+  });
+}
+
 function createCandidateDomains(entries, request, topology, clueTextPolicy) {
   const requiredLengths = new Set(topology.slots.map(({ cellIndices }) => cellIndices.length));
   const eligibleEntries = entries
@@ -83,12 +104,15 @@ function createCandidateDomains(entries, request, topology, clueTextPolicy) {
   return new Map(
     topology.slots.map((slot) => {
       const candidates = entriesByLength.get(slot.cellIndices.length);
+      const isSplitClue = clueUseCountByCell.get(slot.clueCellIndex) > 1;
 
       if (!clueTextPolicy) {
-        return [slot.id, candidates];
+        return [
+          slot.id,
+          orderDomainForClueCell(candidates, isSplitClue, clueTextPolicy),
+        ];
       }
 
-      const isSplitClue = clueUseCountByCell.get(slot.clueCellIndex) > 1;
       const fittingCandidates = candidates.filter((entry) =>
         analyzeClueTextFit(entry.shortClue, isSplitClue, clueTextPolicy).fits,
       );
@@ -101,7 +125,14 @@ function createCandidateDomains(entries, request, topology, clueTextPolicy) {
         );
       }
 
-      return [slot.id, fittingCandidates];
+      return [
+        slot.id,
+        orderDomainForClueCell(
+          fittingCandidates,
+          isSplitClue,
+          clueTextPolicy,
+        ),
+      ];
     }),
   );
 }
@@ -227,25 +258,14 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
       .sort(compareCandidateStates)[0];
   }
 
-  function orderCandidates(candidates, slot) {
-    const prioritizeShortClues = clueUseCountByCell.get(slot.clueCellIndex) > 1;
-    const sortForCell = (entriesToSort) =>
-      clueTextPolicy || prioritizeShortClues
-        ? [...entriesToSort].sort(
-            (left, right) =>
-              measureClueTextUnits(left.shortClue) -
-                measureClueTextUnits(right.shortClue) ||
-              left.id.localeCompare(right.id),
-          )
-        : entriesToSort;
-
+  function orderCandidates(candidates) {
     if (themedWordCount >= requiredThemedWordCount) {
-      return sortForCell(candidates);
+      return candidates;
     }
 
     return [
-      ...sortForCell(candidates.filter(({ category }) => categorySet.has(category))),
-      ...sortForCell(candidates.filter(({ category }) => !categorySet.has(category))),
+      ...candidates.filter(({ category }) => categorySet.has(category)),
+      ...candidates.filter(({ category }) => !categorySet.has(category)),
     ];
   }
 
@@ -267,7 +287,7 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
       return false;
     }
 
-    for (const entry of orderCandidates(candidateState.candidates, candidateState.slot)) {
+    for (const entry of orderCandidates(candidateState.candidates)) {
       if (searchNodeCount >= maxSearchNodes) {
         return false;
       }

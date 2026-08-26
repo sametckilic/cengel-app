@@ -3,6 +3,9 @@ const test = require('node:test');
 
 const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
 const {
+  NEWSPAPER_V2_RECIPE_MATRIX,
+} = require('../src/newspaper-recipe-matrix');
+const {
   addDaysToIsoDate,
   createDailyPublicationSchedule,
   createScheduledDailyPublication,
@@ -20,11 +23,7 @@ test('rotates daily size, difficulty, and category profiles deterministically', 
   assert.equal(getRotatedProfileIds('2026-08-27')[0], 'beginner-geography-compact');
   assert.equal(addDaysToIsoDate('2028-02-28', 1), '2028-02-29');
   assert.deepEqual(getRotatedProfileIds('2026-08-24', 'newspaper-v2'), [
-    'v2-beginner-geography-compact',
-    'v2-easy-science-wide',
-    'v2-medium-culture-balanced',
-    'v2-easy-history-large',
-    'v2-easy-technology-large',
+    ...NEWSPAPER_V2_RECIPE_MATRIX.map(({ profileId }) => profileId),
   ]);
 });
 

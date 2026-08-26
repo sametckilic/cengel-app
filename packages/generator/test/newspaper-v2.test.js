@@ -46,11 +46,15 @@ test('selects a deterministic, readable and aesthetic filled topology', () => {
 });
 
 test('continues with another topology when a fill attempt reaches its node limit', () => {
-  const result = generateNewspaperPuzzleV2(catalog.entries, request, {
-    ...options,
-    maximumSuccessfulFills: 1,
-    maxSearchNodesPerTopology: 100,
-  });
+  const result = generateNewspaperPuzzleV2(
+    catalog.entries,
+    { ...request, seed: 'newspaper-v2-fallback-1' },
+    {
+      ...options,
+      maximumSuccessfulFills: 1,
+      maxSearchNodesPerTopology: 100,
+    },
+  );
 
   assert.ok(result.diagnostics.failedFills.length >= 1);
   assert.equal(result.diagnostics.successfulFillCount, 1);

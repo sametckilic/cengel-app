@@ -1,5 +1,8 @@
 const { createDailyPuzzlePublication } = require('./daily-puzzle-publication');
 const { validateIsoDate } = require('./daily-puzzle-recipe');
+const {
+  NEWSPAPER_V2_RECIPE_MATRIX,
+} = require('./newspaper-recipe-matrix');
 
 const ROTATION_ANCHOR_DATE = '2026-08-24';
 const DAILY_PROFILE_ROTATION = Object.freeze([
@@ -7,13 +10,9 @@ const DAILY_PROFILE_ROTATION = Object.freeze([
   'easy-mixed-wide',
   'medium-literature-balanced',
 ]);
-const DAILY_V2_PROFILE_ROTATION = Object.freeze([
-  'v2-beginner-geography-compact',
-  'v2-easy-science-wide',
-  'v2-medium-culture-balanced',
-  'v2-easy-history-large',
-  'v2-easy-technology-large',
-]);
+const DAILY_V2_PROFILE_ROTATION = Object.freeze(
+  NEWSPAPER_V2_RECIPE_MATRIX.map(({ profileId }) => profileId),
+);
 const DAILY_PROFILE_ROTATIONS = Object.freeze({
   'newspaper-v1': DAILY_PROFILE_ROTATION,
   'newspaper-v2': DAILY_V2_PROFILE_ROTATION,

@@ -2,6 +2,8 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
+const prototypePuzzle = require('../../../apps/mobile/data/generated/newspaper-prototype-8x8.json');
+const { DEFAULT_CLUE_TEXT_POLICY } = require('../src/clue-text-fit');
 const { fillNewspaperTopology } = require('../src/newspaper-fill');
 const { validateNewspaperPuzzle } = require('../src/newspaper-grid');
 const {
@@ -9,6 +11,7 @@ const {
   createNewspaperBeginner7x7Topology,
   createNewspaperMedium8x8Topology,
   createNewspaperPrototypeTopology,
+  createNewspaperTopology,
   validateNewspaperTopology,
 } = require('../src/newspaper-topology');
 
@@ -73,6 +76,91 @@ test('fills the prototype deterministically from the real clue catalog', () => {
   assert.equal(puzzle.words.filter(({ answer }) => answer.length === 2).length, 4);
   assert.ok(diagnostics.themedWordCount >= diagnostics.requiredThemedWordCount);
   assert.doesNotThrow(() => validateNewspaperPuzzle(puzzle));
+});
+
+test('preserves seeded candidate order within equal clue-text fit bands', () => {
+  const topology = createNewspaperTopology('seed-order-fixture', [
+    '####',
+    '....',
+    '....',
+    '#...',
+  ]);
+  const entries = [
+    { id: 'a', answer: 'AB', answerLength: 2, shortClue: 'x' },
+    { id: 'b', answer: 'CD', answerLength: 2, shortClue: 'y' },
+    { id: 'c', answer: 'ABC', answerLength: 3, shortClue: 'c' },
+    { id: 'd', answer: 'DEF', answerLength: 3, shortClue: 'd' },
+    { id: 'e', answer: 'GHI', answerLength: 3, shortClue: 'e' },
+    { id: 'f', answer: 'CFI', answerLength: 3, shortClue: 'f' },
+  ].map((entry) => ({
+    ...entry,
+    category: 'turkce',
+    difficulty: 'easy',
+    fallbackOnly: false,
+  }));
+  const createRequest = (seed) => ({
+    id: `seed-order-${seed}`,
+    title: 'Seed sırası',
+    categories: ['turkce'],
+    categoryWeight: 0.6,
+    columnCount: 4,
+    difficulty: 'easy',
+    rowCount: 4,
+    seed,
+    targetWordCount: 5,
+  });
+  const first = fillNewspaperTopology(
+    entries,
+    createRequest('seed-0'),
+    topology,
+    { clueTextPolicy: DEFAULT_CLUE_TEXT_POLICY },
+  );
+  const repeated = fillNewspaperTopology(
+    entries,
+    createRequest('seed-0'),
+    topology,
+    { clueTextPolicy: DEFAULT_CLUE_TEXT_POLICY },
+  );
+  const second = fillNewspaperTopology(
+    entries,
+    createRequest('seed-2'),
+    topology,
+    { clueTextPolicy: DEFAULT_CLUE_TEXT_POLICY },
+  );
+
+  assert.deepEqual(first, repeated);
+  assert.equal(first.puzzle.words[0].answer, 'AB');
+  assert.equal(second.puzzle.words[0].answer, 'CD');
+});
+
+test('preserves the V1 id tie-breaker for equally short split clues', () => {
+  const topology = createNewspaperPrototypeTopology();
+  const splitWordId = 'newspaper-prototype-8x8-cell-13-right';
+  const entries = prototypePuzzle.words.map((word) => ({
+    answer: word.answer,
+    answerLength: word.answer.length,
+    category: word.category,
+    difficulty: 'easy',
+    fallbackOnly: false,
+    id: word.id === splitWordId ? 'z-choice' : `fixture-${word.id}`,
+    shortClue: word.id === splitWordId ? 'ZZ' : word.clue,
+  }));
+  entries.push({
+    ...entries.find(({ id }) => id === 'z-choice'),
+    id: 'a-choice',
+    shortClue: 'AA',
+  });
+
+  const { puzzle } = fillNewspaperTopology(
+    entries,
+    { ...request, id: 'v1-order-fixture', seed: 'v1-order-0' },
+    topology,
+  );
+  const rightClue = puzzle.cells[13].clues.find(
+    ({ direction }) => direction === 'right',
+  );
+
+  assert.equal(rightClue.label, 'AA');
 });
 
 test('fills a balanced, fully occupied 9x10 topology from the real clue catalog', () => {
