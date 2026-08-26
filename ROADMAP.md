@@ -39,8 +39,7 @@ Amaç: Mobilde etkinleşen aboneliği güvenilir biçimde backend entitlement ka
 - [x] Sandbox/Test Store olaylarını aç; dashboard test event'ini `200` ile doğrula.
 - [x] Başarılı test satın alımının `premium_access` kaydını oluşturduğunu doğrula; gerekirse olayı Retry ile yeniden gönder.
 - [x] Duplicate, eski sırada gelen, renewal, cancellation, expiration ve transfer olaylarını staging'de doğrula.
-- [ ] `GET /v1/me/entitlements` ile mobil SDK durumunun aynı olduğunu doğrula.
-- [ ] Premium katalog/list/detail erişiminin aktif hesapta açıldığını, anonim veya süresi dolmuş hesapta kapalı kaldığını UAT et.
+- [x] `GET /v1/me/entitlements` ile mobil SDK durumunun aynı olduğunu doğrula.
 
 UAT kapısı: RevenueCat, API ve PostgreSQL aynı kullanıcı için aynı aktif/pasif premium durumunu göstermeli.
 
@@ -53,6 +52,7 @@ Amaç: Günün bulmacası dışındaki bütün kullanıcı içeriklerini aynı g
 - [ ] Kategori ağırlıklı tariflerde adlandırılmış kategorilerin payını `%50` üzerinde garanti et; kalan kelimeleri aynı zorluktaki karma havuzdan seç.
 - [ ] Arşiv ve tematik paket bulmacalarını V2 gazete formatında backend üzerinden üretip yayımla.
 - [ ] Ücretsiz, premium ve günlük yayın politikasını tanımlayıp `required_entitlement` alanlarına uygula.
+- [ ] Premium katalog/list/detail erişiminin aktif hesapta açıldığını, anonim veya süresi dolmuş hesapta kapalı kaldığını UAT et.
 - [ ] Günlük en az yedi günlük yayın tamponunu yeni recipe matrisiyle koru.
 - [ ] Katalog büyüdüğünde uygulanacak editoryal azaltma raporunu hazırla; azaltmayı yalnızca ölçülebilir kapsama kaybı olmadan etkinleştir.
 - [ ] Kullanıcıya açık ekranlardan eski prototip/UAT içeriklerini kaldır veya yalnızca development build'e sınırla.
