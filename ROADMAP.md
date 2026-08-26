@@ -25,8 +25,8 @@ Amaç: Kaynak dosyadaki bütün `gameplay_status: ready` satırlarını kaybetme
 - [x] Tek bir bulmacada aynı normalize cevabın iki kez seçilmesini engelle.
 - [x] Uzun cevapları katalogda tut; yalnızca o anki grid/slot ölçüsüne sığmayanları ilgili üretim isteğinde ele.
 - [x] Tam kataloğu yeniden üret ve zorunlu dataset/generator/puzzle kontrollerini geçir.
-- [ ] Yeni katalog sürümünü staging PostgreSQL'e idempotent olarak aktar.
-- [ ] Worker ile yeni katalogdan en az bir gelecek gün bulmacası üretip kalite raporunu doğrula.
+- [x] Yeni katalog sürümünü staging PostgreSQL'e idempotent olarak aktar.
+- [x] Worker ile yeni katalogdan en az bir gelecek gün bulmacası üretip kalite raporunu doğrula.
 
 UAT kapısı: staging API yeni katalog sürümünü göstermeli ve üretilen bulmacada tekrar eden cevap, okunamayan soru veya kalite-gate hatası bulunmamalı.
 
