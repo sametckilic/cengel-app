@@ -37,8 +37,8 @@ Amaç: Mobilde etkinleşen aboneliği güvenilir biçimde backend entitlement ka
 - [x] Railway staging için `REVENUECAT_WEBHOOK_AUTHORIZATION` secret'ı oluştur.
 - [x] RevenueCat Webhooks entegrasyonuna staging endpoint ve aynı Authorization değerini ekle.
 - [x] Sandbox/Test Store olaylarını aç; dashboard test event'ini `200` ile doğrula.
-- [ ] Başarılı test satın alımının `premium_access` kaydını oluşturduğunu doğrula; gerekirse olayı Retry ile yeniden gönder.
-- [ ] Duplicate, eski sırada gelen, renewal, cancellation, expiration ve transfer olaylarını staging'de doğrula.
+- [x] Başarılı test satın alımının `premium_access` kaydını oluşturduğunu doğrula; gerekirse olayı Retry ile yeniden gönder.
+- [x] Duplicate, eski sırada gelen, renewal, cancellation, expiration ve transfer olaylarını staging'de doğrula.
 - [ ] `GET /v1/me/entitlements` ile mobil SDK durumunun aynı olduğunu doğrula.
 - [ ] Premium katalog/list/detail erişiminin aktif hesapta açıldığını, anonim veya süresi dolmuş hesapta kapalı kaldığını UAT et.
 
