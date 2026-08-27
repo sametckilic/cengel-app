@@ -49,13 +49,15 @@ test('selects a deterministic, readable and aesthetic filled topology', () => {
 
 test('continues with another topology when a fill attempt reaches its node limit', () => {
   const retryRequest = {
-    ...request,
-    id: 'newspaper-v2-retry-test-9x10',
-    categories: ['bilim', 'teknoloji', 'genel_kultur'],
+    id: 'newspaper-v2-retry-test-7x7',
+    title: 'V2 7Ã—7 Retry Test BulmacasÄ±',
+    categories: ['cografya', 'yer', 'turkce'],
+    categoryWeight: 0.6,
+    columnCount: 7,
     difficulty: 'beginner',
-    seed:
-      'gunun-2026-09-05:matrix-v1-a1:newspaper-v2-9x10-25:' +
-      'beginner:bilim+teknoloji+genel_kultur:0.6',
+    rowCount: 7,
+    seed: 'newspaper-v2-preview-7x7-a',
+    targetWordCount: 14,
   };
   const result = generateNewspaperPuzzleV2(
     catalog.entries,

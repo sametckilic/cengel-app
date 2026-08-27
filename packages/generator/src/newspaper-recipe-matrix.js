@@ -54,7 +54,7 @@ const NEWSPAPER_V2_SIZE_VARIANTS = Object.freeze([
   Object.freeze({
     columnCount: 12,
     rowCount: 10,
-    targetWordCount: 39,
+    targetWordCount: 32,
     profileSuffix: 'technology-large',
     categories: Object.freeze([
       'bilim',

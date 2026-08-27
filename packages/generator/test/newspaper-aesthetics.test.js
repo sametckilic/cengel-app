@@ -82,24 +82,28 @@ test('rejects a straight-only layout even when its former row metrics are balanc
   assert.equal(report.metrics.columnDownCoverage, 0.8);
 });
 
-test('accepts a scattered arrowword layout with independently bent starts', () => {
+test('accepts a boundary-scaffold layout with newspaper-style bent starts', () => {
   const topology = createNewspaperArrowwordTopology(
-    'scattered-8x8-fixture',
+    'boundary-scaffold-8x8-fixture',
     [
-      '##....#.',
+      '#.#...#.',
       '........',
-      '.#.#..##',
-      '#.......',
-      '........',
+      '#.#.....',
+      '...#....',
+      '.#.....#',
       '...#....',
       '#..#....',
-      '...#....',
+      '........',
     ],
-    'scattered-aesthetic-test',
+    'boundary-scaffold-aesthetic-test',
   );
   const report = evaluateNewspaperTopologyAesthetics(topology);
 
   assert.equal(report.passed, true);
+  assert.equal(report.metrics.hasTopLeftScaffoldPair, true);
+  assert.ok(report.metrics.topEdgeBentDownCount >= 3);
+  assert.ok(report.metrics.leftEdgeBentRightCount >= 3);
+  assert.ok(report.metrics.interiorStraightSplitCount >= 2);
   assert.ok(report.metrics.clueRowCoverage >= 0.5);
   assert.ok(report.metrics.clueColumnCoverage >= 0.5);
   assert.ok(report.metrics.bentArrowShare >= 0.1);
@@ -114,5 +118,9 @@ test('rejects invalid aesthetic policy ranges', () => {
   assert.throws(
     () => resolveAestheticPolicy({ maximumConsecutiveDominantSingleRightRows: 1.5 }),
     /must be a non-negative integer/,
+  );
+  assert.throws(
+    () => resolveAestheticPolicy({ requireTopLeftScaffoldPair: 'yes' }),
+    /must be a boolean/,
   );
 });

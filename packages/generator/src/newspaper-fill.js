@@ -279,20 +279,75 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
     return { assignedCharacterCount, candidates, metadata, slot };
   }
 
+  function enforceCrossingConsistency(candidateStates) {
+    const candidateStateBySlotId = new Map(
+      candidateStates.map((state) => [state.slot.id, state]),
+    );
+    let changed = true;
+
+    while (changed) {
+      changed = false;
+
+      for (const candidateState of candidateStates) {
+        let candidates = candidateState.candidates;
+
+        for (const {
+          otherLetterIndex,
+          otherSlotId,
+          ownLetterIndex,
+        } of crossingsBySlot.get(candidateState.slot.id) ?? []) {
+          const otherState = candidateStateBySlotId.get(otherSlotId);
+
+          if (!otherState) {
+            continue;
+          }
+
+          const supportingAnswersByCharacter = otherState.candidates.reduce(
+            (support, entry) => {
+              const character = entry.answer[otherLetterIndex];
+              const answers = support.get(character) ?? new Set();
+
+              answers.add(entry.answer);
+              support.set(character, answers);
+              return support;
+            },
+            new Map(),
+          );
+          const consistentCandidates = candidates.filter((entry) => {
+            const supportingAnswers = supportingAnswersByCharacter.get(
+              entry.answer[ownLetterIndex],
+            );
+
+            return (
+              supportingAnswers !== undefined &&
+              (supportingAnswers.size > 1 || !supportingAnswers.has(entry.answer))
+            );
+          });
+
+          if (consistentCandidates.length !== candidates.length) {
+            candidates = consistentCandidates;
+            changed = true;
+          }
+
+          if (candidates.length === 0) {
+            break;
+          }
+        }
+
+        candidateState.candidates = candidates;
+      }
+    }
+
+    return candidateStates;
+  }
+
   function compareCandidateStates(left, right) {
-    const leftHasPattern = left.assignedCharacterCount > 0;
-    const rightHasPattern = right.assignedCharacterCount > 0;
-
-    if (leftHasPattern !== rightHasPattern) {
-      return leftHasPattern ? -1 : 1;
-    }
-
-    if (!leftHasPattern && left.metadata.intersectionDegree !== right.metadata.intersectionDegree) {
-      return right.metadata.intersectionDegree - left.metadata.intersectionDegree;
-    }
-
     if (left.candidates.length !== right.candidates.length) {
       return left.candidates.length - right.candidates.length;
+    }
+
+    if (left.assignedCharacterCount !== right.assignedCharacterCount) {
+      return right.assignedCharacterCount - left.assignedCharacterCount;
     }
 
     if (left.metadata.intersectionDegree !== right.metadata.intersectionDegree) {
@@ -303,9 +358,11 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
   }
 
   function chooseNextSlot() {
-    const candidateStates = topology.slots
-      .filter((slot) => !assignments.has(slot.id))
-      .map(getCandidateState);
+    const candidateStates = enforceCrossingConsistency(
+      topology.slots
+        .filter((slot) => !assignments.has(slot.id))
+        .map(getCandidateState),
+    );
     const possibleThemedSlotCount = candidateStates.filter(({ candidates }) =>
       candidates.some(({ category }) => categorySet.has(category)),
     ).length;

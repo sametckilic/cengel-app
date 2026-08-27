@@ -56,7 +56,7 @@ export function NewspaperV2PreviewMenu() {
         leftIcon="arrow-back"
         leftLabel="Geri"
         onLeftPress={() => router.back()}
-        subtitle="Üretim akışından bağımsız önizleme"
+        subtitle="Yeni gazete yerleşimi önizlemesi"
         title="V2 Bulmaca UAT"
       />
 
@@ -68,8 +68,9 @@ export function NewspaperV2PreviewMenu() {
             <SectionLabel>GÖRSEL KONTROL</SectionLabel>
             <Text style={styles.introTitle}>Beş farklı düzeni karşılaştır</Text>
             <Text style={styles.introDescription}>
-              Dağınık ipucu yerleşimini, cevap hücresinden başlayan düz ve köşe
-              oklarını, yatay-dikey dengeyi ve metinlerin okunabilirliğini kontrol et.
+              Sol üstteki çift başlangıcı, üst ve sol kenardaki kıvrımlı soru
+              iskeletini, içerideki yatay-dikey dağılımı ve metin okunabilirliğini
+              kontrol et.
             </Text>
           </View>
 

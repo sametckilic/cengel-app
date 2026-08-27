@@ -12,86 +12,89 @@ const DEFAULT_MAX_CANDIDATES = 12;
 const DEFAULT_MINIMUM_BENT_ARROW_COUNT = 2;
 const DEFAULT_MAX_MUTATION_DEPTH = 1;
 const DEFAULT_SCORE_WINDOW = 4;
-const SCATTERED_BASE_PATTERNS = Object.freeze({
+// Every family starts from a top-left paired clue, continues with bent starts
+// across the top and left edges, then tiles the remaining area with interior
+// straight starts. The fill step may choose a resilient variant for the same
+// dimensions without changing that visual grammar.
+const SCAFFOLD_BASE_PATTERNS = Object.freeze({
   '7x7': Object.freeze([
-    '##.#...',
+    '#.#..#.',
+    '.....#.',
+    '#.#....',
     '.......',
-    '...#..#',
-    '.#.....',
-    '...#...',
     '#..#...',
+    '.......',
     '#......',
   ]),
   '8x8': Object.freeze([
-    '##....#.',
-    '........',
-    '.#.#..##',
-    '#.......',
-    '........',
-    '...#....',
-    '#..#....',
-    '...#....',
+    Object.freeze([
+      '#.#...#.',
+      '........',
+      '#.#.....',
+      '...#....',
+      '.#.....#',
+      '...#....',
+      '#..#....',
+      '........',
+    ]),
+    Object.freeze([
+      '#.#...#.',
+      '..#.....',
+      '#.#.....',
+      '........',
+      '...#...#',
+      '....#...',
+      '##..#...',
+      '........',
+    ]),
   ]),
   '9x10': Object.freeze([
-    Object.freeze([
-      '#.#...#...',
-      '#.#.......',
-      '..#...####',
-      '#.#.......',
-      '...##.....',
-      '.#........',
-      '.....#....',
-      '..........',
-      '#..#......',
-    ]),
-    Object.freeze([
-      '#.....#...',
-      '#.#.......',
-      '..#...####',
-      '..#..#....',
-      '.#.##.....',
-      '..........',
-      '.....#..#.',
-      '..........',
-      '#..#......',
-    ]),
+    '#.#.....#.',
+    '..........',
+    '#.#....#..',
+    '...#....#.',
+    '.#..#.....',
+    '...##.....',
+    '....#....#',
+    '#.....#...',
+    '..........',
   ]),
   '10x10': Object.freeze([
-    '##...##...',
-    '..##...#..',
-    '.#........',
-    '..#...#..#',
-    '..#....#..',
-    '##....#...',
-    '........#.',
-    '.##.#.....',
+    '#.#.....#.',
+    '.....#....',
+    '#.#...#..#',
+    '....#.....',
+    '...#.#.#..',
+    '..#.....#.',
     '..........',
+    '.......#..',
+    '#...#..#..',
     '..........',
   ]),
   '10x12': Object.freeze([
     Object.freeze([
-      '##..#.##..##',
-      '.#.......#..',
-      '.##....#....',
-      '..#...#...#.',
-      '#.##...#...#',
-      '.#.......#..',
-      '..##..##..#.',
-      '.....#...#.#',
+      '#.#.#.....#.',
+      '....#.......',
+      '#.#.#.....#.',
+      '.......#....',
+      '...#.....#..',
       '.....#......',
-      '.....#......',
+      '#......#....',
+      '...#.....#..',
+      '#.#.........',
+      '....#.......',
     ]),
     Object.freeze([
-      '##..#.#...##',
-      '.#....#..#..',
-      '.##....#....',
-      '..#...#...#.',
-      '#.##...#...#',
-      '.#.......#..',
-      '..##..##..#.',
-      '.....#...#.#',
+      '#.#.#.....#.',
+      '....#.......',
+      '#.#.#.....#.',
+      '.......#....',
+      '...#.....#..',
       '.....#......',
-      '.....#......',
+      '#......#....',
+      '...#.....#.#',
+      '#.#....#....',
+      '....#.......',
     ]),
   ]),
 });
@@ -141,7 +144,7 @@ function togglePatternCell(pattern, cellIndex, columnCount) {
 }
 
 function createBasePatterns(rowCount, columnCount) {
-  const pattern = SCATTERED_BASE_PATTERNS[`${rowCount}x${columnCount}`];
+  const pattern = SCAFFOLD_BASE_PATTERNS[`${rowCount}x${columnCount}`];
 
   if (!pattern) {
     return [];
@@ -190,7 +193,44 @@ function policyPenalty(report) {
     Math.max(
       0,
       metrics.leadingEdgeClueShare - policy.maximumLeadingEdgeClueShare,
-    ) * 15
+    ) *
+      15 +
+    Number(
+      policy.requireTopLeftScaffoldPair &&
+        !metrics.hasTopLeftScaffoldPair,
+    ) *
+      20 +
+    Math.max(
+      0,
+      policy.minimumTopEdgeBentDownCount - metrics.topEdgeBentDownCount,
+    ) *
+      5 +
+    Math.max(
+      0,
+      policy.minimumLeftEdgeBentRightCount - metrics.leftEdgeBentRightCount,
+    ) *
+      5 +
+    Math.max(
+      0,
+      policy.minimumTopEdgeScaffoldSpan - metrics.topEdgeScaffoldSpan,
+    ) *
+      15 +
+    Math.max(
+      0,
+      policy.minimumLeftEdgeScaffoldSpan - metrics.leftEdgeScaffoldSpan,
+    ) *
+      15 +
+    Math.max(
+      0,
+      policy.minimumInteriorStraightSplitCount -
+        metrics.interiorStraightSplitCount,
+    ) *
+      5 +
+    Math.max(
+      0,
+      metrics.topRowRightSlotCount - policy.maximumTopRowRightSlotCount,
+    ) *
+      5
   );
 }
 
@@ -239,7 +279,7 @@ function validateOptions(request, options) {
 function createState(pattern, baseTopologyId, mutationDepth, seed) {
   const fingerprint = patternFingerprint(pattern);
   const topology = createNewspaperArrowwordTopology(
-    `newspaper-scattered-${pattern.length}x${pattern[0].length}-${fingerprint}`,
+    `newspaper-scaffold-${pattern.length}x${pattern[0].length}-${fingerprint}`,
     pattern,
     `${seed}:${fingerprint}`,
   );
@@ -315,7 +355,7 @@ function generateNewspaperTopologyCandidates(request, optionOverrides = {}) {
     visitedPatterns.add(pattern.join(''));
     return createState(
       pattern,
-      `newspaper-scattered-${request.rowCount}x${request.columnCount}-base-${basePatternIndex + 1}`,
+      `newspaper-scaffold-${request.rowCount}x${request.columnCount}-base-${basePatternIndex + 1}`,
       0,
       request.seed,
     );

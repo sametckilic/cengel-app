@@ -1,4 +1,7 @@
-const { validateNewspaperTopology } = require('./newspaper-topology');
+const {
+  getNewspaperSlotArrow,
+  validateNewspaperTopology,
+} = require('./newspaper-topology');
 
 const DEFAULT_NEWSPAPER_AESTHETIC_POLICY = Object.freeze({
   dominantSingleRightRowMinimumShare: 0.6,
@@ -7,6 +10,7 @@ const DEFAULT_NEWSPAPER_AESTHETIC_POLICY = Object.freeze({
   maximumLeadingEdgeClueShare: 0.75,
   maximumSingleRightRowShare: 0.9,
   maximumSplitClueShare: 0.65,
+  maximumTopRowRightSlotCount: 1,
   maximumTopRowSingleRightShare: 0.5,
   minimumBentArrowShare: 0.1,
   minimumClueColumnCoverage: 0.5,
@@ -15,9 +19,15 @@ const DEFAULT_NEWSPAPER_AESTHETIC_POLICY = Object.freeze({
   minimumColumnDownCoverage: 0.7,
   minimumDirectionShare: 0.35,
   minimumInteriorClueShare: 0.3,
+  minimumInteriorStraightSplitCount: 2,
   minimumIndependentBentArrowCount: 1,
+  minimumLeftEdgeBentRightCount: 3,
+  minimumLeftEdgeScaffoldSpan: 0.6,
   minimumSplitClueShare: 0.1,
+  minimumTopEdgeBentDownCount: 3,
+  minimumTopEdgeScaffoldSpan: 0.55,
   minimumTopRowDownStarts: 2,
+  requireTopLeftScaffoldPair: true,
 });
 
 function roundRatio(value) {
@@ -52,7 +62,9 @@ function resolveAestheticPolicy(overrides = {}) {
     'minimumColumnDownCoverage',
     'minimumDirectionShare',
     'minimumInteriorClueShare',
+    'minimumLeftEdgeScaffoldSpan',
     'minimumSplitClueShare',
+    'minimumTopEdgeScaffoldSpan',
   ];
 
   for (const field of ratioFields) {
@@ -87,6 +99,21 @@ function resolveAestheticPolicy(overrides = {}) {
     throw new Error('minimumIndependentBentArrowCount must be a non-negative integer.');
   }
 
+  for (const field of [
+    'maximumTopRowRightSlotCount',
+    'minimumInteriorStraightSplitCount',
+    'minimumLeftEdgeBentRightCount',
+    'minimumTopEdgeBentDownCount',
+  ]) {
+    if (!Number.isInteger(policy[field]) || policy[field] < 0) {
+      throw new Error(`${field} must be a non-negative integer.`);
+    }
+  }
+
+  if (typeof policy.requireTopLeftScaffoldPair !== 'boolean') {
+    throw new Error('requireTopLeftScaffoldPair must be a boolean.');
+  }
+
   return policy;
 }
 
@@ -97,10 +124,12 @@ function scoreAestheticMetrics(metrics) {
       (metrics.directionCounts.right + metrics.directionCounts.down);
   const clueDensityFit = Math.max(0, 1 - Math.abs(metrics.clueDensity - 0.26) / 0.17);
   const splitClueFit = Math.max(0, 1 - Math.abs(metrics.splitClueShare - 0.25) / 0.25);
-  const topRowVariety =
-    (Math.min(metrics.topRowRightSlotCount, 2) / 2 +
-      Math.min(metrics.topRowDownStartCount, 2) / 2) /
-    2;
+  const boundaryScaffoldFit =
+    (Math.min(metrics.topEdgeBentDownCount / 3, 1) +
+      Math.min(metrics.leftEdgeBentRightCount / 3, 1) +
+      metrics.topEdgeScaffoldSpan +
+      metrics.leftEdgeScaffoldSpan) /
+    4;
   const slotLengthVariety = Math.min(metrics.distinctSlotLengths.length / 6, 1);
   const bentArrowVariety = Math.min(metrics.bentArrowShare / 0.25, 1);
   const score =
@@ -108,11 +137,12 @@ function scoreAestheticMetrics(metrics) {
     directionBalance * 12 +
     clueDensityFit * 12 +
     splitClueFit * 8 +
-    topRowVariety * 10 +
+    boundaryScaffoldFit * 12 +
     slotLengthVariety * 6 +
     metrics.clueRowCoverage * 12 +
     metrics.clueColumnCoverage * 10 +
-    metrics.interiorClueShare * 8 +
+    metrics.interiorClueShare * 6 +
+    Math.min(metrics.interiorStraightSplitCount / 4, 1) * 4 +
     bentArrowVariety * 10;
 
   return roundRatio(score);
@@ -195,6 +225,69 @@ function evaluateNewspaperTopologyAesthetics(topology, policyOverrides) {
       arrow !== direction &&
       slotStartUseCount.get(cellIndices[0]) === 1,
   ).length;
+  const topEdgeBentDownSlots = slots.filter(
+    (slot) =>
+      Math.floor(slot.clueCellIndex / columnCount) === 0 &&
+      slot.direction === 'down' &&
+      getNewspaperSlotArrow(slot) === 'right-down' &&
+      slot.cellIndices[0] === slot.clueCellIndex + 1,
+  );
+  const leftEdgeBentRightSlots = slots.filter(
+    (slot) =>
+      slot.clueCellIndex % columnCount === 0 &&
+      slot.direction === 'right' &&
+      getNewspaperSlotArrow(slot) === 'down-right' &&
+      slot.cellIndices[0] === slot.clueCellIndex + columnCount,
+  );
+  const slotsByClueCell = slots.reduce((slotsByCell, slot) => {
+    const clueSlots = slotsByCell.get(slot.clueCellIndex) ?? [];
+    clueSlots.push(slot);
+    slotsByCell.set(slot.clueCellIndex, clueSlots);
+    return slotsByCell;
+  }, new Map());
+  const topLeftSlots = slotsByClueCell.get(0) ?? [];
+  const hasTopLeftScaffoldPair =
+    topLeftSlots.length === 2 &&
+    topLeftSlots.some(
+      (slot) =>
+        slot.direction === 'down' &&
+        getNewspaperSlotArrow(slot) === 'right-down' &&
+        slot.cellIndices[0] === 1,
+    ) &&
+    topLeftSlots.some(
+      (slot) =>
+        slot.direction === 'right' &&
+        getNewspaperSlotArrow(slot) === 'down-right' &&
+        slot.cellIndices[0] === columnCount,
+    );
+  const interiorStraightSplitCount = [...slotsByClueCell.entries()].filter(
+    ([clueCellIndex, clueSlots]) =>
+      clueCellIndex >= columnCount &&
+      clueCellIndex % columnCount > 0 &&
+      clueSlots.length === 2 &&
+      clueSlots.some(
+        (slot) =>
+          slot.direction === 'right' && getNewspaperSlotArrow(slot) === 'right',
+      ) &&
+      clueSlots.some(
+        (slot) =>
+          slot.direction === 'down' && getNewspaperSlotArrow(slot) === 'down',
+      ),
+  ).length;
+  const topEdgeScaffoldSpan =
+    topEdgeBentDownSlots.length > 0
+      ? Math.max(...topEdgeBentDownSlots.map(({ clueCellIndex }) => clueCellIndex)) /
+        (columnCount - 1)
+      : 0;
+  const leftEdgeScaffoldSpan =
+    leftEdgeBentRightSlots.length > 0
+      ? Math.max(
+          ...leftEdgeBentRightSlots.map(({ clueCellIndex }) =>
+            Math.floor(clueCellIndex / columnCount),
+          ),
+        ) /
+        (rowCount - 1)
+      : 0;
   const metrics = {
     bentArrowCount,
     bentArrowShare: roundRatio(bentArrowCount / slots.length),
@@ -210,6 +303,10 @@ function evaluateNewspaperTopologyAesthetics(topology, policyOverrides) {
       isDominant ? [rowIndex] : [],
     ),
     independentBentArrowCount,
+    hasTopLeftScaffoldPair,
+    interiorStraightSplitCount,
+    leftEdgeBentRightCount: leftEdgeBentRightSlots.length,
+    leftEdgeScaffoldSpan: roundRatio(leftEdgeScaffoldSpan),
     maximumConsecutiveDominantSingleRightRows:
       longestConsecutiveRun(dominantSingleRightRows),
     interiorClueCount,
@@ -228,11 +325,67 @@ function evaluateNewspaperTopologyAesthetics(topology, policyOverrides) {
     splitClueCellCount,
     splitClueShare: roundRatio(splitClueCellCount / clueCellCount),
     topRowDownStartCount,
+    topEdgeBentDownCount: topEdgeBentDownSlots.length,
+    topEdgeScaffoldSpan: roundRatio(topEdgeScaffoldSpan),
     topRowRightSlotCount: topRowRightSlots.length,
     topRowRightSlotLengths: topRowRightSlots.map(({ cellIndices }) => cellIndices.length),
     topRowSingleRightShare: roundRatio(topRowSingleRightShare),
   };
   const issues = [];
+
+  if (
+    policy.requireTopLeftScaffoldPair &&
+    !metrics.hasTopLeftScaffoldPair
+  ) {
+    issues.push(
+      'Top-left clue cell must start a bent down answer and a bent right answer.',
+    );
+  }
+
+  if (metrics.topEdgeBentDownCount < policy.minimumTopEdgeBentDownCount) {
+    issues.push(
+      `Top edge starts ${metrics.topEdgeBentDownCount} bent down answer(s); ` +
+        `${policy.minimumTopEdgeBentDownCount} required.`,
+    );
+  }
+
+  if (metrics.leftEdgeBentRightCount < policy.minimumLeftEdgeBentRightCount) {
+    issues.push(
+      `Left edge starts ${metrics.leftEdgeBentRightCount} bent right answer(s); ` +
+        `${policy.minimumLeftEdgeBentRightCount} required.`,
+    );
+  }
+
+  if (metrics.topEdgeScaffoldSpan < policy.minimumTopEdgeScaffoldSpan) {
+    issues.push(
+      `Top-edge scaffold span ${metrics.topEdgeScaffoldSpan} is below ` +
+        `${policy.minimumTopEdgeScaffoldSpan}.`,
+    );
+  }
+
+  if (metrics.leftEdgeScaffoldSpan < policy.minimumLeftEdgeScaffoldSpan) {
+    issues.push(
+      `Left-edge scaffold span ${metrics.leftEdgeScaffoldSpan} is below ` +
+        `${policy.minimumLeftEdgeScaffoldSpan}.`,
+    );
+  }
+
+  if (
+    metrics.interiorStraightSplitCount <
+    policy.minimumInteriorStraightSplitCount
+  ) {
+    issues.push(
+      `Interior straight split count ${metrics.interiorStraightSplitCount} is below ` +
+        `${policy.minimumInteriorStraightSplitCount}.`,
+    );
+  }
+
+  if (metrics.topRowRightSlotCount > policy.maximumTopRowRightSlotCount) {
+    issues.push(
+      `Top row contains ${metrics.topRowRightSlotCount} right answer(s); ` +
+        `${policy.maximumTopRowRightSlotCount} allowed.`,
+    );
+  }
 
   if (metrics.topRowSingleRightShare > policy.maximumTopRowSingleRightShare) {
     issues.push(

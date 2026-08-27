@@ -37,6 +37,16 @@ function assertHasIndependentBentArrow(topology) {
   );
 }
 
+function assertHasBoundaryScaffold(aesthetic) {
+  assert.equal(aesthetic.metrics.hasTopLeftScaffoldPair, true);
+  assert.ok(aesthetic.metrics.topEdgeBentDownCount >= 3);
+  assert.ok(aesthetic.metrics.leftEdgeBentRightCount >= 3);
+  assert.ok(aesthetic.metrics.topEdgeScaffoldSpan >= 0.55);
+  assert.ok(aesthetic.metrics.leftEdgeScaffoldSpan >= 0.6);
+  assert.ok(aesthetic.metrics.interiorStraightSplitCount >= 2);
+  assert.ok(aesthetic.metrics.topRowRightSlotCount <= 1);
+}
+
 test('generates deterministic aesthetic topology candidates for a rectangular grid', () => {
   const first = generateNewspaperTopologyCandidates(rectangularRequest, {
     beamWidth: 200,
@@ -63,6 +73,7 @@ test('generates deterministic aesthetic topology candidates for a rectangular gr
     assert.equal(candidate.topology.slots.length, rectangularRequest.targetWordCount);
     assertHasBentArrowPair(candidate.topology);
     assertHasIndependentBentArrow(candidate.topology);
+    assertHasBoundaryScaffold(candidate.aesthetic);
     assert.doesNotThrow(() => validateNewspaperTopology(candidate.topology));
   }
 });
@@ -106,7 +117,10 @@ test('supports a compact non-square-independent topology family', () => {
   assert.ok(result.candidates.length >= 1);
   assert.ok(result.candidates.every(({ aesthetic }) => aesthetic.passed));
   assert.ok(result.candidates.every(({ topology }) => topology.slots.length === 14));
-  result.candidates.forEach(({ topology }) => assertHasBentArrowPair(topology));
+  result.candidates.forEach(({ aesthetic, topology }) => {
+    assertHasBentArrowPair(topology);
+    assertHasBoundaryScaffold(aesthetic);
+  });
 });
 
 test('supports a dense 8x8 topology with newspaper-style bent arrows', () => {
@@ -127,13 +141,16 @@ test('supports a dense 8x8 topology with newspaper-style bent arrows', () => {
   assert.ok(result.candidates.length >= 1);
   assert.ok(result.candidates.every(({ aesthetic }) => aesthetic.passed));
   assert.ok(result.candidates.every(({ topology }) => topology.slots.length === 18));
-  result.candidates.forEach(({ topology }) => assertHasBentArrowPair(topology));
+  result.candidates.forEach(({ aesthetic, topology }) => {
+    assertHasBentArrowPair(topology);
+    assertHasBoundaryScaffold(aesthetic);
+  });
 });
 
 test('supports large square and rectangular topology families without mutation', () => {
   const requests = [
     { columnCount: 10, rowCount: 10, targetWordCount: 29 },
-    { columnCount: 12, rowCount: 10, targetWordCount: 39 },
+    { columnCount: 12, rowCount: 10, targetWordCount: 32 },
   ];
 
   for (const request of requests) {
@@ -147,6 +164,7 @@ test('supports large square and rectangular topology families without mutation',
     assert.equal(result.candidates[0].aesthetic.passed, true);
     assert.equal(result.candidates[0].topology.slots.length, request.targetWordCount);
     assertHasBentArrowPair(result.candidates[0].topology);
+    assertHasBoundaryScaffold(result.candidates[0].aesthetic);
   }
 });
 
@@ -156,7 +174,7 @@ test('keeps a fill-resilient large topology alternative for sparse difficulty po
       columnCount: 12,
       rowCount: 10,
       seed: 'large-10x12-resilient',
-      targetWordCount: 39,
+      targetWordCount: 32,
     },
     { maxCandidates: 2, maxMutationDepth: 0 },
   );
@@ -164,7 +182,8 @@ test('keeps a fill-resilient large topology alternative for sparse difficulty po
   assert.equal(result.candidates.length, 2);
   assert.ok(result.candidates.every(({ mutationDepth }) => mutationDepth === 0));
   assert.ok(result.candidates.every(({ aesthetic }) => aesthetic.passed));
-  assert.ok(result.candidates.every(({ topology }) => topology.slots.length === 39));
+  assert.ok(result.candidates.every(({ topology }) => topology.slots.length === 32));
+  result.candidates.forEach(({ aesthetic }) => assertHasBoundaryScaffold(aesthetic));
 });
 
 test('fails descriptively for an unsupported topology family', () => {

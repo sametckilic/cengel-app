@@ -91,7 +91,7 @@ test('creates and builds a V2 daily recipe without a fixed topology id', () => {
   assert.equal(puzzle.generation.generatorVersion, 'newspaper-v2');
   assert.match(
     puzzle.generation.topologyId,
-    /^newspaper-scattered-10x10-/,
+    /^newspaper-scaffold-10x10-/,
   );
   assert.equal(typeof puzzle.generation.topologyFingerprint, 'string');
   assert.equal(puzzle.cells.some(({ type }) => type === 'void'), false);

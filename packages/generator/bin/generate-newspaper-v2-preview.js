@@ -71,7 +71,7 @@ const PREVIEW_REQUESTS = Object.freeze([
     difficulty: 'easy',
     rowCount: 10,
     seed: 'newspaper-v2-preview-10x12-a',
-    targetWordCount: 39,
+    targetWordCount: 32,
   },
 ]);
 

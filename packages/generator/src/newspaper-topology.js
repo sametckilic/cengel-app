@@ -699,11 +699,17 @@ function validateNewspaperTopology(topology) {
   );
 
   if (orphanLetterIndices.length > 0) {
-    throw new Error(`Topology contains ${orphanLetterIndices.length} orphan letter cell(s).`);
+    throw new Error(
+      `Topology contains ${orphanLetterIndices.length} orphan letter cell(s): ` +
+        `${orphanLetterIndices.join(', ')}.`,
+    );
   }
 
   if (orphanClueIndices.length > 0) {
-    throw new Error(`Topology contains ${orphanClueIndices.length} orphan clue cell(s).`);
+    throw new Error(
+      `Topology contains ${orphanClueIndices.length} orphan clue cell(s): ` +
+        `${orphanClueIndices.join(', ')}.`,
+    );
   }
 
   return {
