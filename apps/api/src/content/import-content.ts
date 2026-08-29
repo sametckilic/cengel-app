@@ -99,7 +99,6 @@ export type GeneratedContentPaths = {
   catalogPath: string;
   dailyDirectory: string;
   manifestPath: string;
-  prototypePath: string;
 };
 
 export type ImportGeneratedContentOptions = {
@@ -122,10 +121,6 @@ const MANIFEST_PATH = path.join(
   REPOSITORY_ROOT,
   'apps/mobile/data/generated/puzzles.json',
 );
-const PROTOTYPE_PATH = path.join(
-  REPOSITORY_ROOT,
-  'apps/mobile/data/generated/newspaper-prototype-8x8.json',
-);
 const DAILY_DIRECTORY = path.join(
   REPOSITORY_ROOT,
   'apps/mobile/data/generated/daily',
@@ -134,7 +129,6 @@ const DEFAULT_CONTENT_PATHS: GeneratedContentPaths = {
   catalogPath: CATALOG_PATH,
   dailyDirectory: DAILY_DIRECTORY,
   manifestPath: MANIFEST_PATH,
-  prototypePath: PROTOTYPE_PATH,
 };
 
 function checksum(value: string): string {
@@ -178,7 +172,6 @@ async function readDailyPublications(dailyDirectory: string): Promise<
 
 function collectPuzzleImports(
   manifestPuzzles: readonly PuzzleDocument[],
-  prototype: PuzzleDocument,
   dailyDocuments: Awaited<ReturnType<typeof readDailyPublications>>,
   catalogReleaseDate: string,
 ): readonly PuzzleImport[] {
@@ -196,12 +189,6 @@ function collectPuzzleImports(
 
     importsById.set(entry.definition.id, entry);
   };
-
-  addPuzzle({
-    definition: prototype,
-    publicationDate: catalogReleaseDate,
-    publicationKey: `catalog:${prototype.id}`,
-  });
 
   for (const puzzle of manifestPuzzles) {
     const dailyDate = /^gunun-(\d{4}-\d{2}-\d{2})$/.exec(puzzle.id)?.[1];
@@ -242,29 +229,21 @@ export async function importGeneratedContent(
         }
       : undefined);
   const paths = options.paths ?? DEFAULT_CONTENT_PATHS;
-  const [catalogContents, manifestContents, prototypeContents, dailyDocuments] =
-    await Promise.all([
-      readFile(paths.catalogPath, 'utf8'),
-      readFile(paths.manifestPath, 'utf8'),
-      readFile(paths.prototypePath, 'utf8'),
-      readDailyPublications(paths.dailyDirectory),
-    ]);
+  const [catalogContents, manifestContents, dailyDocuments] = await Promise.all([
+    readFile(paths.catalogPath, 'utf8'),
+    readFile(paths.manifestPath, 'utf8'),
+    readDailyPublications(paths.dailyDirectory),
+  ]);
   const catalog = parseJson(catalogContents, catalogSchema, paths.catalogPath);
   const manifest = parseJson(
     manifestContents,
     manifestSchema,
     paths.manifestPath,
   );
-  const prototype = parseJson(
-    prototypeContents,
-    puzzleSchema,
-    paths.prototypePath,
-  );
   const catalogChecksum = checksum(catalogContents);
   const catalogVersionId = `catalog-${catalogChecksum.slice(0, 16)}`;
   const puzzleImports = collectPuzzleImports(
     manifest.puzzles,
-    prototype,
     dailyDocuments,
     catalog.rights.confirmedAt,
   );

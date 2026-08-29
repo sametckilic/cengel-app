@@ -8,7 +8,7 @@ import {
 } from '@/services/puzzle-catalog-cache';
 
 const DATABASE_NAME = 'cengel-catalog.db';
-const CACHE_KEY = 'published-catalog';
+const CACHE_KEY = 'published-catalog-v2';
 let databasePromise: Promise<SQLiteDatabase> | undefined;
 
 type CatalogRow = {

@@ -2,7 +2,6 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
-const prototypePuzzle = require('../../../apps/mobile/data/generated/newspaper-prototype-8x8.json');
 const { DEFAULT_CLUE_TEXT_POLICY } = require('../src/clue-text-fit');
 const { fillNewspaperTopology } = require('../src/newspaper-fill');
 const { validateNewspaperPuzzle } = require('../src/newspaper-grid');
@@ -16,16 +15,21 @@ const {
 } = require('../src/newspaper-topology');
 
 const request = {
-  id: 'newspaper-prototype-8x8',
+  id: 'fixed-topology-fixture-8x8',
   title: 'Günün 8×8 Çengel Bulmacası',
   categories: ['turkce', 'genel_kultur'],
   categoryWeight: 0.6,
   columnCount: 8,
   difficulty: 'easy',
   rowCount: 8,
-  seed: 'newspaper-prototype-8x8-v2',
+  seed: 'fixed-topology-fixture-8x8',
   targetWordCount: 17,
 };
+const prototypePuzzle = fillNewspaperTopology(
+  catalog.entries,
+  request,
+  createNewspaperPrototypeTopology(),
+).puzzle;
 
 test('defines a balanced, fully occupied 8x8 newspaper topology', () => {
   const topology = createNewspaperPrototypeTopology();
@@ -49,7 +53,7 @@ test('defines a balanced, fully occupied 8x8 newspaper topology', () => {
   assert.ok(topology.cells.every(({ type }) => type === 'clue' || type === 'letter'));
 });
 
-test('fills the prototype deterministically from the real clue catalog', () => {
+test('fills the fixed 8x8 topology deterministically from the real clue catalog', () => {
   const topology = createNewspaperPrototypeTopology();
   const firstResult = fillNewspaperTopology(catalog.entries, request, topology);
   const secondResult = fillNewspaperTopology(catalog.entries, request, topology);
@@ -135,7 +139,7 @@ test('preserves seeded candidate order within equal clue-text fit bands', () => 
 
 test('preserves the V1 id tie-breaker for equally short split clues', () => {
   const topology = createNewspaperPrototypeTopology();
-  const splitWordId = 'newspaper-prototype-8x8-cell-13-right';
+  const splitWordId = 'fixed-topology-fixture-8x8-cell-13-right';
   const entries = prototypePuzzle.words.map((word) => ({
     answer: word.answer,
     answerLength: word.answer.length,
@@ -203,14 +207,14 @@ test('fills a compact 7x7 beginner topology with a geography majority', () => {
   const topology = createNewspaperBeginner7x7Topology();
   const topologyReport = validateNewspaperTopology(topology);
   const geographyRequest = {
-    id: 'cografya-baslangic-002',
+    id: 'fixed-geography-fixture-7x7',
     title: 'Coğrafya: Başlangıç',
     categories: ['cografya'],
     categoryWeight: 0.58,
     columnCount: 7,
     difficulty: 'beginner',
     rowCount: 7,
-    seed: 'cografya-baslangic-002-v1',
+    seed: 'fixed-geography-fixture-7x7',
     targetWordCount: 12,
   };
   const firstResult = fillNewspaperTopology(catalog.entries, geographyRequest, topology);
@@ -243,14 +247,14 @@ test('fills a balanced 8x8 medium topology with a literature majority', () => {
   const topology = createNewspaperMedium8x8Topology();
   const topologyReport = validateNewspaperTopology(topology);
   const literatureRequest = {
-    id: 'edebiyat-orta-002',
+    id: 'fixed-literature-fixture-8x8',
     title: 'Edebiyat: Orta',
     categories: ['edebiyat'],
     categoryWeight: 0.53,
     columnCount: 8,
     difficulty: 'medium',
     rowCount: 8,
-    seed: 'edebiyat-orta-002-v1',
+    seed: 'fixed-literature-fixture-8x8',
     targetWordCount: 13,
   };
   const firstResult = fillNewspaperTopology(catalog.entries, literatureRequest, topology);

@@ -19,7 +19,7 @@ const {
   isPuzzleComplete,
   validateSelectedWord,
 } = require('../src/puzzle-validation.ts');
-const puzzle = require('../../../apps/mobile/data/generated/newspaper-prototype-8x8.json');
+const [puzzle] = require('../../../apps/mobile/data/generated/newspaper-v2-preview.json').puzzles;
 
 function createProgress(overrides = {}) {
   return {

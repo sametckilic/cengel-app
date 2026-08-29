@@ -5,7 +5,7 @@ import {
   serializePuzzleCatalogCache,
 } from '@/services/puzzle-catalog-cache';
 
-const STORAGE_KEY = 'cengel:puzzle-catalog:v1';
+const STORAGE_KEY = 'cengel:puzzle-catalog:v2';
 let memorySnapshot: PuzzleCatalogCacheSnapshot | null = null;
 
 export const puzzleCatalogStore: PuzzleCatalogCacheStore = {

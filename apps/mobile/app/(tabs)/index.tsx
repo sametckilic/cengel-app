@@ -11,7 +11,7 @@ import {
 } from '@/components/cengel/editorial-icon';
 import { SectionLabel } from '@/components/cengel/section-label';
 import { fonts, layout, palette, spacing, typography } from '@/constants/design';
-import { NEWSPAPER_PROTOTYPE } from '@/data/newspaper-prototype';
+import { BUNDLED_FALLBACK_PUZZLE } from '@/data/newspaper-v2-preview';
 import {
   getDifficultyLabel,
   getPuzzleCategoryLabel,
@@ -171,17 +171,16 @@ function WeeklyStreak() {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { getDailyPuzzle, getLatestDailyPuzzle, getPuzzleById, puzzles } =
-    usePuzzleCatalog();
+  const { getDailyPuzzle, getLatestDailyPuzzle, puzzles } = usePuzzleCatalog();
   const dailyPuzzle = useMemo(
     () =>
       getDailyPuzzle(new Date()) ??
       getLatestDailyPuzzle() ??
-      NEWSPAPER_PROTOTYPE,
+      BUNDLED_FALLBACK_PUZZLE,
     [getDailyPuzzle, getLatestDailyPuzzle],
   );
   const featuredPuzzle =
-    getPuzzleById('karma-zor-001') ?? puzzles[1] ?? dailyPuzzle;
+    puzzles.find((puzzle) => puzzle.id !== dailyPuzzle.id) ?? dailyPuzzle;
   const { getSummary } = usePuzzleProgressCatalog();
   const dailyProgress = getSummary(dailyPuzzle.id);
   const featuredProgress = getSummary(featuredPuzzle.id);

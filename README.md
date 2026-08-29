@@ -57,31 +57,15 @@ veritabanı migration'larını, ardından idempotent katalog importunu çalışt
 Import başarısız olursa yeni deployment trafiğe açılmaz; generator worker bir
 sonraki çalışmasında PostgreSQL'deki en yeni başarılı katalog sürümünü kullanır.
 
-Tek bir günlük yayın üretmek:
-
-```bash
-npm run daily:generate -- --date 2026-08-23 --profile easy-mixed-wide --revision v1 --output apps/mobile/data/generated/daily/gunun-2026-08-23.json
-```
-
-Yarından başlayarak yedi günlük kalite onaylı tamponu tamamlamak:
-
-```bash
-npm run daily:publish -- --start tomorrow --days 7 --revision schedule-v1 --publish
-```
-
-Komut mevcut tarih dosyalarını değiştirmez. Eksik günleri deterministik olarak üretir, kalite kapısından geçirir ve ana manifesti İstanbul tarihine göre yeniler. Gelecek tarihli dosyalar önceden hazırlanır ancak tarihleri gelmeden manifest veya API üzerinden sunulmaz.
-
-Profil rotasyonu:
-
-- `beginner-geography-compact`: 7×7, başlangıç, coğrafya ağırlıklı
-- `easy-mixed-wide`: 9×10, kolay, Türkçe ve genel kültür ağırlıklı
-- `medium-literature-balanced`: 8×8, orta, edebiyat ağırlıklı
+Repository artık eski fixed-topology/freeform tarifleri veya önceden üretilmiş
+günlük JSON dosyalarını yayın kaynağı olarak tutmaz. Mobil bundle yalnızca
+çevrimdışı açılış için kalite kapısını geçmiş tek bir V2 fallback kullanır;
+asıl katalog PostgreSQL'e yazan Railway worker tarafından oluşturulur.
 
 Worker `newspaper-v2` ile yeni tarihler için 7×7, 8×8, 9×10, 10×10 ve
 10×12 boyutlarını döndürür. Her istek boyut, zorluk, kategori ağırlığı,
-hedef kelime sayısı ve deterministik seed taşır. `newspaper-v1` acil geri
-dönüş seçeneği olarak korunur; yayımlanmış tarihler iki sürümde de
-değiştirilmez.
+hedef kelime sayısı ve deterministik seed taşır. `newspaper-v1` kod yolu
+yalnızca açıkça seçilen acil geri dönüş seçeneği olarak korunur.
 
 Günlük üretimin kaynak sistemi Railway üzerindeki `generator-worker` servisidir. Worker her gün `21:10 UTC` (`00:10 Europe/Istanbul`) çalışır, PostgreSQL'deki güncel ipucu kataloğundan yedi günlük tampon üretir ve kalite kapısını geçen bulmacaları atomik olarak yayınlar. Aynı tarih ve revizyonla tekrar çalıştırılması güvenlidir; mevcut yayınlar değiştirilmez.
 

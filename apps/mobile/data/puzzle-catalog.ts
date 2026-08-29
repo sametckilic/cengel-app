@@ -1,6 +1,6 @@
 import generatedManifest from '@/data/generated/puzzles.json';
 import { composeCatalogWithFallback } from '@/data/catalog-composition';
-import { NEWSPAPER_PROTOTYPE } from '@/data/newspaper-prototype';
+import { BUNDLED_FALLBACK_PUZZLE } from '@/data/newspaper-v2-preview';
 import { isPuzzleManifest } from '@cengel/puzzle-core/puzzle-schema';
 import type { GameplayDifficulty } from '@cengel/puzzle-core/clue-catalog';
 import type {
@@ -49,7 +49,7 @@ export const BUNDLED_PUZZLE_MANIFEST: PuzzleManifest = manifest;
 export function createPuzzleCatalog(
   puzzleManifest: PuzzleManifest,
 ): readonly PuzzleDefinition[] {
-  return composeCatalogWithFallback(NEWSPAPER_PROTOTYPE, puzzleManifest.puzzles);
+  return composeCatalogWithFallback(BUNDLED_FALLBACK_PUZZLE, puzzleManifest.puzzles);
 }
 
 export function mergePuzzleManifests(
@@ -72,7 +72,7 @@ export function mergePuzzleManifests(
 export const PUZZLE_CATALOG: readonly PuzzleDefinition[] = createPuzzleCatalog(
   BUNDLED_PUZZLE_MANIFEST,
 );
-export const DEFAULT_PUZZLE_ID = NEWSPAPER_PROTOTYPE.id;
+export const DEFAULT_PUZZLE_ID = BUNDLED_FALLBACK_PUZZLE.id;
 
 export function getPuzzleById(id: string): PuzzleDefinition | undefined {
   return PUZZLE_CATALOG.find((puzzle) => puzzle.id === id);

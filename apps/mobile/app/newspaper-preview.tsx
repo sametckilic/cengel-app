@@ -27,7 +27,6 @@ import {
   getPuzzleCategoryLabel,
   getPuzzleSizeLabel,
 } from '@/data/puzzle-catalog';
-import { NEWSPAPER_PROTOTYPE } from '@/data/newspaper-prototype';
 import { NEWSPAPER_V2_PREVIEW_PUZZLES } from '@/data/newspaper-v2-preview';
 import { prototypeAnswerRevealAccessProvider } from '@cengel/puzzle-core/hint-access';
 import {
@@ -58,13 +57,13 @@ import {
 import type { PuzzleDefinition } from '@cengel/puzzle-core/puzzle';
 
 type NewspaperPuzzleScreenProps = {
-  puzzle?: PuzzleDefinition;
+  puzzle: PuzzleDefinition;
 };
 
 const KEYBOARD_SCROLL_RESTORE_DURATION = 320;
 
 export function NewspaperPuzzleScreen({
-  puzzle = NEWSPAPER_PROTOTYPE,
+  puzzle,
 }: NewspaperPuzzleScreenProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();

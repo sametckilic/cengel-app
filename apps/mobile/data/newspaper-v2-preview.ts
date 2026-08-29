@@ -28,3 +28,9 @@ export const NEWSPAPER_V2_PREVIEW_PUZZLES = manifest.puzzles.filter(
 if (NEWSPAPER_V2_PREVIEW_PUZZLES.length !== manifest.puzzles.length) {
   throw new Error('Every V2 preview puzzle must use newspaper-arrowword format.');
 }
+
+export const BUNDLED_FALLBACK_PUZZLE = NEWSPAPER_V2_PREVIEW_PUZZLES[0];
+
+if (!BUNDLED_FALLBACK_PUZZLE) {
+  throw new Error('The V2 preview manifest must contain a bundled fallback puzzle.');
+}

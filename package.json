@@ -32,8 +32,6 @@
     "daily:publish": "node ./packages/generator/bin/publish-daily-puzzles.js",
     "newspaper:report": "node ./packages/generator/bin/analyze-newspaper-readiness.js",
     "newspaper:matrix:check": "node ./packages/generator/bin/check-newspaper-recipe-matrix.js",
-    "newspaper:prototype:check": "node ./packages/generator/bin/generate-newspaper-prototype.js --check",
-    "newspaper:prototype:build": "node ./packages/generator/bin/generate-newspaper-prototype.js --output ./apps/mobile/data/generated/newspaper-prototype-8x8.json",
     "newspaper:v2:preview:check": "node ./packages/generator/bin/generate-newspaper-v2-preview.js --check",
     "newspaper:v2:preview:build": "node ./packages/generator/bin/generate-newspaper-v2-preview.js",
     "test:engine": "node --test ./packages/puzzle-core/test/puzzle-selection.test.js",

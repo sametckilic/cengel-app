@@ -72,8 +72,9 @@ export default defineRailway(() => {
       DB_CONNECTION_TIMEOUT_MS: "5000",
       DB_POOL_MAX: "2",
       WORKER_BUFFER_DAYS: "7",
+      WORKER_GENERATOR_VERSION: "newspaper-v2",
       WORKER_MODE: "publish",
-      WORKER_REVISION: "schedule-v1",
+      WORKER_REVISION: "schedule-v2",
       WORKER_START_DATE: "tomorrow",
     },
   });

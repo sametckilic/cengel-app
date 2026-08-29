@@ -1,41 +1,34 @@
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-
-import { createScheduledDailyPublication } from '@cengel/generator/daily-puzzle-schedule';
 import { describe, expect, it } from 'vitest';
 
 import {
   compareShadowPublication,
   checksum,
 } from '../src/shadow';
-import type { ClueCatalog, DailyPublication } from '../src/types';
-
-const REPOSITORY_ROOT = path.resolve(__dirname, '../../..');
-
-async function readJson<T>(filePath: string): Promise<T> {
-  return JSON.parse(await readFile(filePath, 'utf8')) as T;
-}
+import type { DailyPublication } from '../src/types';
 
 describe('shadow generation', () => {
-  it('reports catalog evolution against an immutable bundled publication', async () => {
-    const [catalog, reference] = await Promise.all([
-      readJson<ClueCatalog>(
-        path.join(
-          REPOSITORY_ROOT,
-          'apps/mobile/data/generated/clue-catalog.json',
-        ),
-      ),
-      readJson<DailyPublication>(
-        path.join(
-          REPOSITORY_ROOT,
-          'apps/mobile/data/generated/daily/gunun-2026-08-25.json',
-        ),
-      ),
-    ]);
-    const generated = createScheduledDailyPublication(catalog, {
-      date: reference.date,
-      revision: 'schedule-v1',
-    });
+  it('reports a generated puzzle that differs from its shadow reference', () => {
+    const reference = {
+      date: '2026-08-25',
+      profileId: 'reference-profile',
+      puzzle: {
+        categories: ['turkce'],
+        columnCount: 7,
+        difficulty: 'beginner',
+        id: 'shadow-reference',
+        rowCount: 7,
+        title: 'Referans',
+        words: [],
+      },
+      quality: { issues: [], passed: true },
+      recipe: { seed: 'reference-seed' },
+      revision: 'reference-v2',
+      schemaVersion: 1,
+    } satisfies DailyPublication;
+    const generated = {
+      ...reference,
+      puzzle: { ...reference.puzzle, title: 'Yeni üretim' },
+    };
 
     expect(compareShadowPublication(generated, reference)).toEqual({
       date: reference.date,

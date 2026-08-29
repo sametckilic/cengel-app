@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const puzzle = require('../../../apps/mobile/data/generated/newspaper-prototype-8x8.json');
+const [puzzle] = require('../../../apps/mobile/data/generated/newspaper-v2-preview.json').puzzles;
 const {
   prototypeAnswerRevealAccessProvider,
 } = require('../src/hint-access.ts');
@@ -427,23 +427,37 @@ test('locked correct-word cells cannot be overwritten or erased', () => {
 });
 
 test('input skips a locked intersection while solving its crossing word', () => {
-  const downWord = puzzle.words.find(
-    ({ direction, cellIndices }) => direction === 'down' && cellIndices.includes(15),
+  const activeWord = puzzle.words.find(({ cellIndices }) =>
+    cellIndices.some(
+      (cellIndex, index) =>
+        index < cellIndices.length - 2 && getWordsAtCell(puzzle, cellIndex).length === 2,
+    ),
   );
-  const crossingWord = puzzle.words.find(
-    ({ direction, cellIndices }) => direction === 'right' && cellIndices.includes(15),
+  assert.ok(activeWord);
+  const lockedPosition = activeWord.cellIndices.findIndex(
+    (cellIndex, index) =>
+      index < activeWord.cellIndices.length - 2 &&
+      getWordsAtCell(puzzle, cellIndex).length === 2,
   );
-  const lockedCellIndices = new Set([15]);
-  const lockedLetter = crossingWord.answer[crossingWord.cellIndices.indexOf(15)];
+  const lockedCellIndex = activeWord.cellIndices[lockedPosition];
+  const crossingWord = getWordsAtCell(puzzle, lockedCellIndex).find(
+    ({ id }) => id !== activeWord.id,
+  );
+  assert.ok(crossingWord);
+  const lockedCellIndices = new Set([lockedCellIndex]);
+  const lockedLetter =
+    crossingWord.answer[crossingWord.cellIndices.indexOf(lockedCellIndex)];
+  const inputCellIndex = activeWord.cellIndices[lockedPosition + 1];
+  const selectedCellIndex = activeWord.cellIndices[lockedPosition + 2];
   const state = {
-    entries: { 15: lockedLetter },
-    selection: { cellIndex: 15, wordId: downWord.id },
+    entries: { [lockedCellIndex]: lockedLetter },
+    selection: { cellIndex: lockedCellIndex, wordId: activeWord.id },
   };
   const nextState = enterPuzzleLetter(puzzle, state, 'A', lockedCellIndices);
 
-  assert.equal(nextState.entries[15], lockedLetter);
-  assert.equal(nextState.entries[23], 'A');
-  assert.equal(nextState.selection.cellIndex, 31);
+  assert.equal(nextState.entries[lockedCellIndex], lockedLetter);
+  assert.equal(nextState.entries[inputCellIndex], 'A');
+  assert.equal(nextState.selection.cellIndex, selectedCellIndex);
 });
 
 test('answer pattern exposes only genuinely locked letters', () => {

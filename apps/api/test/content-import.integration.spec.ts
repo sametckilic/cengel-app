@@ -52,7 +52,6 @@ describeWithDatabase('generated content PostgreSQL integration', () => {
   let paths: GeneratedContentPaths;
   let transactionRunner: ImportTransactionRunner;
   const suffix = randomUUID();
-  const prototypeId = `integration-prototype-${suffix}`;
   const dailyPuzzleId = `integration-daily-${suffix}`;
   const conflictingDailyPuzzleId = `integration-daily-conflict-${suffix}`;
   const publicationDate = '2099-12-30';
@@ -91,7 +90,6 @@ describeWithDatabase('generated content PostgreSQL integration', () => {
       catalogPath: path.join(temporaryDirectory, 'clue-catalog.json'),
       dailyDirectory,
       manifestPath: path.join(temporaryDirectory, 'puzzles.json'),
-      prototypePath: path.join(temporaryDirectory, 'prototype.json'),
     };
 
     await Promise.all([
@@ -123,10 +121,6 @@ describeWithDatabase('generated content PostgreSQL integration', () => {
         JSON.stringify({ puzzles: [], schemaVersion: 1 }),
       ),
       writeFile(
-        paths.prototypePath,
-        JSON.stringify(puzzle(prototypeId, 'Entegrasyon prototipi')),
-      ),
-      writeFile(
         path.join(dailyDirectory, `${publicationDate}.json`),
         JSON.stringify({
           date: publicationDate,
@@ -155,8 +149,8 @@ describeWithDatabase('generated content PostgreSQL integration', () => {
       catalogVersionsInserted: 1,
       cluesInserted: 1,
       generationRunsInserted: 1,
-      publicationsInserted: 2,
-      puzzlesInserted: 2,
+      publicationsInserted: 1,
+      puzzlesInserted: 1,
     });
 
     const second = await importGeneratedContent({ paths, transactionRunner });

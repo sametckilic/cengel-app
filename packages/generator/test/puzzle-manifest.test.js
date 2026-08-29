@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const catalog = require('../../../apps/mobile/data/generated/clue-catalog.json');
-const dailyPublication = require('../../../apps/mobile/data/generated/daily/gunun-2026-08-23.json');
+const [previewPuzzle] = require('../../../apps/mobile/data/generated/newspaper-v2-preview.json').puzzles;
 const recipes = require('../../../apps/mobile/data/puzzle-recipes.json');
 const {
   buildPuzzleManifest,
@@ -10,43 +10,43 @@ const {
   validateGeneratedPuzzle,
 } = require('../src/puzzle-manifest');
 
-test('builds every configured puzzle recipe into a valid definition', () => {
+const publicationDate = '2099-12-31';
+const dailyPuzzle = {
+  ...previewPuzzle,
+  id: `gunun-${publicationDate}`,
+  title: 'Günün Bulmacası',
+};
+const dailyPublication = {
+  date: publicationDate,
+  generationDiagnostics: {},
+  profileId: 'test-v2-profile',
+  puzzle: dailyPuzzle,
+  quality: { issues: [], passed: true },
+  recipe: {
+    categories: dailyPuzzle.categories,
+    categoryWeight: dailyPuzzle.generation.categoryWeight,
+    columnCount: dailyPuzzle.columnCount,
+    difficulty: dailyPuzzle.difficulty,
+    format: 'newspaper-arrowword',
+    generatorVersion: 'newspaper-v2',
+    id: dailyPuzzle.id,
+    rowCount: dailyPuzzle.rowCount,
+    seed: dailyPuzzle.generation.seed,
+    targetWordCount: dailyPuzzle.words.length,
+    title: dailyPuzzle.title,
+  },
+  revision: 'test-v2',
+  rights: catalog.rights,
+  schemaVersion: 1,
+  sourceCatalog: 'data/generated/clue-catalog.json',
+};
+
+test('keeps the bundled manifest free of retired static recipes', () => {
   const manifest = buildPuzzleManifest(catalog, recipes);
 
   assert.equal(manifest.schemaVersion, 1);
-  assert.equal(manifest.puzzles.length, recipes.recipes.length);
-  assert.equal(new Set(manifest.puzzles.map(({ id }) => id)).size, manifest.puzzles.length);
-
-  for (const puzzle of manifest.puzzles) {
-    const recipe = recipes.recipes.find(({ id }) => id === puzzle.id);
-
-    assert.ok(recipe);
-    assert.equal(puzzle.rowCount, recipe.rowCount);
-    assert.equal(puzzle.columnCount, recipe.columnCount);
-    assert.equal(puzzle.difficulty, recipe.difficulty);
-    assert.deepEqual(puzzle.categories, recipe.categories);
-    assert.equal(puzzle.words.length, recipe.targetWordCount);
-    assert.ok(puzzle.cells.every(({ type }) => type !== 'block'));
-    assert.ok(
-      puzzle.words.filter(({ category }) => recipe.categories.includes(category)).length >=
-        Math.ceil(recipe.targetWordCount * recipe.categoryWeight),
-    );
-    assert.doesNotThrow(() => validateGeneratedPuzzle(puzzle));
-  }
-
-  const newspaperRecipe = recipes.recipes.find(
-    ({ format }) => format === 'newspaper-arrowword',
-  );
-  const newspaperPuzzle = manifest.puzzles.find(
-    ({ id }) => id === newspaperRecipe?.id,
-  );
-
-  assert.ok(newspaperRecipe);
-  assert.ok(newspaperPuzzle);
-  assert.equal(newspaperPuzzle.format, 'newspaper-arrowword');
-  assert.equal(newspaperPuzzle.generation.topologyId, newspaperRecipe.topologyId);
-  assert.equal(newspaperPuzzle.cells.filter(({ type }) => type === 'void').length, 0);
-  assert.ok(newspaperPuzzle.cells.some(({ type }) => type === 'split-clue'));
+  assert.deepEqual(recipes.recipes, []);
+  assert.deepEqual(manifest.puzzles, []);
 });
 
 test('merges quality-approved daily publications into the shared manifest', () => {
