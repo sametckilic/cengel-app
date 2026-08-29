@@ -18,6 +18,7 @@ import { createPuzzleCatalogApiResponse } from '@cengel/contracts/puzzle-api';
 import { fetchPuzzleCatalog } from '@/services/puzzle-catalog-client';
 import { puzzleCatalogStore } from '@/services/puzzle-catalog-store';
 import { getAuthenticatedAccess, getSupabaseClient } from '@/services/supabase-client';
+import type { PuzzlePublicationDescriptor } from '@cengel/contracts/puzzle-api';
 import type { PuzzleDefinition, PuzzleManifest } from '@cengel/puzzle-core/puzzle';
 
 type PuzzleCatalogSource = 'bundled' | 'cache' | 'remote';
@@ -27,6 +28,7 @@ type PuzzleCatalogContextValue = {
   getLatestDailyPuzzle: () => PuzzleDefinition | undefined;
   getPuzzleById: (id: string) => PuzzleDefinition | undefined;
   loading: boolean;
+  publications: readonly PuzzlePublicationDescriptor[];
   puzzles: readonly PuzzleDefinition[];
   refreshCatalog: () => void;
   source: PuzzleCatalogSource;
@@ -39,6 +41,9 @@ const PuzzleCatalogContext = createContext<PuzzleCatalogContextValue | undefined
 
 export function PuzzleCatalogProvider({ children }: PropsWithChildren) {
   const [manifest, setManifest] = useState<PuzzleManifest>(BUNDLED_PUZZLE_MANIFEST);
+  const [publications, setPublications] = useState<
+    readonly PuzzlePublicationDescriptor[]
+  >(bundledResponse.publications);
   const [source, setSource] = useState<PuzzleCatalogSource>('bundled');
   const [loading, setLoading] = useState(true);
   const [syncRevision, setSyncRevision] = useState(0);
@@ -67,6 +72,12 @@ export function PuzzleCatalogProvider({ children }: PropsWithChildren) {
         // An invalid/expired session falls back to the anonymous catalog.
       }
 
+      if (active) {
+        setManifest(BUNDLED_PUZZLE_MANIFEST);
+        setPublications(bundledResponse.publications);
+        setSource('bundled');
+      }
+
       if (!accessToken) {
         try {
           const cached = await puzzleCatalogStore.load();
@@ -74,14 +85,12 @@ export function PuzzleCatalogProvider({ children }: PropsWithChildren) {
           if (cached && active) {
             cachedEntityTag = cached.entityTag;
             setManifest(mergePuzzleManifests(BUNDLED_PUZZLE_MANIFEST, cached.manifest));
+            setPublications(cached.publications);
             setSource('cache');
           }
         } catch {
           // The bundled manifest remains the safe offline fallback.
         }
-      } else if (active) {
-        setManifest(BUNDLED_PUZZLE_MANIFEST);
-        setSource('bundled');
       }
 
       try {
@@ -100,6 +109,7 @@ export function PuzzleCatalogProvider({ children }: PropsWithChildren) {
           result.response.manifest,
         );
         setManifest(mergedManifest);
+        setPublications(result.response.publications);
         setSource('remote');
 
         if (!accessToken) {
@@ -133,11 +143,12 @@ export function PuzzleCatalogProvider({ children }: PropsWithChildren) {
       getLatestDailyPuzzle: () => findLatestDailyPuzzle(puzzles),
       getPuzzleById: (id) => puzzles.find((puzzle) => puzzle.id === id),
       loading,
+      publications,
       puzzles,
       refreshCatalog: () => setSyncRevision((current) => current + 1),
       source,
     };
-  }, [loading, manifest, source]);
+  }, [loading, manifest, publications, source]);
 
   return (
     <PuzzleCatalogContext.Provider value={value}>

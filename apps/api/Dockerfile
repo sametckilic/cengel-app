@@ -30,6 +30,8 @@ COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/drizzle ./apps/api/drizzle
 COPY --from=build /app/apps/mobile/data/generated ./apps/mobile/data/generated
 COPY --from=build /app/packages/achievement-core ./packages/achievement-core
+COPY --from=build /app/packages/contracts ./packages/contracts
+COPY --from=build /app/packages/puzzle-core ./packages/puzzle-core
 COPY package.json ./package.json
 COPY apps/api/package.json ./apps/api/package.json
 

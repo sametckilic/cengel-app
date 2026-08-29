@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { and, desc, eq, exists, gt, isNull, lt, lte, or, sql } from 'drizzle-orm';
@@ -10,6 +11,27 @@ import {
   puzzles,
   userEntitlements,
 } from '../database/schema';
+
+type PuzzlePublicationDescriptor = {
+  channel: 'archive' | 'daily' | 'pack';
+  packId?: string;
+  publicationDate: string;
+  puzzleId: string;
+  puzzleNumber?: number;
+  requiredEntitlement: string | null;
+};
+
+const loadModule = createRequire(__filename);
+const { createPuzzlePublicationDescriptor } = loadModule(
+  '@cengel/contracts/puzzle-api',
+) as {
+  createPuzzlePublicationDescriptor: (record: {
+    publicationDate: string;
+    publicationKey: string;
+    puzzleId: string;
+    requiredEntitlement: string | null;
+  }) => PuzzlePublicationDescriptor;
+};
 
 export type PuzzleSummary = {
   categories: readonly string[];
@@ -39,6 +61,7 @@ export type PublishedCatalogResult = {
     schemaVersion: 1;
     sourceCatalog: string;
   };
+  publications: readonly PuzzlePublicationDescriptor[];
 };
 
 type ListOptions = {
@@ -51,6 +74,16 @@ type ListOptions = {
 };
 
 type CursorValue = { id: string; publicationDate: string };
+
+export type PublishedCatalogRow = {
+  checksum: string;
+  definition: Record<string, unknown>;
+  id: string;
+  publicationDate: string;
+  publicationKey: string;
+  requiredEntitlement: string | null;
+  version: number;
+};
 
 function encodeCursor(value: CursorValue): string {
   return Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -76,6 +109,62 @@ export function decodeCursor(cursor: string): CursorValue {
   }
 
   throw new Error('Invalid puzzle cursor.');
+}
+
+export function createPublishedCatalogResult(
+  rows: readonly PublishedCatalogRow[],
+  sourceCatalog: string,
+): PublishedCatalogResult {
+  const rowsById = new Map<string, PublishedCatalogRow>();
+
+  for (const row of rows) {
+    if (!rowsById.has(row.id)) {
+      rowsById.set(row.id, row);
+    }
+  }
+
+  const publishedRows = [...rowsById.values()];
+  const signature = publishedRows
+    .map(
+      ({ checksum, id, publicationDate, publicationKey, requiredEntitlement, version }) =>
+        [
+          id,
+          version,
+          checksum,
+          publicationDate,
+          publicationKey,
+          requiredEntitlement ?? '',
+        ].join(':'),
+    )
+    .sort()
+    .join('|');
+  const catalogVersion = `catalog-${createHash('sha256')
+    .update(signature)
+    .digest('hex')
+    .slice(0, 16)}`;
+
+  return {
+    apiVersion: 1,
+    catalogVersion,
+    manifest: {
+      puzzles: publishedRows.map(({ definition }) => definition),
+      rights: {
+        basis: 'project-owned',
+        confirmedAt: '2026-08-19',
+      },
+      schemaVersion: 1,
+      sourceCatalog,
+    },
+    publications: publishedRows.map(
+      ({ id, publicationDate, publicationKey, requiredEntitlement }) =>
+        createPuzzlePublicationDescriptor({
+          publicationDate,
+          publicationKey,
+          puzzleId: id,
+          requiredEntitlement,
+        }),
+    ),
+  };
 }
 
 @Injectable()
@@ -189,6 +278,9 @@ export class ContentService {
         checksum: puzzles.checksum,
         definition: puzzles.definition,
         id: puzzles.id,
+        publicationDate: puzzlePublications.publicationDate,
+        publicationKey: puzzlePublications.publicationKey,
+        requiredEntitlement: puzzlePublications.requiredEntitlement,
         version: puzzles.version,
       })
       .from(puzzlePublications)
@@ -202,30 +294,7 @@ export class ContentService {
         ),
       )
       .orderBy(desc(puzzlePublications.publicationDate), desc(puzzles.version));
-    const rowsById = new Map(rows.map((row) => [row.id, row]));
-    const publishedRows = [...rowsById.values()];
-    const signature = publishedRows
-      .map(({ checksum, id, version }) => `${id}:${version}:${checksum}`)
-      .sort()
-      .join('|');
-    const catalogVersion = `catalog-${createHash('sha256')
-      .update(signature)
-      .digest('hex')
-      .slice(0, 16)}`;
-
-    return {
-      apiVersion: 1,
-      catalogVersion,
-      manifest: {
-        puzzles: publishedRows.map(({ definition }) => definition),
-        rights: {
-          basis: 'project-owned',
-          confirmedAt: '2026-08-19',
-        },
-        schemaVersion: 1,
-        sourceCatalog: await this.getCatalogVersion(),
-      },
-    };
+    return createPublishedCatalogResult(rows, await this.getCatalogVersion());
   }
 
   async findById(id: string, visibleOn: string, userId?: string) {

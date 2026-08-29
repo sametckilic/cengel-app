@@ -1,6 +1,6 @@
 # Çengel — Kalan İşler Yol Haritası
 
-Güncelleme: 26 Ağustos 2026
+Güncelleme: 29 Ağustos 2026
 
 Bu belge, mevcut çalışan sistemden mağaza yayınına kadar kalan işleri uygulama sırasıyla tanımlar. Mimari kararların ayrıntısı [BACKEND_ARCHITECTURE.md](BACKEND_ARCHITECTURE.md) içindedir. Her aşama kendi doğrulamaları ve UAT kapısı tamamlanmadan sonraki aşamaya geçmez.
 
@@ -50,8 +50,8 @@ Amaç: Günün bulmacası dışındaki bütün kullanıcı içeriklerini aynı g
 - [x] Dataset build ve katalog importunu kontrollü deployment adımı haline getir; yeni dataset pushlandığında elle veri taşıma gerektirmesin.
 - [x] 7×7, 8×8, 9×10, 10×10 ve 10×12 için başlangıç/kolay/orta/zor recipe matrisi oluştur.
 - [x] Kategori ağırlıklı tariflerde adlandırılmış kategorilerin payını `%50` üzerinde garanti et; kalan kelimeleri aynı zorluktaki karma havuzdan seç.
-- [ ] Arşiv ve tematik paket bulmacalarını V2 gazete formatında backend üzerinden üretip yayımla.
-- [ ] Ücretsiz, premium ve günlük yayın politikasını tanımlayıp `required_entitlement` alanlarına uygula.
+- [x] Arşiv ve tematik paket bulmacalarını V2 gazete formatında backend üzerinden üretip yayımla.
+- [x] Ücretsiz, premium ve günlük yayın politikasını tanımlayıp `required_entitlement` alanlarına uygula.
 - [ ] Premium katalog/list/detail erişiminin aktif hesapta açıldığını, anonim veya süresi dolmuş hesapta kapalı kaldığını UAT et.
 - [ ] Günlük en az yedi günlük yayın tamponunu yeni recipe matrisiyle koru.
 - [ ] Katalog büyüdüğünde uygulanacak editoryal azaltma raporunu hazırla; azaltmayı yalnızca ölçülebilir kapsama kaybı olmadan etkinleştir.

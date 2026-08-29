@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test ./test/content-publication-policy.test.js",
+    "test": "node --test ./test/content-publication-policy.test.js ./test/puzzle-api.test.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
