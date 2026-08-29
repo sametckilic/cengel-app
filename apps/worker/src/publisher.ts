@@ -1,9 +1,23 @@
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 
+import type {
+  PublicationAccessRequest,
+  RequiredContentEntitlement,
+} from '@cengel/contracts/content-publication-policy' with { 'resolution-mode': 'import' };
 import type { PoolClient, QueryResultRow } from 'pg';
 
 import type { CatalogSnapshot, DailyPublication } from './types';
 import { checksumJson } from './canonical-json';
+
+const loadModule = createRequire(__filename);
+const { resolveRequiredEntitlement } = loadModule(
+  '@cengel/contracts/content-publication-policy',
+) as {
+  resolveRequiredEntitlement: (
+    publication: PublicationAccessRequest,
+  ) => RequiredContentEntitlement;
+};
 
 type PublishedPuzzleRow = QueryResultRow & {
   checksum: string;
@@ -25,15 +39,102 @@ type GenerationRunRow = QueryResultRow & {
 export type PublishResult = {
   checksum: string;
   date: string;
+  publicationKey: string;
   puzzleId: string;
   status: 'already-published' | 'published';
   version: number;
 };
 
-type PublishInput = {
+export type PublicationTarget = {
+  channel: PublicationAccessRequest['channel'];
+  publicationDate: string;
+  publicationKey: string;
+  requiredEntitlement: RequiredContentEntitlement;
+};
+
+type BasePublishInput = {
   catalog: CatalogSnapshot;
   publication: DailyPublication;
 };
+
+type PublishInput = BasePublishInput & {
+  target: PublicationTarget;
+};
+
+type PackPublishInput = BasePublishInput & {
+  packId: string;
+  puzzleNumber: number;
+};
+
+function validateDate(date: string): void {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error('Publication date must use YYYY-MM-DD format.');
+  }
+}
+
+function validateKeySegment(value: string, label: string): void {
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(value)) {
+    throw new Error(`${label} must use lowercase letters, numbers, and hyphens.`);
+  }
+}
+
+export function createDailyPublicationTarget(date: string): PublicationTarget {
+  validateDate(date);
+
+  return {
+    channel: 'daily',
+    publicationDate: date,
+    publicationKey: 'daily',
+    requiredEntitlement: resolveRequiredEntitlement({ channel: 'daily' }),
+  };
+}
+
+export function createArchivePublicationTarget(
+  date: string,
+  puzzleId: string,
+): PublicationTarget {
+  validateDate(date);
+  validateKeySegment(puzzleId, 'Archive puzzle ID');
+
+  return {
+    channel: 'archive',
+    publicationDate: date,
+    publicationKey: `archive:${puzzleId}`,
+    requiredEntitlement: resolveRequiredEntitlement({ channel: 'archive' }),
+  };
+}
+
+export function createPackPublicationTarget(
+  date: string,
+  packId: string,
+  puzzleNumber: number,
+): PublicationTarget {
+  validateDate(date);
+  validateKeySegment(packId, 'Pack ID');
+  const requiredEntitlement = resolveRequiredEntitlement({
+    channel: 'pack',
+    puzzleNumber,
+  });
+
+  return {
+    channel: 'pack',
+    publicationDate: date,
+    publicationKey: `pack:${packId}:${puzzleNumber}`,
+    requiredEntitlement,
+  };
+}
+
+export function createPublicationInsertParameters(
+  target: PublicationTarget,
+  puzzleRecordId: string,
+): [string, string, string, RequiredContentEntitlement] {
+  return [
+    target.publicationDate,
+    target.publicationKey,
+    puzzleRecordId,
+    target.requiredEntitlement,
+  ];
+}
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -52,17 +153,29 @@ function puzzleChecksum(publication: DailyPublication): string {
   return checksumJson(publication.puzzle);
 }
 
-function validatePublication(publication: DailyPublication): void {
+function validatePublication(
+  publication: DailyPublication,
+  target: PublicationTarget,
+): void {
   if (
     publication.quality.passed !== true ||
     publication.quality.issues.length > 0
   ) {
     throw new Error(
-      `Daily puzzle "${publication.puzzle.id}" did not pass its quality gate.`,
+      `Puzzle "${publication.puzzle.id}" did not pass its quality gate.`,
     );
   }
 
-  if (publication.puzzle.id !== `gunun-${publication.date}`) {
+  if (publication.date !== target.publicationDate) {
+    throw new Error(
+      `Puzzle publication date "${publication.date}" does not match ${target.publicationDate}.`,
+    );
+  }
+
+  if (
+    target.channel === 'daily' &&
+    publication.puzzle.id !== `gunun-${publication.date}`
+  ) {
     throw new Error(
       `Daily puzzle ID "${publication.puzzle.id}" does not match ${publication.date}.`,
     );
@@ -71,20 +184,21 @@ function validatePublication(publication: DailyPublication): void {
 
 export function toAlreadyPublishedResult(
   existing: PublishedPuzzleRow,
-  date: string,
+  target: PublicationTarget,
 ): PublishResult {
   return {
     checksum: existing.checksum,
-    date,
+    date: target.publicationDate,
+    publicationKey: target.publicationKey,
     puzzleId: existing.puzzle_id,
     status: 'already-published',
     version: existing.version,
   };
 }
 
-export async function findPublishedDailyPuzzle(
+async function findPublishedPuzzle(
   client: PoolClient,
-  date: string,
+  target: PublicationTarget,
 ): Promise<PublishResult | null> {
   const result = await client.query<PublishedPuzzleRow>(
     `
@@ -96,25 +210,33 @@ export async function findPublishedDailyPuzzle(
       INNER JOIN puzzles p ON p.record_id = publication.puzzle_record_id
       WHERE
         publication.publication_date = $1
-        AND publication.publication_key = 'daily'
+        AND publication.publication_key = $2
         AND publication.status = 'published'
       LIMIT 1
     `,
-    [date],
+    [target.publicationDate, target.publicationKey],
   );
 
   const existing = result.rows[0];
-  return existing ? toAlreadyPublishedResult(existing, date) : null;
+  return existing ? toAlreadyPublishedResult(existing, target) : null;
+}
+
+export async function findPublishedDailyPuzzle(
+  client: PoolClient,
+  date: string,
+): Promise<PublishResult | null> {
+  return findPublishedPuzzle(client, createDailyPublicationTarget(date));
 }
 
 async function beginGenerationRun(
   client: PoolClient,
   input: PublishInput,
 ): Promise<string> {
-  const { catalog, publication } = input;
+  const { catalog, publication, target } = input;
   const hash = requestHash({
     catalogChecksum: catalog.checksum,
     date: publication.date,
+    publicationKey: target.publicationKey,
     revision: publication.revision,
     seed: publication.recipe.seed,
   });
@@ -165,11 +287,14 @@ async function beginGenerationRun(
 
   if (existing?.status === 'succeeded') {
     throw new Error(
-      `Generation request for ${publication.date} already succeeded without a matching publication.`,
+      `Generation request for ${target.publicationKey} on ${publication.date} ` +
+        'already succeeded without a matching publication.',
     );
   }
 
-  throw new Error(`Could not start generation run for ${publication.date}.`);
+  throw new Error(
+    `Could not start generation run for ${target.publicationKey} on ${publication.date}.`,
+  );
 }
 
 async function markGenerationFailed(
@@ -232,14 +357,14 @@ export async function recordGenerationFailure(
   );
 }
 
-export async function publishDailyPublication(
+async function publishPublication(
   client: PoolClient,
   input: PublishInput,
 ): Promise<PublishResult> {
-  const { catalog, publication } = input;
-  validatePublication(publication);
+  const { catalog, publication, target } = input;
+  validatePublication(publication, target);
   const checksum = puzzleChecksum(publication);
-  const existing = await findPublishedDailyPuzzle(client, publication.date);
+  const existing = await findPublishedPuzzle(client, target);
 
   if (existing) {
     return existing;
@@ -249,10 +374,7 @@ export async function publishDailyPublication(
 
   try {
     await client.query('BEGIN');
-    const publishedInsideTransaction = await findPublishedDailyPuzzle(
-      client,
-      publication.date,
-    );
+    const publishedInsideTransaction = await findPublishedPuzzle(client, target);
 
     if (publishedInsideTransaction) {
       await client.query(
@@ -334,12 +456,13 @@ export async function publishDailyPublication(
           publication_key,
           published_at,
           puzzle_record_id,
+          required_entitlement,
           status,
           timezone
         )
-        VALUES ($1, 'daily', NOW(), $2, 'published', 'Europe/Istanbul')
+        VALUES ($1, $2, NOW(), $3, $4, 'published', 'Europe/Istanbul')
       `,
-      [publication.date, puzzleRecordId],
+      createPublicationInsertParameters(target, puzzleRecordId),
     );
     await client.query(
       `
@@ -354,6 +477,7 @@ export async function publishDailyPublication(
     return {
       checksum,
       date: publication.date,
+      publicationKey: target.publicationKey,
       puzzleId: publication.puzzle.id,
       status: 'published',
       version,
@@ -363,4 +487,42 @@ export async function publishDailyPublication(
     await markGenerationFailed(client, generationRunId, error);
     throw error;
   }
+}
+
+export async function publishDailyPublication(
+  client: PoolClient,
+  input: BasePublishInput,
+): Promise<PublishResult> {
+  return publishPublication(client, {
+    ...input,
+    target: createDailyPublicationTarget(input.publication.date),
+  });
+}
+
+export async function publishArchivePublication(
+  client: PoolClient,
+  input: BasePublishInput,
+): Promise<PublishResult> {
+  return publishPublication(client, {
+    ...input,
+    target: createArchivePublicationTarget(
+      input.publication.date,
+      input.publication.puzzle.id,
+    ),
+  });
+}
+
+export async function publishPackPublication(
+  client: PoolClient,
+  input: PackPublishInput,
+): Promise<PublishResult> {
+  return publishPublication(client, {
+    catalog: input.catalog,
+    publication: input.publication,
+    target: createPackPublicationTarget(
+      input.publication.date,
+      input.packId,
+      input.puzzleNumber,
+    ),
+  });
 }

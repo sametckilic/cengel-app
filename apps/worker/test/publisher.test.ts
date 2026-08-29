@@ -1,6 +1,74 @@
 import { describe, expect, it } from 'vitest';
 
-import { requestHash, toAlreadyPublishedResult } from '../src/publisher';
+import {
+  createArchivePublicationTarget,
+  createDailyPublicationTarget,
+  createPackPublicationTarget,
+  createPublicationInsertParameters,
+  requestHash,
+  toAlreadyPublishedResult,
+} from '../src/publisher';
+
+describe('publication access targets', () => {
+  it('writes free access for the daily publication', () => {
+    const target = createDailyPublicationTarget('2026-08-31');
+
+    expect(createPublicationInsertParameters(target, 'puzzle-record')).toEqual([
+      '2026-08-31',
+      'daily',
+      'puzzle-record',
+      null,
+    ]);
+  });
+
+  it('writes premium access for archive publications', () => {
+    const target = createArchivePublicationTarget(
+      '2026-08-31',
+      'archive-easy-001',
+    );
+
+    expect(createPublicationInsertParameters(target, 'puzzle-record')).toEqual([
+      '2026-08-31',
+      'archive:archive-easy-001',
+      'puzzle-record',
+      'premium_access',
+    ]);
+  });
+
+  it('writes free access only for the first puzzle in a pack', () => {
+    expect(
+      createPublicationInsertParameters(
+        createPackPublicationTarget('2026-08-31', 'edebiyat', 1),
+        'first-record',
+      ),
+    ).toEqual([
+      '2026-08-31',
+      'pack:edebiyat:1',
+      'first-record',
+      null,
+    ]);
+    expect(
+      createPublicationInsertParameters(
+        createPackPublicationTarget('2026-08-31', 'edebiyat', 2),
+        'second-record',
+      ),
+    ).toEqual([
+      '2026-08-31',
+      'pack:edebiyat:2',
+      'second-record',
+      'premium_access',
+    ]);
+  });
+
+  it('rejects unsafe publication key segments', () => {
+    expect(() =>
+      createArchivePublicationTarget('2026-08-31', 'Archive 1'),
+    ).toThrow('Archive puzzle ID must use lowercase letters, numbers, and hyphens.');
+    expect(() =>
+      createPackPublicationTarget('2026-08-31', 'edebiyat:ozel', 1),
+    ).toThrow('Pack ID must use lowercase letters, numbers, and hyphens.');
+  });
+});
 
 describe('publisher request identity', () => {
   it('is deterministic regardless of input key order', () => {
@@ -44,11 +112,12 @@ describe('published daily puzzle immutability', () => {
           puzzle_id: 'gunun-2026-08-26',
           version: 1,
         },
-        '2026-08-26',
+        createDailyPublicationTarget('2026-08-26'),
       ),
     ).toEqual({
       checksum: 'original-checksum',
       date: '2026-08-26',
+      publicationKey: 'daily',
       puzzleId: 'gunun-2026-08-26',
       status: 'already-published',
       version: 1,

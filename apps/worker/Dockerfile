@@ -12,6 +12,7 @@ COPY packages/puzzle-core/package.json packages/puzzle-core/package.json
 RUN npm ci
 
 COPY apps/worker apps/worker
+COPY packages/contracts packages/contracts
 COPY packages/generator packages/generator
 RUN npm run worker:build
 RUN npm prune --omit=dev
@@ -23,6 +24,7 @@ WORKDIR /app
 
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/worker/dist ./apps/worker/dist
+COPY --from=build /app/packages/contracts ./packages/contracts
 COPY packages/generator ./packages/generator
 COPY apps/mobile/data/generated/daily ./apps/mobile/data/generated/daily
 COPY package.json ./package.json
