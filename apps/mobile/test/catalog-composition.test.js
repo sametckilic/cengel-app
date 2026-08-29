@@ -4,8 +4,16 @@ const test = require('node:test');
 const {
   composeCatalogWithFallback,
 } = require('../data/catalog-composition.ts');
+const { isPuzzleManifest } = require('../../../packages/puzzle-core/src/puzzle-schema.ts');
 
 const fallback = { id: 'prototype', source: 'bundled' };
+
+test('accepts an empty generated manifest when a bundled fallback is available', () => {
+  const manifest = require('../data/generated/puzzles.json');
+
+  assert.equal(manifest.puzzles.length, 0);
+  assert.equal(isPuzzleManifest(manifest), true);
+});
 
 test('adds the bundled fallback when the manifest does not contain it', () => {
   const catalog = composeCatalogWithFallback(fallback, [

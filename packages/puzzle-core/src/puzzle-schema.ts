@@ -45,7 +45,6 @@ export function isPuzzleManifest(value: unknown): value is PuzzleManifest {
     value.rights.basis === 'project-owned' &&
     value.rights.confirmedAt === '2026-08-19' &&
     Array.isArray(value.puzzles) &&
-    value.puzzles.length > 0 &&
     value.puzzles.every(isPuzzleDefinition) &&
     new Set(value.puzzles.map((puzzle) => puzzle.id)).size === value.puzzles.length
   );
