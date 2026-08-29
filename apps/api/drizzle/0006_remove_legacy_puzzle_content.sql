@@ -36,6 +36,13 @@ WHERE "puzzle_id" IN (
 	'gunun-2026-08-30'
 );
 --> statement-breakpoint
+-- These rows predate the newspaper-v2 cutover and were published only to the
+-- staging catalog. Temporarily suspend the history guard for this explicit,
+-- one-time allowlist; the surrounding migration transaction restores it on
+-- rollback if any statement fails.
+ALTER TABLE "puzzle_publications"
+DISABLE TRIGGER "puzzle_publications_preserve_history";
+--> statement-breakpoint
 DELETE FROM "puzzle_publications"
 WHERE "puzzle_record_id" IN (
 	SELECT "record_id"
@@ -57,6 +64,9 @@ WHERE "puzzle_record_id" IN (
 		'gunun-2026-08-30'
 	)
 );
+--> statement-breakpoint
+ALTER TABLE "puzzle_publications"
+ENABLE TRIGGER "puzzle_publications_preserve_history";
 --> statement-breakpoint
 DELETE FROM "puzzles"
 WHERE "id" IN (
