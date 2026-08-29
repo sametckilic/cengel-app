@@ -31,8 +31,11 @@ test('defines one explicit profile for every V2 size and difficulty', () => {
     );
     assert.ok(
       profiles.every(
-        ({ categoryWeight, targetWordCount }) =>
-          categoryWeight > 0.5 && targetWordCount === size.targetWordCount,
+        ({ categoryWeight, difficulty, targetWordCount }) =>
+          categoryWeight > 0.5 &&
+          targetWordCount ===
+            (size.targetWordCountOverrides?.[difficulty] ??
+              size.targetWordCount),
       ),
     );
   }
@@ -59,7 +62,7 @@ test('varies both size and difficulty on consecutive V2 rotation days', () => {
   }
 });
 
-test('keeps the compact beginner culture profile fillable without narrowing other tiers', () => {
+test('keeps the dense culture profiles broad enough for canonical crossings', () => {
   const beginner = NEWSPAPER_V2_RECIPE_MATRIX.find(
     ({ difficulty, rowCount, columnCount }) =>
       difficulty === 'beginner' && rowCount === 8 && columnCount === 8,
@@ -76,5 +79,33 @@ test('keeps the compact beginner culture profile fillable without narrowing othe
     'turkce',
     'genel_kultur',
   ]);
-  assert.deepEqual(medium.categories, ['edebiyat', 'sanat', 'tarih']);
+  assert.deepEqual(medium.categories, beginner.categories);
+});
+
+test('keeps the hard science profile at the highest stable category majority', () => {
+  const hardScience = NEWSPAPER_V2_RECIPE_MATRIX.find(
+    ({ difficulty, rowCount, columnCount }) =>
+      difficulty === 'hard' && rowCount === 9 && columnCount === 10,
+  );
+
+  assert.equal(hardScience.categoryWeight, 0.58);
+  assert.deepEqual(hardScience.categories, [
+    'bilim',
+    'teknoloji',
+    'genel_kultur',
+  ]);
+});
+
+test('uses difficulty-specific natural densities for constrained large pools', () => {
+  const beginnerScience = NEWSPAPER_V2_RECIPE_MATRIX.find(
+    ({ difficulty, rowCount, columnCount }) =>
+      difficulty === 'beginner' && rowCount === 9 && columnCount === 10,
+  );
+  const mediumTechnology = NEWSPAPER_V2_RECIPE_MATRIX.find(
+    ({ difficulty, rowCount, columnCount }) =>
+      difficulty === 'medium' && rowCount === 10 && columnCount === 12,
+  );
+
+  assert.equal(beginnerScience.targetWordCount, 31);
+  assert.equal(mediumTechnology.targetWordCount, 38);
 });

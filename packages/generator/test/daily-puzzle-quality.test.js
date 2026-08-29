@@ -75,7 +75,7 @@ test('applies the daily quality gate to a readable V2 candidate', () => {
       generatorVersion: 'newspaper-v2',
       rowCount: 10,
       columnCount: 10,
-      targetWordCount: 29,
+      targetWordCount: 32,
       difficulty: 'easy',
       categories: ['tarih', 'cografya', 'genel_kultur', 'turkce'],
       categoryWeight: 0.55,
@@ -93,5 +93,5 @@ test('applies the daily quality gate to a readable V2 candidate', () => {
   assert.equal(quality.policy.maximumFallbackWordShare, 0.4);
   assert.equal(quality.policy.minimumAnswerLengthAverage, 3.2);
   assert.ok(diagnostics.clueText.maximumSingleUnits <= 24);
-  assert.ok(diagnostics.clueText.maximumSplitUnits <= 18);
+  assert.ok(diagnostics.clueText.maximumSplitUnits <= 23);
 });

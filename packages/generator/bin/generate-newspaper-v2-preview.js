@@ -27,18 +27,18 @@ const PREVIEW_REQUESTS = Object.freeze([
     difficulty: 'beginner',
     rowCount: 7,
     seed: 'newspaper-v2-preview-7x7-a',
-    targetWordCount: 14,
+    targetWordCount: 18,
   },
   {
     id: 'newspaper-v2-preview-8x8',
     title: 'Edebiyat, Sanat ve Tarih',
-    categories: ['edebiyat', 'sanat', 'tarih'],
+    categories: ['edebiyat', 'sanat', 'tarih', 'turkce', 'genel_kultur'],
     categoryWeight: 0.55,
     columnCount: 8,
     difficulty: 'medium',
     rowCount: 8,
     seed: 'newspaper-v2-preview-8x8-a',
-    targetWordCount: 18,
+    targetWordCount: 23,
   },
   {
     id: 'newspaper-v2-preview-9x10',
@@ -49,7 +49,7 @@ const PREVIEW_REQUESTS = Object.freeze([
     difficulty: 'easy',
     rowCount: 9,
     seed: 'newspaper-v2-preview-9x10-a',
-    targetWordCount: 25,
+    targetWordCount: 29,
   },
   {
     id: 'newspaper-v2-preview-10x10',
@@ -60,7 +60,7 @@ const PREVIEW_REQUESTS = Object.freeze([
     difficulty: 'easy',
     rowCount: 10,
     seed: 'newspaper-v2-preview-10x10-a',
-    targetWordCount: 29,
+    targetWordCount: 32,
   },
   {
     id: 'newspaper-v2-preview-10x12',
@@ -71,7 +71,7 @@ const PREVIEW_REQUESTS = Object.freeze([
     difficulty: 'easy',
     rowCount: 10,
     seed: 'newspaper-v2-preview-10x12-a',
-    targetWordCount: 32,
+    targetWordCount: 40,
   },
 ]);
 

@@ -107,8 +107,47 @@ function orderDomainForClueCell(candidates, isSplitClue, clueTextPolicy) {
   });
 }
 
+function selectPreferredAnswerVariants(candidates, categorySet) {
+  const preferredByAnswer = new Map();
+
+  for (const entry of candidates) {
+    const current = preferredByAnswer.get(entry.answer);
+
+    if (!current) {
+      preferredByAnswer.set(entry.answer, entry);
+      continue;
+    }
+
+    const entryIsThemed = categorySet.has(entry.category);
+    const currentIsThemed = categorySet.has(current.category);
+    const entryUnits = measureClueTextUnits(entry.shortClue);
+    const currentUnits = measureClueTextUnits(current.shortClue);
+
+    if (
+      (entryIsThemed && !currentIsThemed) ||
+      (entryIsThemed === currentIsThemed &&
+        (entryUnits < currentUnits ||
+          (entryUnits === currentUnits && entry.id.localeCompare(current.id) < 0)))
+    ) {
+      preferredByAnswer.set(entry.answer, entry);
+    }
+  }
+
+  const seenAnswers = new Set();
+
+  return candidates.flatMap((entry) => {
+    if (seenAnswers.has(entry.answer)) {
+      return [];
+    }
+
+    seenAnswers.add(entry.answer);
+    return [preferredByAnswer.get(entry.answer)];
+  });
+}
+
 function createCandidateDomains(entries, request, topology, clueTextPolicy) {
   const requiredLengths = new Set(topology.slots.map(({ cellIndices }) => cellIndices.length));
+  const categorySet = new Set(request.categories);
   const eligibleEntries = entries
     .filter(
       (entry) =>
@@ -148,7 +187,10 @@ function createCandidateDomains(entries, request, topology, clueTextPolicy) {
       if (!clueTextPolicy) {
         return [
           slot.id,
-          orderDomainForClueCell(candidates, isSplitClue, clueTextPolicy),
+          selectPreferredAnswerVariants(
+            orderDomainForClueCell(candidates, isSplitClue, clueTextPolicy),
+            categorySet,
+          ),
         ];
       }
 
@@ -166,10 +208,13 @@ function createCandidateDomains(entries, request, topology, clueTextPolicy) {
 
       return [
         slot.id,
-        orderDomainForClueCell(
-          fittingCandidates,
-          isSplitClue,
-          clueTextPolicy,
+        selectPreferredAnswerVariants(
+          orderDomainForClueCell(
+            fittingCandidates,
+            isSplitClue,
+            clueTextPolicy,
+          ),
+          categorySet,
         ),
       ];
     }),
@@ -231,6 +276,7 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
 
   const maxSearchNodes = options.maxSearchNodes ?? DEFAULT_MAX_SEARCH_NODES;
   const preferCrossingSupport = options.preferCrossingSupport ?? false;
+  const themePrimaryDirection = options.themePrimaryDirection;
   const clueTextPolicy = options.clueTextPolicy
     ? resolveClueTextPolicy(options.clueTextPolicy)
     : null;
@@ -243,6 +289,13 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
     throw new Error('preferCrossingSupport must be a boolean.');
   }
 
+  if (
+    themePrimaryDirection !== undefined &&
+    !['down', 'right'].includes(themePrimaryDirection)
+  ) {
+    throw new Error('themePrimaryDirection must be either down or right.');
+  }
+
   const domains = createCandidateDomains(entries, request, topology, clueTextPolicy);
   const crossingsBySlot = buildCrossingsBySlot(topology);
   const metadataBySlot = buildSlotMetadata(topology);
@@ -253,6 +306,164 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
   const categorySet = new Set(request.categories);
   const requiredThemedWordCount =
     categorySet.size === 0 ? 0 : Math.ceil(topology.slots.length * request.categoryWeight);
+  const compareThemeCapability = (left, right) =>
+    right.flexibility - left.flexibility ||
+    right.themedCandidates.length - left.themedCandidates.length ||
+    left.metadata.intersectionDegree - right.metadata.intersectionDegree ||
+    left.metadata.slotIndex - right.metadata.slotIndex;
+  const themeCapableSlots = topology.slots
+    .map((slot) => {
+      const candidates = domains.get(slot.id);
+      const themedCandidates = candidates.filter(({ category }) =>
+        categorySet.has(category),
+      );
+      const metadata = metadataBySlot.get(slot.id);
+
+      return {
+        flexibility:
+          themedCandidates.length /
+          (metadata.intersectionDegree + 1) ** 2,
+        metadata,
+        slot,
+        themedCandidates,
+      };
+    })
+    .filter(({ themedCandidates }) => themedCandidates.length > 0)
+    .sort(compareThemeCapability);
+  const averageThemedCandidateShare =
+    themeCapableSlots.reduce(
+      (total, { slot, themedCandidates }) =>
+        total + themedCandidates.length / domains.get(slot.id).length,
+      0,
+    ) / topology.slots.length;
+
+  if (themeCapableSlots.length < requiredThemedWordCount) {
+    throw new Error(
+      `Topology has only ${themeCapableSlots.length} theme-capable slot(s); ` +
+        `${requiredThemedWordCount} required.`,
+    );
+  }
+
+  function createThemeReservation(primaryDirection) {
+    const primarySlots = themeCapableSlots
+      .filter(({ slot }) => slot.direction === primaryDirection)
+      .sort(compareThemeCapability);
+    const selectedPrimarySlots = primarySlots.slice(
+      0,
+      requiredThemedWordCount,
+    );
+    const selectedPrimarySlotIds = new Set(
+      selectedPrimarySlots.map(({ slot }) => slot.id),
+    );
+    const capabilityBySlotId = new Map(
+      themeCapableSlots.map((capability) => [capability.slot.id, capability]),
+    );
+    const secondarySlots = themeCapableSlots
+      .filter(({ slot }) => !selectedPrimarySlotIds.has(slot.id))
+      .map((capability) => {
+        let compatibleThemedCandidates = capability.themedCandidates;
+
+        for (const {
+          otherLetterIndex,
+          otherSlotId,
+          ownLetterIndex,
+        } of crossingsBySlot.get(capability.slot.id) ?? []) {
+          if (!selectedPrimarySlotIds.has(otherSlotId)) {
+            continue;
+          }
+
+          const otherCapability = capabilityBySlotId.get(otherSlotId);
+          const supportingAnswersByCharacter =
+            otherCapability.themedCandidates.reduce((support, entry) => {
+              const character = entry.answer[otherLetterIndex];
+              const answers = support.get(character) ?? new Set();
+              answers.add(entry.answer);
+              support.set(character, answers);
+              return support;
+            }, new Map());
+
+          compatibleThemedCandidates = compatibleThemedCandidates.filter(
+            (entry) => {
+              const supportingAnswers = supportingAnswersByCharacter.get(
+                entry.answer[ownLetterIndex],
+              );
+
+              return (
+                supportingAnswers !== undefined &&
+                (supportingAnswers.size > 1 ||
+                  !supportingAnswers.has(entry.answer))
+              );
+            },
+          );
+        }
+
+        return {
+          ...capability,
+          compatibleThemedCandidateCount:
+            compatibleThemedCandidates.length,
+        };
+      })
+      .sort(
+        (left, right) =>
+          right.compatibleThemedCandidateCount -
+            left.compatibleThemedCandidateCount ||
+          compareThemeCapability(left, right),
+      );
+    const selected = [...selectedPrimarySlots, ...secondarySlots].slice(
+      0,
+      requiredThemedWordCount,
+    );
+
+    return {
+      flexibility: selected.reduce(
+        (total, candidate) => total + candidate.flexibility,
+        0,
+      ),
+      reservedCount: selected.length,
+      selected,
+    };
+  }
+
+  const themeReservation =
+    averageThemedCandidateShare >= request.categoryWeight
+      ? { selected: [] }
+      : (themePrimaryDirection
+          ? [themePrimaryDirection]
+          : ['right', 'down'])
+          .map(createThemeReservation)
+          .sort(
+            (left, right) =>
+              right.reservedCount - left.reservedCount ||
+              right.flexibility - left.flexibility,
+          )[0];
+  const reservedThemedSlotIds = new Set(
+    themeReservation.selected.map(({ slot }) => slot.id),
+  );
+
+  for (const slotId of reservedThemedSlotIds) {
+    domains.set(
+      slotId,
+      domains
+        .get(slotId)
+        .filter(({ category }) => categorySet.has(category)),
+    );
+  }
+
+  const domainIndexesBySlot = new Map(
+    topology.slots.map((slot) => [
+      slot.id,
+      slot.cellIndices.map((_, letterIndex) =>
+        domains.get(slot.id).reduce((entriesByCharacter, entry) => {
+          const character = entry.answer[letterIndex];
+          const characterEntries = entriesByCharacter.get(character) ?? [];
+          characterEntries.push(entry);
+          entriesByCharacter.set(character, characterEntries);
+          return entriesByCharacter;
+        }, new Map()),
+      ),
+    ]),
+  );
+
   const assignments = new Map();
   const characterByCell = new Map();
   const usedAnswers = new Set();
@@ -260,20 +471,30 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
   let searchNodeCount = 0;
   let themedWordCount = 0;
 
-  function matchesAssignedLetters(slot, entry) {
-    return slot.cellIndices.every((cellIndex, letterIndex) => {
-      const assignedCharacter = characterByCell.get(cellIndex);
-      return !assignedCharacter || assignedCharacter === entry.answer[letterIndex];
-    });
-  }
-
   function getCandidateState(slot) {
-    const candidates = domains
-      .get(slot.id)
-      .filter((entry) => !usedAnswers.has(entry.answer) && matchesAssignedLetters(slot, entry));
-    const assignedCharacterCount = slot.cellIndices.filter((cellIndex) =>
-      characterByCell.has(cellIndex),
-    ).length;
+    const assignedLetters = slot.cellIndices.flatMap((cellIndex, letterIndex) => {
+      const character = characterByCell.get(cellIndex);
+
+      return character ? [{ character, letterIndex }] : [];
+    });
+    const indexedCandidatePools = assignedLetters.map(
+      ({ character, letterIndex }) =>
+        domainIndexesBySlot.get(slot.id)[letterIndex].get(character) ?? [],
+    );
+    const candidatePool =
+      indexedCandidatePools.length > 0
+        ? indexedCandidatePools.reduce((smallest, candidates) =>
+            candidates.length < smallest.length ? candidates : smallest,
+          )
+        : domains.get(slot.id);
+    const candidates = candidatePool.filter(
+      (entry) =>
+        !usedAnswers.has(entry.answer) &&
+        assignedLetters.every(
+          ({ character, letterIndex }) => entry.answer[letterIndex] === character,
+        ),
+    );
+    const assignedCharacterCount = assignedLetters.length;
     const metadata = metadataBySlot.get(slot.id);
 
     return { assignedCharacterCount, candidates, metadata, slot };
@@ -287,7 +508,6 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
 
     while (changed) {
       changed = false;
-
       for (const candidateState of candidateStates) {
         let candidates = candidateState.candidates;
 
@@ -320,7 +540,8 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
 
             return (
               supportingAnswers !== undefined &&
-              (supportingAnswers.size > 1 || !supportingAnswers.has(entry.answer))
+              (supportingAnswers.size > 1 ||
+                !supportingAnswers.has(entry.answer))
             );
           });
 
@@ -358,20 +579,45 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
   }
 
   function chooseNextSlot() {
-    const candidateStates = enforceCrossingConsistency(
+    let candidateStates = enforceCrossingConsistency(
       topology.slots
         .filter((slot) => !assignments.has(slot.id))
         .map(getCandidateState),
     );
-    const possibleThemedSlotCount = candidateStates.filter(({ candidates }) =>
+    const themedWordCountNeeded = Math.max(
+      0,
+      requiredThemedWordCount - themedWordCount,
+    );
+    let possibleThemedSlotCount = candidateStates.filter(({ candidates }) =>
       candidates.some(({ category }) => categorySet.has(category)),
     ).length;
 
-    if (
-      themedWordCount + possibleThemedSlotCount <
-      requiredThemedWordCount
-    ) {
+    if (possibleThemedSlotCount < themedWordCountNeeded) {
       return undefined;
+    }
+
+    if (
+      themedWordCountNeeded > 0 &&
+      possibleThemedSlotCount === themedWordCountNeeded
+    ) {
+      candidateStates = enforceCrossingConsistency(
+        candidateStates.map((candidateState) => {
+          const themedCandidates = candidateState.candidates.filter(
+            ({ category }) => categorySet.has(category),
+          );
+
+          return themedCandidates.length > 0
+            ? { ...candidateState, candidates: themedCandidates }
+            : candidateState;
+        }),
+      );
+      possibleThemedSlotCount = candidateStates.filter(({ candidates }) =>
+        candidates.some(({ category }) => categorySet.has(category)),
+      ).length;
+
+      if (possibleThemedSlotCount < themedWordCountNeeded) {
+        return undefined;
+      }
     }
 
     return {
@@ -460,8 +706,8 @@ function fillNewspaperTopology(entries, request, topology, options = {}) {
       .filter(({ minimumSupport }) => minimumSupport > 0)
       .sort(
         (left, right) =>
-          left.themeRank - right.themeRank ||
           right.minimumSupport - left.minimumSupport ||
+          left.themeRank - right.themeRank ||
           right.totalSupport - left.totalSupport ||
           left.originalIndex - right.originalIndex,
       )

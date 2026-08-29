@@ -25,6 +25,10 @@ async function main() {
   for (const [index, expectedProfile] of NEWSPAPER_V2_RECIPE_MATRIX.entries()) {
     const date = addDaysToIsoDate(ROTATION_ANCHOR_DATE, index);
     const startedAt = Date.now();
+    console.error(
+      `[${index + 1}/${NEWSPAPER_V2_RECIPE_MATRIX.length}] ` +
+        `Checking ${expectedProfile.profileId} (${date})...`,
+    );
     const publication = createScheduledDailyPublication(
       catalog,
       { date, revision: MATRIX_REVISION },
@@ -49,6 +53,7 @@ async function main() {
 
     if (
       publication.quality.passed !== true ||
+      publication.generationDiagnostics.canonical?.passed !== true ||
       publication.puzzle.rowCount !== expectedProfile.rowCount ||
       publication.puzzle.columnCount !== expectedProfile.columnCount ||
       publication.puzzle.difficulty !== expectedProfile.difficulty ||
@@ -80,6 +85,10 @@ async function main() {
       validationMilliseconds: Date.now() - startedAt,
       words: publication.puzzle.words.length,
     });
+    console.error(
+      `[${index + 1}/${NEWSPAPER_V2_RECIPE_MATRIX.length}] ` +
+        `Passed ${expectedProfile.profileId} in ${Date.now() - startedAt} ms.`,
+    );
   }
 
   console.log(JSON.stringify(summaries, null, 2));

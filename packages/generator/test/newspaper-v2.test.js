@@ -14,16 +14,15 @@ const request = {
   difficulty: 'easy',
   rowCount: 9,
   seed: 'newspaper-v2-test-a',
-  targetWordCount: 25,
+  targetWordCount: 29,
 };
 const options = {
   maximumFillAttempts: 4,
   maximumSuccessfulFills: 1,
   maxSearchNodesPerTopology: 5_000,
   topology: {
-    beamWidth: 200,
     maxCandidates: 4,
-    maxMutationDepth: 1,
+    maxPatternAttempts: 20_000,
   },
 };
 
@@ -39,15 +38,23 @@ test('selects a deterministic, readable and aesthetic filled topology', () => {
   assert.ok(first.puzzle.words.some(({ clueArrow }) => clueArrow === 'right-down'));
   assert.ok(first.puzzle.words.some(({ clueArrow }) => clueArrow === 'down-right'));
   assert.equal(first.diagnostics.aesthetic.passed, true);
+  assert.equal(first.diagnostics.canonical.passed, true);
+  assert.ok(
+    ['right', 'down'].includes(first.diagnostics.themePrimaryDirection),
+  );
+  assert.equal(
+    first.diagnostics.topologyGeneration.generationMode,
+    'outside-in-canonical',
+  );
   assert.ok(first.diagnostics.clueText.maximumSingleUnits <= 24);
-  assert.ok(first.diagnostics.clueText.maximumSplitUnits <= 18);
+  assert.ok(first.diagnostics.clueText.maximumSplitUnits <= 23);
   assert.ok(
     first.diagnostics.themedWordCount >= first.diagnostics.requiredThemedWordCount,
   );
   assert.doesNotThrow(() => validateNewspaperPuzzle(first.puzzle));
 });
 
-test('continues with another topology when a fill attempt reaches its node limit', () => {
+test('fills a compact canonical topology with a category majority', () => {
   const retryRequest = {
     id: 'newspaper-v2-retry-test-7x7',
     title: 'V2 7Ã—7 Retry Test BulmacasÄ±',
@@ -57,25 +64,30 @@ test('continues with another topology when a fill attempt reaches its node limit
     difficulty: 'beginner',
     rowCount: 7,
     seed: 'newspaper-v2-preview-7x7-a',
-    targetWordCount: 14,
+    targetWordCount: 18,
   };
   const result = generateNewspaperPuzzleV2(
     catalog.entries,
     retryRequest,
     {
       ...options,
-      maximumFillAttempts: 8,
+      maximumFillAttempts: 4,
       maximumSuccessfulFills: 1,
       maxSearchNodesPerTopology: 5_000,
       topology: {
-        beamWidth: 200,
-        maxCandidates: 8,
-        maxMutationDepth: 1,
+        maxCandidates: 4,
+        maxPatternAttempts: 20_000,
       },
     },
   );
 
-  assert.ok(result.diagnostics.failedFills.length >= 1);
   assert.equal(result.diagnostics.successfulFillCount, 1);
-  assert.ok(result.diagnostics.fillAttemptCount > 1);
+  assert.ok(
+    result.diagnostics.themedWordCount >=
+      result.diagnostics.requiredThemedWordCount,
+  );
+  assert.equal(
+    result.diagnostics.topologyGeneration.generationMode,
+    'outside-in-canonical',
+  );
 });

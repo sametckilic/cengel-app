@@ -1,6 +1,6 @@
 const DEFAULT_CLUE_TEXT_POLICY = Object.freeze({
   maximumSingleClueUnits: 24,
-  maximumSplitClueUnits: 18,
+  maximumSplitClueUnits: 23,
 });
 
 const NARROW_CHARACTERS = new Set(Array.from('Iİıiljtfr'));

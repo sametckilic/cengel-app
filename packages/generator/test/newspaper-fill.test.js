@@ -227,7 +227,9 @@ test('fills a compact 7x7 beginner topology with a geography majority', () => {
   });
   assert.deepEqual(diagnostics.validation.directionCounts, { down: 5, right: 7 });
   assert.equal(diagnostics.requiredThemedWordCount, 7);
-  assert.equal(diagnostics.themedWordCount, 7);
+  assert.ok(
+    diagnostics.themedWordCount >= diagnostics.requiredThemedWordCount,
+  );
   assert.equal(diagnostics.fallbackWordCount, 2);
   assert.equal(puzzle.rowCount, 7);
   assert.equal(puzzle.columnCount, 7);
@@ -265,7 +267,9 @@ test('fills a balanced 8x8 medium topology with a literature majority', () => {
   });
   assert.deepEqual(diagnostics.validation.directionCounts, { down: 5, right: 8 });
   assert.equal(diagnostics.requiredThemedWordCount, 7);
-  assert.equal(diagnostics.themedWordCount, 7);
+  assert.ok(
+    diagnostics.themedWordCount >= diagnostics.requiredThemedWordCount,
+  );
   assert.equal(diagnostics.fallbackWordCount, 0);
   assert.equal(puzzle.rowCount, 8);
   assert.equal(puzzle.columnCount, 8);

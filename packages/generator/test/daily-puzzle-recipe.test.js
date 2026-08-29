@@ -17,7 +17,7 @@ const largeV2Profile = {
   generatorVersion: 'newspaper-v2',
   rowCount: 10,
   columnCount: 10,
-  targetWordCount: 29,
+  targetWordCount: 32,
   difficulty: 'easy',
   categories: ['tarih', 'cografya', 'genel_kultur', 'turkce'],
   categoryWeight: 0.55,
@@ -79,8 +79,8 @@ test('creates and builds a V2 daily recipe without a fixed topology id', () => {
   assert.equal(recipe.topologyId, undefined);
   assert.equal(recipe.rowCount, 10);
   assert.equal(recipe.columnCount, 10);
-  assert.equal(recipe.targetWordCount, 29);
-  assert.match(recipe.seed, /newspaper-v2-10x10-29/);
+  assert.equal(recipe.targetWordCount, 32);
+  assert.match(recipe.seed, /newspaper-v2-10x10-32/);
 
   const manifest = buildPuzzleManifest(catalog, {
     schemaVersion: 1,
@@ -91,11 +91,11 @@ test('creates and builds a V2 daily recipe without a fixed topology id', () => {
   assert.equal(puzzle.generation.generatorVersion, 'newspaper-v2');
   assert.match(
     puzzle.generation.topologyId,
-    /^newspaper-scaffold-10x10-/,
+    /^newspaper-canonical-10x10-/,
   );
   assert.equal(typeof puzzle.generation.topologyFingerprint, 'string');
   assert.equal(puzzle.cells.some(({ type }) => type === 'void'), false);
-  assert.equal(puzzle.words.length, 29);
+  assert.equal(puzzle.words.length, 32);
 });
 
 test('changes the seed when generation configuration changes', () => {

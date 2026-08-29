@@ -19,8 +19,10 @@ function createDailyPuzzlePublication(catalog, { date, profileId, revision }) {
     puzzle.generation.generatorVersion === 'newspaper-v2'
       ? {
           aesthetic: diagnostics.aesthetic,
+          canonical: diagnostics.canonical,
           clueText: diagnostics.clueText,
           failedFillCount: diagnostics.failedFills.length,
+          themePrimaryDirection: diagnostics.themePrimaryDirection,
           topologyFingerprint: puzzle.generation.topologyFingerprint,
         }
       : {};

@@ -8,7 +8,7 @@ const NEWSPAPER_V2_SIZE_VARIANTS = Object.freeze([
   Object.freeze({
     columnCount: 7,
     rowCount: 7,
-    targetWordCount: 14,
+    targetWordCount: 18,
     profileSuffix: 'geography-compact',
     categories: Object.freeze(['cografya', 'yer', 'turkce']),
     categoryWeight: 0.6,
@@ -16,11 +16,32 @@ const NEWSPAPER_V2_SIZE_VARIANTS = Object.freeze([
   Object.freeze({
     columnCount: 8,
     rowCount: 8,
-    targetWordCount: 18,
+    targetWordCount: 23,
     profileSuffix: 'culture-balanced',
     categories: Object.freeze(['edebiyat', 'sanat', 'tarih']),
     categoryOverrides: Object.freeze({
       beginner: Object.freeze([
+        'edebiyat',
+        'sanat',
+        'tarih',
+        'turkce',
+        'genel_kultur',
+      ]),
+      easy: Object.freeze([
+        'edebiyat',
+        'sanat',
+        'tarih',
+        'turkce',
+        'genel_kultur',
+      ]),
+      medium: Object.freeze([
+        'edebiyat',
+        'sanat',
+        'tarih',
+        'turkce',
+        'genel_kultur',
+      ]),
+      hard: Object.freeze([
         'edebiyat',
         'sanat',
         'tarih',
@@ -33,15 +54,17 @@ const NEWSPAPER_V2_SIZE_VARIANTS = Object.freeze([
   Object.freeze({
     columnCount: 10,
     rowCount: 9,
-    targetWordCount: 25,
+    targetWordCount: 29,
+    targetWordCountOverrides: Object.freeze({ beginner: 31 }),
     profileSuffix: 'science-wide',
     categories: Object.freeze(['bilim', 'teknoloji', 'genel_kultur']),
+    categoryWeightOverrides: Object.freeze({ hard: 0.58 }),
     categoryWeight: 0.6,
   }),
   Object.freeze({
     columnCount: 10,
     rowCount: 10,
-    targetWordCount: 29,
+    targetWordCount: 32,
     profileSuffix: 'history-large',
     categories: Object.freeze([
       'tarih',
@@ -54,7 +77,8 @@ const NEWSPAPER_V2_SIZE_VARIANTS = Object.freeze([
   Object.freeze({
     columnCount: 12,
     rowCount: 10,
-    targetWordCount: 32,
+    targetWordCount: 40,
+    targetWordCountOverrides: Object.freeze({ medium: 38 }),
     profileSuffix: 'technology-large',
     categories: Object.freeze([
       'bilim',
@@ -69,16 +93,22 @@ const NEWSPAPER_V2_SIZE_VARIANTS = Object.freeze([
 function createMatrixEntry(sizeVariant, difficulty) {
   const categories =
     sizeVariant.categoryOverrides?.[difficulty] ?? sizeVariant.categories;
+  const categoryWeight =
+    sizeVariant.categoryWeightOverrides?.[difficulty] ??
+    sizeVariant.categoryWeight;
+  const targetWordCount =
+    sizeVariant.targetWordCountOverrides?.[difficulty] ??
+    sizeVariant.targetWordCount;
 
   return Object.freeze({
     categories,
-    categoryWeight: sizeVariant.categoryWeight,
+    categoryWeight,
     columnCount: sizeVariant.columnCount,
     difficulty,
     generatorVersion: 'newspaper-v2',
     profileId: `v2-${difficulty}-${sizeVariant.profileSuffix}`,
     rowCount: sizeVariant.rowCount,
-    targetWordCount: sizeVariant.targetWordCount,
+    targetWordCount,
     title: 'Günün Bulmacası',
   });
 }

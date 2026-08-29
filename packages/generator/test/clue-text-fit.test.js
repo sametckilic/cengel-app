@@ -20,7 +20,7 @@ test('uses a stricter text budget for split clue cells', () => {
   assert.equal(single.fits, true);
   assert.equal(split.fits, false);
   assert.equal(single.maximumUnits, 24);
-  assert.equal(split.maximumUnits, 18);
+  assert.equal(split.maximumUnits, 23);
 });
 
 test('rejects invalid clue text policy overrides', () => {

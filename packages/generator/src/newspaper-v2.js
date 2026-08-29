@@ -13,18 +13,18 @@ const DEFAULT_V2_OPTIONS = Object.freeze({
 function createNewspaperV2GenerationOptions(request) {
   if (request.rowCount >= 10) {
     return {
-      maximumFillAttempts: 2,
+      maximumFillAttempts: 8,
       maximumSuccessfulFills: 1,
       maxSearchNodesPerTopology: 5_000,
-      topology: { maxCandidates: 2, maxMutationDepth: 0 },
+      topology: { maxCandidates: 8, maxPatternAttempts: 20_000 },
     };
   }
 
   return {
-    maximumFillAttempts: 8,
+    maximumFillAttempts: 12,
     maximumSuccessfulFills: 1,
     maxSearchNodesPerTopology: 5_000,
-    topology: { beamWidth: 200, maxCandidates: 8, maxMutationDepth: 1 },
+    topology: { maxCandidates: 12, maxPatternAttempts: 20_000 },
   };
 }
 
@@ -78,6 +78,11 @@ function scoreFilledCandidate(candidate, fillResult, clueTextPolicy) {
 
 function compareTopologyAttempts(left, right) {
   return (
+    left.candidate.splitClueCellCount - right.candidate.splitClueCellCount ||
+    left.candidate.intersectionCellCount - right.candidate.intersectionCellCount ||
+    left.candidate.shortSlotCount - right.candidate.shortSlotCount ||
+    left.candidate.shortSplitSlotCount - right.candidate.shortSplitSlotCount ||
+    right.candidate.averageSlotLength - left.candidate.averageSlotLength ||
     right.candidate.aesthetic.score - left.candidate.aesthetic.score ||
     left.discoveryIndex - right.discoveryIndex
   );
@@ -99,45 +104,60 @@ function generateNewspaperPuzzleV2(catalogEntries, request, optionOverrides = {}
     .slice(0, options.maximumFillAttempts);
   const failedFills = [];
   const successfulFills = [];
+  const themePrimaryDirections = ['right', 'down'];
 
   for (const [attemptIndex, { candidate }] of topologyAttempts.entries()) {
-    try {
-      const maxSearchNodes =
-        candidate.mutationDepth === 0
-          ? options.maxSearchNodesPerTopology
-          : Math.min(options.maxSearchNodesPerTopology, 2_500);
-      const fillResult = fillNewspaperTopology(
-        catalogEntries,
-        request,
-        candidate.topology,
-        {
-          clueTextPolicy: options.clueTextPolicy,
-          maxSearchNodes,
-          preferCrossingSupport: true,
-        },
-      );
-      const score = scoreFilledCandidate(
-        candidate,
-        fillResult,
-        options.clueTextPolicy,
-      );
+    for (const themePrimaryDirection of themePrimaryDirections) {
+      try {
+        const maxSearchNodes =
+          candidate.mutationDepth === 0
+            ? options.maxSearchNodesPerTopology
+            : Math.min(options.maxSearchNodesPerTopology, 2_500);
+        const fillResult = fillNewspaperTopology(
+          catalogEntries,
+          request,
+          candidate.topology,
+          {
+            clueTextPolicy: options.clueTextPolicy,
+            maxSearchNodes,
+            preferCrossingSupport: true,
+            themePrimaryDirection,
+          },
+        );
+        const score = scoreFilledCandidate(
+          candidate,
+          fillResult,
+          options.clueTextPolicy,
+        );
 
-      successfulFills.push({ attemptIndex, candidate, fillResult, score });
-
-      if (successfulFills.length >= options.maximumSuccessfulFills) {
+        successfulFills.push({
+          attemptIndex,
+          candidate,
+          fillResult,
+          score,
+          themePrimaryDirection,
+        });
         break;
+      } catch (error) {
+        failedFills.push({
+          fingerprint: candidate.fingerprint,
+          message: error instanceof Error ? error.message : String(error),
+          themePrimaryDirection,
+        });
       }
-    } catch (error) {
-      failedFills.push({
-        fingerprint: candidate.fingerprint,
-        message: error instanceof Error ? error.message : String(error),
-      });
+    }
+
+    if (successfulFills.length >= options.maximumSuccessfulFills) {
+      break;
     }
   }
 
   if (successfulFills.length === 0) {
     const failureSummary = failedFills
-      .map(({ fingerprint, message }) => `${fingerprint}: ${message}`)
+      .map(
+        ({ fingerprint, message, themePrimaryDirection }) =>
+          `${fingerprint}/${themePrimaryDirection}: ${message}`,
+      )
       .join(' | ');
     throw new Error(
       `Could not fill any V2 topology candidate for puzzle "${request.id}".` +
@@ -162,10 +182,12 @@ function generateNewspaperPuzzleV2(catalogEntries, request, optionOverrides = {}
     diagnostics: {
       ...selected.fillResult.diagnostics,
       aesthetic: selected.candidate.aesthetic,
+      canonical: selected.candidate.canonical,
       failedFills,
       fillAttemptCount: failedFills.length + successfulFills.length,
       selectedScore: selected.score,
       successfulFillCount: successfulFills.length,
+      themePrimaryDirection: selected.themePrimaryDirection,
       topologyGeneration: topologyResult.diagnostics,
     },
   };
