@@ -13,6 +13,7 @@ import {
   getPuzzleHref,
   getPuzzleSizeLabel,
 } from '@/data/puzzle-catalog';
+import { selectArchivePuzzles } from '@/data/puzzle-publications';
 import { usePuzzleProgressCatalog } from '@/hooks/use-puzzle-progress-catalog';
 import { usePuzzleCatalog } from '@/providers/puzzle-catalog-provider';
 import type { PuzzleProgressSummary } from '@cengel/puzzle-core/puzzle-progress';
@@ -92,17 +93,17 @@ function ArchiveSection({
 
 export default function ArchiveScreen() {
   const router = useRouter();
-  const { puzzles } = usePuzzleCatalog();
+  const { loading, publications, puzzles } = usePuzzleCatalog();
   const { getSummary } = usePuzzleProgressCatalog();
   const archiveItems = useMemo<readonly ArchiveItem[]>(
     () =>
-      puzzles.map((puzzle) => ({
+      selectArchivePuzzles(puzzles, publications).map(({ puzzle }) => ({
         puzzleId: puzzle.id,
         title: puzzle.title,
         detail: `${getPuzzleSizeLabel(puzzle)} · ${puzzle.words.length} kelime · ${getPuzzleCategoryLabel(puzzle)}`,
         difficulty: getDifficultyLabel(puzzle.difficulty),
       })),
-    [puzzles],
+    [publications, puzzles],
   );
 
   return (
@@ -129,11 +130,31 @@ export default function ArchiveScreen() {
             </Text>
           </View>
 
-          <ArchiveSection
-            getProgress={getSummary}
-            items={archiveItems}
-            title="HAZIR BULMACALAR"
-          />
+          {archiveItems.length > 0 ? (
+            <ArchiveSection
+              getProgress={getSummary}
+              items={archiveItems}
+              title="ARŞİV BULMACALARI"
+            />
+          ) : (
+            <View accessibilityLiveRegion="polite" style={styles.emptyState}>
+              <EditorialIcon
+                color={palette.outline}
+                name={loading ? 'hourglass-empty' : 'inventory-2'}
+                size={28}
+              />
+              <View style={styles.emptyCopy}>
+                <Text style={styles.emptyTitle}>
+                  {loading ? 'Arşiv yükleniyor' : 'Arşiv şu anda boş'}
+                </Text>
+                <Text style={styles.emptyDescription}>
+                  {loading
+                    ? 'Yayınlanmış bulmacalar getiriliyor.'
+                    : 'Erişebileceğiniz arşiv bulmacaları burada görünecek.'}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -181,6 +202,29 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: palette.outline,
     letterSpacing: 1.2,
+  },
+  emptyState: {
+    alignItems: 'center',
+    backgroundColor: palette.surfaceLowest,
+    borderColor: palette.gridLine,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 16,
+    minHeight: 88,
+    padding: 16,
+  },
+  emptyCopy: {
+    flex: 1,
+  },
+  emptyTitle: {
+    ...typography.bodyClue,
+    color: palette.ink,
+    fontFamily: fonts.interSemiBold,
+  },
+  emptyDescription: {
+    ...typography.caption,
+    color: palette.outline,
+    marginTop: spacing.cell,
   },
   archiveRow: {
     alignItems: 'center',

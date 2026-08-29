@@ -79,7 +79,7 @@ export default function RootLayout() {
                     <Stack.Screen name="puzzle" />
                     <Stack.Screen name="puzzle/[id]" />
                     <Stack.Screen name="newspaper-preview" />
-                    <Stack.Screen name="packs/edebiyat" />
+                    <Stack.Screen name="packs/kultur-sanat" />
                   </Stack>
                   <StatusBar style="dark" />
                 </ThemeProvider>

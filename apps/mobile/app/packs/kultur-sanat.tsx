@@ -11,6 +11,7 @@ import {
   getPuzzleHref,
   getPuzzleSizeLabel,
 } from '@/data/puzzle-catalog';
+import { selectPackPuzzles } from '@/data/puzzle-publications';
 import { usePuzzleProgressCatalog } from '@/hooks/use-puzzle-progress-catalog';
 import { usePuzzleCatalog } from '@/providers/puzzle-catalog-provider';
 
@@ -23,17 +24,20 @@ function PuzzleLabel({ number, title }: { number: number; title: string }) {
   );
 }
 
-export default function EdebiyatPackScreen() {
+const PACK_ID = 'kultur-sanat';
+
+export default function CultureArtPackScreen() {
   const router = useRouter();
-  const { puzzles } = usePuzzleCatalog();
+  const { loading, publications, puzzles } = usePuzzleCatalog();
   const { getSummary } = usePuzzleProgressCatalog();
-  const literaturePuzzles = useMemo(
-    () =>
-      puzzles.filter(
-        (puzzle) => puzzle.categories.length === 1 && puzzle.categories[0] === 'edebiyat',
-      ),
-    [puzzles],
+  const packPuzzles = useMemo(
+    () => selectPackPuzzles(puzzles, publications, PACK_ID),
+    [publications, puzzles],
   );
+  const packCountLabel =
+    loading && packPuzzles.length === 0
+      ? 'Yükleniyor'
+      : `${packPuzzles.length} Bulmaca`;
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.screen}>
@@ -42,7 +46,7 @@ export default function EdebiyatPackScreen() {
         leftIcon="arrow-back"
         leftLabel="Geri Dön"
         onLeftPress={() => router.back()}
-        title="Edebiyat Paketi"
+        title="Kültür ve Sanat Paketi"
         variant="page"
       />
 
@@ -60,57 +64,83 @@ export default function EdebiyatPackScreen() {
             </Text>
 
             <View>
-              <Text style={styles.packTitle}>Edebiyat</Text>
-              <Text style={styles.packCount}>{literaturePuzzles.length} Özel Bulmaca</Text>
+              <Text style={styles.packTitle}>Kültür &amp; Sanat</Text>
+              <Text style={styles.packCount}>{packCountLabel}</Text>
             </View>
 
             <Text style={styles.description}>
-              Türk ve Dünya edebiyatının unutulmaz eserleri ve yazarları üzerine kurgulanmış
-              derinlemesine bir yolculuk.
+              Edebiyat, sanat ve tarih ağırlıklı sorularla hazırlanan seçkide yayınlanan
+              bulmacaları sırayla çözün.
             </Text>
           </View>
 
           <View>
             <Text style={styles.listHeading}>Bulmacalar</Text>
 
-            <View style={styles.puzzleList}>
-              {literaturePuzzles.map((puzzle, index) => {
-                const progress = getSummary(puzzle.id);
+            {packPuzzles.length > 0 ? (
+              <View style={styles.puzzleList}>
+                {packPuzzles.map(({ publication, puzzle }, index) => {
+                  const progress = getSummary(puzzle.id);
 
-                return (
-                  <Pressable
-                    accessibilityHint={`${puzzle.title} bulmacasını açar`}
-                    accessibilityLabel={[
-                      `Bulmaca ${index + 1}`,
-                      puzzle.title,
-                      getPuzzleSizeLabel(puzzle),
-                      getDifficultyLabel(puzzle.difficulty),
-                    ].join(', ')}
-                    key={puzzle.id}
-                    onPress={() => router.push(getPuzzleHref(puzzle.id))}
-                    style={({ pressed }) => [
-                      styles.puzzleRow,
-                      index === literaturePuzzles.length - 1 && styles.lastRow,
-                      pressed && styles.puzzleRowPressed,
-                    ]}>
-                    <PuzzleLabel number={index + 1} title={puzzle.title} />
-                    <View style={styles.rowProgressStatus}>
-                      <Text style={styles.rowProgressValue}>
-                        {getPuzzleSizeLabel(puzzle)} · {getDifficultyLabel(puzzle.difficulty)}
-                        {progress.status !== 'not-started'
-                          ? ` · ${progress.solvedWordCount}/${progress.totalWordCount}`
-                          : ''}
-                      </Text>
-                      <EditorialIcon
-                        color={palette.secondary}
-                        name={progress.status === 'completed' ? 'check' : 'play-arrow'}
-                        size={20}
+                  return (
+                    <Pressable
+                      accessibilityHint={`${puzzle.title} bulmacasını açar`}
+                      accessibilityLabel={[
+                        `Bulmaca ${publication.puzzleNumber}`,
+                        puzzle.title,
+                        getPuzzleSizeLabel(puzzle),
+                        getDifficultyLabel(puzzle.difficulty),
+                      ].join(', ')}
+                      key={puzzle.id}
+                      onPress={() => router.push(getPuzzleHref(puzzle.id))}
+                      style={({ pressed }) => [
+                        styles.puzzleRow,
+                        index === packPuzzles.length - 1 && styles.lastRow,
+                        pressed && styles.puzzleRowPressed,
+                      ]}>
+                      <PuzzleLabel
+                        number={publication.puzzleNumber}
+                        title={puzzle.title}
                       />
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
+                      <View style={styles.rowProgressStatus}>
+                        <Text style={styles.rowProgressValue}>
+                          {getPuzzleSizeLabel(puzzle)} ·{' '}
+                          {getDifficultyLabel(puzzle.difficulty)}
+                          {progress.status !== 'not-started'
+                            ? ` · ${progress.solvedWordCount}/${progress.totalWordCount}`
+                            : ''}
+                        </Text>
+                        <EditorialIcon
+                          color={palette.secondary}
+                          name={
+                            progress.status === 'completed' ? 'check' : 'play-arrow'
+                          }
+                          size={20}
+                        />
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : (
+              <View accessibilityLiveRegion="polite" style={styles.emptyState}>
+                <EditorialIcon
+                  color={palette.outline}
+                  name={loading ? 'hourglass-empty' : 'inventory-2'}
+                  size={28}
+                />
+                <View style={styles.emptyCopy}>
+                  <Text style={styles.emptyTitle}>
+                    {loading ? 'Paket yükleniyor' : 'Henüz erişilebilir bulmaca yok'}
+                  </Text>
+                  <Text style={styles.emptyDescription}>
+                    {loading
+                      ? 'Yayınlanmış paket bulmacaları getiriliyor.'
+                      : 'Bu pakette erişebileceğiniz bulmacalar burada görünecek.'}
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -192,6 +222,30 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     overflow: 'hidden',
+  },
+  emptyState: {
+    alignItems: 'center',
+    backgroundColor: palette.surfaceLowest,
+    borderColor: palette.gridLine,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 16,
+    minHeight: 88,
+    padding: 16,
+  },
+  emptyCopy: {
+    flex: 1,
+  },
+  emptyTitle: {
+    ...typography.bodyClue,
+    color: palette.ink,
+    fontFamily: fonts.interSemiBold,
+  },
+  emptyDescription: {
+    ...typography.caption,
+    color: palette.outline,
+    marginTop: spacing.cell,
   },
   puzzleRow: {
     alignItems: 'center',

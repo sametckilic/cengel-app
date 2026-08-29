@@ -18,38 +18,31 @@ import {
   getPuzzleHref,
   getPuzzleSizeLabel,
 } from '@/data/puzzle-catalog';
+import { selectPackPuzzles } from '@/data/puzzle-publications';
 import { usePuzzleProgressCatalog } from '@/hooks/use-puzzle-progress-catalog';
 import { usePuzzleCatalog } from '@/providers/puzzle-catalog-provider';
 import type { PuzzleProgressSummary } from '@cengel/puzzle-core/puzzle-progress';
-import type { PuzzleDefinition } from '@cengel/puzzle-core/puzzle';
 
 type PackItem = {
-  category: string;
+  packId: string;
   title: string;
   icon: EditorialIconName;
-  href?: '/packs/edebiyat';
+  href?: '/packs/kultur-sanat';
 };
 
 const PACKS: readonly PackItem[] = [
   {
-    category: 'edebiyat',
-    title: 'Edebiyat',
+    packId: 'kultur-sanat',
+    title: 'Kültür & Sanat',
     icon: 'menu-book',
-    href: '/packs/edebiyat',
+    href: '/packs/kultur-sanat',
   },
-  { category: 'tarih', title: 'Tarih', icon: 'history-edu' },
-  { category: 'sinema', title: 'Sinema', icon: 'movie' },
-  { category: 'bilim', title: 'Bilim', icon: 'science' },
+  { packId: 'tarih', title: 'Tarih', icon: 'history-edu' },
+  { packId: 'sinema', title: 'Sinema', icon: 'movie' },
+  { packId: 'bilim', title: 'Bilim', icon: 'science' },
 ];
 
-function getPackCountLabel(
-  puzzles: readonly PuzzleDefinition[],
-  category: string,
-): string {
-  const count = puzzles.filter(
-    (puzzle) => puzzle.categories.length === 1 && puzzle.categories[0] === category,
-  ).length;
-
+function getPackCountLabel(count: number): string {
   return count > 0 ? `${count} Bulmaca` : 'Yakında';
 }
 
@@ -171,7 +164,8 @@ function WeeklyStreak() {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { getDailyPuzzle, getLatestDailyPuzzle, puzzles } = usePuzzleCatalog();
+  const { getDailyPuzzle, getLatestDailyPuzzle, publications, puzzles } =
+    usePuzzleCatalog();
   const dailyPuzzle = useMemo(
     () =>
       getDailyPuzzle(new Date()) ??
@@ -292,9 +286,11 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}>
               {PACKS.map((item) => (
                 <PackCard
-                  count={getPackCountLabel(puzzles, item.category)}
+                  count={getPackCountLabel(
+                    selectPackPuzzles(puzzles, publications, item.packId).length,
+                  )}
                   item={item}
-                  key={item.title}
+                  key={item.packId}
                 />
               ))}
             </ScrollView>
