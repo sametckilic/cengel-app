@@ -53,9 +53,9 @@ Amaç: Günün bulmacası dışındaki bütün kullanıcı içeriklerini aynı g
 - [x] Arşiv ve tematik paket bulmacalarını V2 gazete formatında backend üzerinden üretip yayımla.
 - [x] Ücretsiz, premium ve günlük yayın politikasını tanımlayıp `required_entitlement` alanlarına uygula.
 - [ ] Premium katalog/list/detail erişiminin aktif hesapta açıldığını, anonim veya süresi dolmuş hesapta kapalı kaldığını UAT et.
-- [ ] Günlük en az yedi günlük yayın tamponunu yeni recipe matrisiyle koru.
-- [ ] Katalog büyüdüğünde uygulanacak editoryal azaltma raporunu hazırla; azaltmayı yalnızca ölçülebilir kapsama kaybı olmadan etkinleştir.
-- [ ] Kullanıcıya açık ekranlardan eski prototip/UAT içeriklerini kaldır veya yalnızca development build'e sınırla.
+- [x] Günlük en az yedi günlük yayın tamponunu yeni recipe matrisiyle koru.
+- [x] Katalog büyüdüğünde uygulanacak [editoryal azaltma raporunu](EDITORIAL_CATALOG_REPORT.md) hazırla; azaltmayı yalnızca ölçülebilir kapsama kaybı olmadan etkinleştir.
+- [x] Kullanıcıya açık ekranlardan eski prototip/UAT içeriklerini kaldır veya yalnızca development build'e sınırla.
 
 UAT kapısı: ana sayfa, arşiv, kategori paketi ve günün bulmacası farklı boyutlarda aynı gazete tipi görsel/oynanış sözleşmesini kullanmalı.
 
