@@ -107,6 +107,15 @@ Puzzle tanımı `validationMode` taşır:
 
 Premium puzzle tanımları uygulama bundle'ına gömülmez. API, aktif entitlement olmadan premium liste veya detay döndürmez. İstemciden gelen `isPremium` benzeri değerlere güvenilmez.
 
+Yayın erişim politikası `@cengel/contracts/content-publication-policy` içinde tek kaynaktan yönetilir:
+
+- Günün bulmacası ücretsizdir ve `required_entitlement` değeri `null` olur.
+- Arşiv bulmacaları `premium_access` gerektirir.
+- Tematik pakette birinci bulmaca ücretsizdir; ikinci ve sonraki bulmacalar `premium_access` gerektirir. Paket sıra numarası kullanıcıya gösterilen numarayla aynı olacak şekilde 1 tabanlıdır.
+- API entitlement olmadan yeni bir premium tanım teslim etmez. Daha önce indirilmiş bir bulmaca yalnızca aynı yerel profil kapsamında çevrimdışı oynanmaya devam edebilir; bu kural yeni premium içerik indirme hakkı vermez.
+
+Publisher, publication satırını oluştururken `required_entitlement` değerini bu ortak politikadan çözer. Archive ve pack publisher devreye alınırken mevcut katalog publication kayıtları da aynı kurala göre taşınacaktır.
+
 Hesapla giriş yapan kullanıcıda Supabase UUID'si RevenueCat `app_user_id` olarak kullanılır. Misafir satın alma desteği abonelik aşamasında kalıcı kurulum kimliği ve hesapla birleştirme kurallarıyla ayrıca tasarlanacaktır. RevenueCat webhook'ları event ID ile idempotent işlenir; renewal, cancellation, expiration ve transfer olayları backend entitlement durumunu günceller.
 
 ## Uygulama aşamaları

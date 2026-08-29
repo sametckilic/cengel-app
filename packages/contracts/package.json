@@ -3,11 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test": "node --test ./test/content-publication-policy.test.js",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@cengel/puzzle-core": "*"
   },
   "exports": {
     "./achievement-api": "./src/achievement-api.ts",
+    "./content-publication-policy": "./src/content-publication-policy.ts",
     "./puzzle-api": "./src/puzzle-api.ts"
   }
 }
