@@ -93,12 +93,16 @@ describe('publisher request identity', () => {
     const base = {
       catalogChecksum: 'catalog',
       date: '2026-08-31',
+      publicationKey: 'daily',
       revision: 'schedule-v1-a1',
       seed: 'seed',
     };
 
     expect(requestHash(base)).not.toBe(
       requestHash({ ...base, revision: 'schedule-v2-a1' }),
+    );
+    expect(requestHash(base)).not.toBe(
+      requestHash({ ...base, publicationKey: 'archive:archive-easy-001' }),
     );
   });
 });

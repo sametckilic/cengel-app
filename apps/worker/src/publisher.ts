@@ -196,7 +196,7 @@ export function toAlreadyPublishedResult(
   };
 }
 
-async function findPublishedPuzzle(
+export async function findPublishedPuzzle(
   client: PoolClient,
   target: PublicationTarget,
 ): Promise<PublishResult | null> {
@@ -315,12 +315,20 @@ async function markGenerationFailed(
 export async function recordGenerationFailure(
   client: PoolClient,
   catalog: CatalogSnapshot,
-  input: { date: string; error: unknown; revision: string },
+  input: {
+    date: string;
+    error: unknown;
+    profileId?: string;
+    publicationKey?: string;
+    revision: string;
+  },
 ): Promise<void> {
-  const seed = `${input.date}:${input.revision}:unresolved`;
+  const publicationKey = input.publicationKey ?? 'daily';
+  const seed = `${input.date}:${publicationKey}:${input.revision}:unresolved`;
   const hash = requestHash({
     catalogChecksum: catalog.checksum,
     date: input.date,
+    publicationKey,
     revision: input.revision,
     seed,
   });
@@ -339,7 +347,7 @@ export async function recordGenerationFailure(
         started_at,
         status
       )
-      VALUES ($1, NOW(), $2, 'unresolved', $3, $4, $5, $6, NOW(), 'failed')
+      VALUES ($1, NOW(), $2, $3, $4, $5, $6, $7, NOW(), 'failed')
       ON CONFLICT (request_hash) DO UPDATE SET
         completed_at = NOW(),
         error = EXCLUDED.error,
@@ -349,6 +357,7 @@ export async function recordGenerationFailure(
     [
       catalog.catalogVersionId,
       errorMessage(input.error),
+      input.profileId ?? 'unresolved',
       input.date,
       hash,
       input.revision,

@@ -2,14 +2,16 @@ const { mkdir, readFile, rename, unlink, writeFile } = require('node:fs/promises
 const path = require('node:path');
 
 const { buildDailyPuzzleCandidate } = require('./daily-puzzle-quality');
-const { createDailyPuzzleRecipe } = require('./daily-puzzle-recipe');
+const {
+  createDailyPuzzleRecipe,
+  createNewspaperPuzzleRecipe,
+  validateIsoDate,
+} = require('./daily-puzzle-recipe');
 const { getDailyPuzzleProfile } = require('./daily-puzzle-profiles');
 
 const SOURCE_CATALOG = 'data/generated/clue-catalog.json';
 
-function createDailyPuzzlePublication(catalog, { date, profileId, revision }) {
-  const profile = getDailyPuzzleProfile(profileId);
-  const recipe = createDailyPuzzleRecipe({ date, profile, revision });
+function buildPuzzlePublication(catalog, request, recipe) {
   const { diagnostics, puzzle, quality } = buildDailyPuzzleCandidate(
     catalog.entries,
     recipe,
@@ -29,9 +31,9 @@ function createDailyPuzzlePublication(catalog, { date, profileId, revision }) {
 
   return {
     schemaVersion: 1,
-    date,
-    profileId,
-    revision,
+    date: request.date,
+    profileId: request.profileId,
+    revision: request.revision,
     sourceCatalog: SOURCE_CATALOG,
     rights: catalog.rights,
     recipe,
@@ -43,6 +45,42 @@ function createDailyPuzzlePublication(catalog, { date, profileId, revision }) {
     },
     puzzle,
   };
+}
+
+function createDailyPuzzlePublication(catalog, { date, profileId, revision }) {
+  const profile = getDailyPuzzleProfile(profileId);
+  const recipe = createDailyPuzzleRecipe({ date, profile, revision });
+
+  return buildPuzzlePublication(
+    catalog,
+    { date, profileId, revision },
+    recipe,
+  );
+}
+
+function createContentPuzzlePublication(
+  catalog,
+  { date, profile, profileId, puzzleId, revision, seed, title },
+) {
+  validateIsoDate(date);
+
+  if (typeof profileId !== 'string' || profileId.length === 0) {
+    throw new Error('Content puzzle profileId is required.');
+  }
+
+  const recipe = createNewspaperPuzzleRecipe({
+    id: puzzleId,
+    profile,
+    revision,
+    seed,
+    title,
+  });
+
+  return buildPuzzlePublication(
+    catalog,
+    { date, profileId, revision },
+    recipe,
+  );
 }
 
 async function readExistingPublication(outputPath) {
@@ -95,6 +133,7 @@ async function writeImmutablePublication(outputPath, publication) {
 }
 
 module.exports = {
+  createContentPuzzlePublication,
   createDailyPuzzlePublication,
   getImmutablePublicationStatus,
   writeImmutablePublication,

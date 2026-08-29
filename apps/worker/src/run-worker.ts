@@ -1,4 +1,9 @@
 import {
+  CONTENT_PUBLICATION_PLAN,
+  createScheduledContentPublication,
+  type ContentPublicationPlanItem,
+} from '@cengel/generator/content-publication-schedule';
+import {
   addDaysToIsoDate,
   createScheduledDailyPublication,
   getDateKeyInTimeZone,
@@ -8,8 +13,13 @@ import { Pool } from 'pg';
 import { loadCurrentCatalog } from './catalog';
 import type { WorkerEnvironment } from './config';
 import {
+  createArchivePublicationTarget,
+  createPackPublicationTarget,
+  findPublishedPuzzle,
   findPublishedDailyPuzzle,
+  publishArchivePublication,
   publishDailyPublication,
+  publishPackPublication,
   recordGenerationFailure,
   type PublishResult,
 } from './publisher';
@@ -20,6 +30,16 @@ import {
 } from './shadow';
 
 const LOCK_NAME = 'cengel:daily-puzzle-worker';
+
+function getContentPublicationTarget(item: ContentPublicationPlanItem) {
+  return item.channel === 'archive'
+    ? createArchivePublicationTarget(item.publicationDate, item.puzzleId)
+    : createPackPublicationTarget(
+        item.publicationDate,
+        item.packId,
+        item.puzzleNumber,
+      );
+}
 
 function resolveStartDate(value: WorkerEnvironment['WORKER_START_DATE']): string {
   const today = getDateKeyInTimeZone();
@@ -67,7 +87,7 @@ export async function runWorker(
     lockAcquired = lockResult.rows[0]?.acquired === true;
 
     if (!lockAcquired) {
-      throw new Error('Another daily puzzle worker already holds the generation lock.');
+      throw new Error('Another puzzle worker already holds the generation lock.');
     }
 
     const catalogSnapshot = await loadCurrentCatalog(client);
@@ -124,6 +144,50 @@ export async function runWorker(
 
       const reference = await readReferencePublication(date);
       comparisons.push(compareShadowPublication(publication, reference));
+    }
+
+    if (environment.WORKER_MODE === 'publish') {
+      for (const item of CONTENT_PUBLICATION_PLAN) {
+        const target = getContentPublicationTarget(item);
+        const existing = await findPublishedPuzzle(client, target);
+
+        if (existing) {
+          publications.push(existing);
+          continue;
+        }
+
+        let publication;
+
+        try {
+          publication = createScheduledContentPublication(
+            catalogSnapshot.catalog,
+            item,
+          );
+        } catch (error) {
+          await recordGenerationFailure(client, catalogSnapshot, {
+            date: item.publicationDate,
+            error,
+            profileId: item.profileId,
+            publicationKey: target.publicationKey,
+            revision: item.revision,
+          });
+          throw error;
+        }
+
+        publications.push(
+          item.channel === 'archive'
+            ? await publishArchivePublication(client, {
+                catalog: catalogSnapshot,
+                publication,
+              })
+            : await publishPackPublication(client, {
+                catalog: catalogSnapshot,
+                packId: item.packId,
+                publication,
+                puzzleNumber: item.puzzleNumber,
+              }),
+        );
+      }
     }
 
     if (environment.WORKER_MODE === 'publish') {

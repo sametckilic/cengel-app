@@ -28,22 +28,23 @@ function validateIsoDate(date) {
   return date;
 }
 
-function createDailyPuzzleRecipe({ date, profile, revision }) {
-  const normalizedDate = validateIsoDate(date);
-
+function createNewspaperPuzzleRecipe({ id, profile, revision, seed, title }) {
   if (!profile || typeof profile !== 'object') {
-    throw new Error('Daily puzzle profile is required.');
+    throw new Error('Newspaper puzzle profile is required.');
   }
 
   if (typeof revision !== 'string' || !REVISION_PATTERN.test(revision)) {
-    throw new Error('Daily puzzle revision must contain lowercase letters, numbers, or hyphens.');
+    throw new Error('Puzzle revision must contain lowercase letters, numbers, or hyphens.');
+  }
+
+  if (typeof id !== 'string' || !REVISION_PATTERN.test(id)) {
+    throw new Error('Puzzle ID must contain lowercase letters, numbers, or hyphens.');
   }
 
   if (!Array.isArray(profile.categories) || profile.categories.length === 0) {
-    throw new Error('Daily puzzle profile must contain at least one category.');
+    throw new Error('Newspaper puzzle profile must contain at least one category.');
   }
 
-  const id = `gunun-${normalizedDate}`;
   const categories = [...profile.categories];
   const isV2 = profile.generatorVersion === 'newspaper-v2';
 
@@ -72,7 +73,7 @@ function createDailyPuzzleRecipe({ date, profile, revision }) {
   ];
   const recipe = {
     id,
-    title: profile.title ?? 'Günün Bulmacası',
+    title: title ?? profile.title ?? 'Günün Bulmacası',
     format: 'newspaper-arrowword',
     ...(isV2
       ? { generatorVersion: 'newspaper-v2' }
@@ -82,7 +83,7 @@ function createDailyPuzzleRecipe({ date, profile, revision }) {
     difficulty: profile.difficulty,
     categories,
     categoryWeight: profile.categoryWeight,
-    seed: seedParts.join(':'),
+    seed: seed ?? seedParts.join(':'),
     targetWordCount,
   };
 
@@ -90,7 +91,19 @@ function createDailyPuzzleRecipe({ date, profile, revision }) {
   return recipe;
 }
 
+function createDailyPuzzleRecipe({ date, profile, revision }) {
+  const normalizedDate = validateIsoDate(date);
+
+  return createNewspaperPuzzleRecipe({
+    id: `gunun-${normalizedDate}`,
+    profile,
+    revision,
+    title: profile?.title ?? 'Günün Bulmacası',
+  });
+}
+
 module.exports = {
   createDailyPuzzleRecipe,
+  createNewspaperPuzzleRecipe,
   validateIsoDate,
 };

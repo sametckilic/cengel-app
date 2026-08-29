@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "exports": {
+    "./content-publication-schedule": {
+      "types": "./src/content-publication-schedule.d.ts",
+      "default": "./src/content-publication-schedule.js"
+    },
     "./clue-text-fit": "./src/clue-text-fit.js",
     "./clue-selection": "./src/clue-selection.js",
     "./daily-puzzle-profiles": "./src/daily-puzzle-profiles.js",
