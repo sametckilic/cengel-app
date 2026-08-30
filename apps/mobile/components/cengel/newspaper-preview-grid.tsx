@@ -179,6 +179,8 @@ export function NewspaperPreviewGrid({
   const pinchStartScale = useSharedValue(1);
   const pinchStartFocalX = useSharedValue(0);
   const pinchStartFocalY = useSharedValue(0);
+  const pinchCurrentFocalX = useSharedValue(0);
+  const pinchCurrentFocalY = useSharedValue(0);
   const pinchStartTranslationX = useSharedValue(0);
   const pinchStartTranslationY = useSharedValue(0);
   const translationX = useSharedValue(0);
@@ -196,11 +198,16 @@ export function NewspaperPreviewGrid({
       pinchStartScale.value = scale.value;
       pinchStartFocalX.value = event.focalX;
       pinchStartFocalY.value = event.focalY;
+      pinchCurrentFocalX.value = event.focalX;
+      pinchCurrentFocalY.value = event.focalY;
       pinchStartTranslationX.value = translationX.value;
       pinchStartTranslationY.value = translationY.value;
     })
     .onUpdate((event) => {
       const requestedScale = pinchStartScale.value * event.scale;
+
+      pinchCurrentFocalX.value = event.focalX;
+      pinchCurrentFocalY.value = event.focalY;
 
       const nextScale =
         requestedScale < MINIMUM_ZOOM_SCALE
@@ -268,11 +275,25 @@ export function NewspaperPreviewGrid({
         settledScale,
       );
       const settledTranslationX = clampGridTranslation(
-        translationX.value,
+        getPinchAnchoredTranslation(
+          pinchStartTranslationX.value,
+          pinchStartFocalX.value,
+          pinchCurrentFocalX.value,
+          gridWidth / 2,
+          pinchStartScale.value,
+          settledScale,
+        ),
         maximumX,
       );
       const settledTranslationY = clampGridTranslation(
-        translationY.value,
+        getPinchAnchoredTranslation(
+          pinchStartTranslationY.value,
+          pinchStartFocalY.value,
+          pinchCurrentFocalY.value,
+          gridHeight / 2,
+          pinchStartScale.value,
+          settledScale,
+        ),
         maximumY,
       );
 

@@ -39,3 +39,23 @@ test('follows a moving pinch focal point without adding pan translation twice', 
     20,
   );
 });
+
+test('keeps the pinch anchor stable while rubber-band zoom settles', () => {
+  const viewportCenter = 200;
+  const focalPoint = 300;
+  const settledScale = 2.5;
+  const settledTranslation = getPinchAnchoredTranslation(
+    0,
+    focalPoint,
+    focalPoint,
+    viewportCenter,
+    1,
+    settledScale,
+  );
+
+  assert.equal(settledTranslation, -150);
+  assert.equal(
+    (focalPoint - viewportCenter - settledTranslation) / settledScale,
+    focalPoint - viewportCenter,
+  );
+});
