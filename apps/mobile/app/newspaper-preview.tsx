@@ -269,6 +269,13 @@ export function NewspaperPuzzleScreen({
       );
 
       if (nextSelection === inputState.selection) {
+        if (!keyboardVisibleRef.current) {
+          preKeyboardScrollOffsetY.current = scrollOffsetY.current;
+        }
+
+        restartWordOnNextLetter.current = true;
+        setCheckStatus('idle');
+        systemInputRef.current?.open();
         return;
       }
 
@@ -507,8 +514,8 @@ export function NewspaperPuzzleScreen({
           styles.scrollContent,
           {
             paddingBottom:
-              puzzleViewportTop + keyboardScrollSpace + zoomOverflowY,
-            paddingTop: puzzleViewportTop + zoomOverflowY,
+              puzzleViewportTop + keyboardScrollSpace + zoomOverflowY * 2,
+            paddingTop: puzzleViewportTop,
           },
         ]}
         keyboardDismissMode="interactive"

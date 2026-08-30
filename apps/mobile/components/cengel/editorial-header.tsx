@@ -113,6 +113,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   floatingSafeArea: {
+    elevation: 1,
     left: 0,
     position: 'absolute',
     right: 0,

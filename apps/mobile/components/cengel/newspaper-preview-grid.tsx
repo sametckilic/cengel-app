@@ -12,6 +12,11 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { fonts, layout, palette, spacing } from '@/constants/design';
 import { AnswerStartArrow } from '@/components/cengel/clue-arrow';
+import {
+  clampGridTranslation,
+  getGridTranslationLimit,
+  getPinchAnchoredTranslation,
+} from '@/utils/puzzle-grid-viewport';
 import type {
   PuzzleClueArrow,
   PuzzleClueSummary,
@@ -42,7 +47,7 @@ function SingleClueCell({
   cellSize,
   label,
 }: PuzzleClueSummary & { active: boolean; cellSize: number }) {
-  const fontSize = Math.max(7, Math.min(9, cellSize * 0.185));
+  const fontSize = Math.max(6, Math.min(9, cellSize * 0.185));
 
   return (
     <View
@@ -59,7 +64,7 @@ function SingleClueCell({
         style={[
           styles.clueText,
           active && styles.activeClueText,
-          { fontSize, lineHeight: fontSize + 1.2 },
+          { fontSize, lineHeight: fontSize + 0.8 },
         ]}>
         {label}
       </Text>
@@ -168,6 +173,10 @@ export function NewspaperPreviewGrid({
   const gridHeight = cellSize * puzzle.rowCount + 4;
   const scale = useSharedValue(1);
   const pinchStartScale = useSharedValue(1);
+  const pinchStartFocalX = useSharedValue(0);
+  const pinchStartFocalY = useSharedValue(0);
+  const pinchStartTranslationX = useSharedValue(0);
+  const pinchStartTranslationY = useSharedValue(0);
   const translationX = useSharedValue(0);
   const translationY = useSharedValue(0);
   const panStartX = useSharedValue(0);
@@ -178,12 +187,18 @@ export function NewspaperPreviewGrid({
       cancelAnimation(scale);
       cancelAnimation(translationX);
       cancelAnimation(translationY);
+    })
+    .onStart((event) => {
       pinchStartScale.value = scale.value;
+      pinchStartFocalX.value = event.focalX;
+      pinchStartFocalY.value = event.focalY;
+      pinchStartTranslationX.value = translationX.value;
+      pinchStartTranslationY.value = translationY.value;
     })
     .onUpdate((event) => {
       const requestedScale = pinchStartScale.value * event.scale;
 
-      scale.value =
+      const nextScale =
         requestedScale < MINIMUM_ZOOM_SCALE
           ? Math.max(
               MINIMUM_RUBBER_BAND_SCALE,
@@ -194,9 +209,43 @@ export function NewspaperPreviewGrid({
             ? Math.min(
                 MAXIMUM_RUBBER_BAND_SCALE,
                 MAXIMUM_ZOOM_SCALE +
-                  (requestedScale - MAXIMUM_ZOOM_SCALE) * RUBBER_BAND_RESISTANCE,
+                (requestedScale - MAXIMUM_ZOOM_SCALE) * RUBBER_BAND_RESISTANCE,
               )
             : requestedScale;
+      const maximumX = getGridTranslationLimit(
+        gridWidth,
+        gridWidth,
+        nextScale,
+      );
+      const maximumY = getGridTranslationLimit(
+        gridHeight,
+        gridHeight,
+        nextScale,
+      );
+
+      scale.value = nextScale;
+      translationX.value = clampGridTranslation(
+        getPinchAnchoredTranslation(
+          pinchStartTranslationX.value,
+          pinchStartFocalX.value,
+          event.focalX,
+          gridWidth / 2,
+          pinchStartScale.value,
+          nextScale,
+        ),
+        maximumX,
+      );
+      translationY.value = clampGridTranslation(
+        getPinchAnchoredTranslation(
+          pinchStartTranslationY.value,
+          pinchStartFocalY.value,
+          event.focalY,
+          gridHeight / 2,
+          pinchStartScale.value,
+          nextScale,
+        ),
+        maximumY,
+      );
     })
     .onFinalize(() => {
       const settledScale = Math.max(
@@ -204,15 +253,23 @@ export function NewspaperPreviewGrid({
         Math.min(MAXIMUM_ZOOM_SCALE, scale.value),
       );
 
-      const maximumX = ((gridWidth - cellSize) * settledScale) / 2;
-      const maximumY = ((gridHeight - cellSize) * settledScale) / 2;
-      const settledTranslationX = Math.max(
-        -maximumX,
-        Math.min(maximumX, translationX.value),
+      const maximumX = getGridTranslationLimit(
+        gridWidth,
+        gridWidth,
+        settledScale,
       );
-      const settledTranslationY = Math.max(
-        -maximumY,
-        Math.min(maximumY, translationY.value),
+      const maximumY = getGridTranslationLimit(
+        gridHeight,
+        gridHeight,
+        settledScale,
+      );
+      const settledTranslationX = clampGridTranslation(
+        translationX.value,
+        maximumX,
+      );
+      const settledTranslationY = clampGridTranslation(
+        translationY.value,
+        maximumY,
       );
 
       if (scale.value !== settledScale) {
@@ -240,6 +297,7 @@ export function NewspaperPreviewGrid({
     });
   const panGesture = Gesture.Pan()
     .minDistance(8)
+    .maxPointers(1)
     .averageTouches(true)
     .onBegin(() => {
       cancelAnimation(translationX);
@@ -248,15 +306,23 @@ export function NewspaperPreviewGrid({
       panStartY.value = translationY.value;
     })
     .onUpdate((event) => {
-      const maximumX = ((gridWidth - cellSize) * scale.value) / 2;
-      const maximumY = ((gridHeight - cellSize) * scale.value) / 2;
-      translationX.value = Math.max(
-        -maximumX,
-        Math.min(maximumX, panStartX.value + event.translationX),
+      const maximumX = getGridTranslationLimit(
+        gridWidth,
+        gridWidth,
+        scale.value,
       );
-      translationY.value = Math.max(
-        -maximumY,
-        Math.min(maximumY, panStartY.value + event.translationY),
+      const maximumY = getGridTranslationLimit(
+        gridHeight,
+        gridHeight,
+        scale.value,
+      );
+      translationX.value = clampGridTranslation(
+        panStartX.value + event.translationX,
+        maximumX,
+      );
+      translationY.value = clampGridTranslation(
+        panStartY.value + event.translationY,
+        maximumY,
       );
     });
   const gridGesture = Gesture.Simultaneous(pinchGesture, panGesture);
