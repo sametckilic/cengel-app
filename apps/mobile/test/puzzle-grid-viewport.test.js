@@ -5,7 +5,15 @@ const {
   clampGridTranslation,
   getGridTranslationLimit,
   getPinchAnchoredTranslation,
+  getPuzzleGridCellSize,
 } = require('../utils/puzzle-grid-viewport.ts');
+
+test('fits a 12-column puzzle inside compact phone widths', () => {
+  assert.equal(getPuzzleGridCellSize(344, 12), 28);
+  assert.equal(getPuzzleGridCellSize(304, 12), 25);
+  assert.ok(getPuzzleGridCellSize(344, 12) * 12 + 4 <= 344);
+  assert.ok(getPuzzleGridCellSize(304, 12) * 12 + 4 <= 304);
+});
 
 test('prevents panning while the scaled grid fits its viewport', () => {
   assert.equal(getGridTranslationLimit(388, 388, 0.65), 0);

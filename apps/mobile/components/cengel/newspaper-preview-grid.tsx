@@ -16,6 +16,7 @@ import {
   clampGridTranslation,
   getGridTranslationLimit,
   getPinchAnchoredTranslation,
+  getPuzzleGridCellSize,
 } from '@/utils/puzzle-grid-viewport';
 import type {
   PuzzleClueArrow,
@@ -32,6 +33,7 @@ import { getWordsAtCell } from '@cengel/puzzle-core/puzzle-selection';
 
 const MINIMUM_ZOOM_SCALE = 0.65;
 const MAXIMUM_ZOOM_SCALE = 2.5;
+const GRID_TEXT_MAX_FONT_SIZE_MULTIPLIER = 1;
 const MINIMUM_RUBBER_BAND_SCALE = MINIMUM_ZOOM_SCALE * 0.78;
 const MAXIMUM_RUBBER_BAND_SCALE = MAXIMUM_ZOOM_SCALE * 1.12;
 const RUBBER_BAND_RESISTANCE = 0.22;
@@ -47,7 +49,7 @@ function SingleClueCell({
   cellSize,
   label,
 }: PuzzleClueSummary & { active: boolean; cellSize: number }) {
-  const fontSize = Math.max(6, Math.min(9, cellSize * 0.185));
+  const fontSize = Math.max(5, Math.min(9, cellSize * 0.185));
 
   return (
     <View
@@ -59,6 +61,7 @@ function SingleClueCell({
       ]}>
       <Text
         adjustsFontSizeToFit
+        maxFontSizeMultiplier={GRID_TEXT_MAX_FONT_SIZE_MULTIPLIER}
         minimumFontScale={0.72}
         numberOfLines={4}
         style={[
@@ -83,18 +86,19 @@ function SplitClueSection({
   position: 'bottom' | 'top';
   selected: boolean;
 }) {
-  const fontSize = Math.max(5.5, Math.min(7.5, cellSize * 0.15));
+  const fontSize = Math.max(4.5, Math.min(7.5, cellSize * 0.15));
 
   return (
     <View style={position === 'top' ? styles.splitTop : styles.splitBottom}>
       <Text
         adjustsFontSizeToFit
+        maxFontSizeMultiplier={GRID_TEXT_MAX_FONT_SIZE_MULTIPLIER}
         minimumFontScale={0.72}
-        numberOfLines={2}
+        numberOfLines={3}
         style={[
           styles.splitClueText,
           selected && styles.activeClueText,
-          { fontSize, lineHeight: fontSize + 0.8 },
+          { fontSize, lineHeight: fontSize + 0.4 },
         ]}>
         {clue.label}
       </Text>
@@ -168,7 +172,7 @@ export function NewspaperPreviewGrid({
   const { width } = useWindowDimensions();
   const viewportWidth = width > spacing.tight * 2 ? width : 390;
   const availableWidth = Math.min(layout.maxContent, viewportWidth - spacing.tight * 2);
-  const cellSize = Math.max(32, Math.floor((availableWidth - 4) / puzzle.columnCount));
+  const cellSize = getPuzzleGridCellSize(availableWidth, puzzle.columnCount);
   const gridWidth = cellSize * puzzle.columnCount + 4;
   const gridHeight = cellSize * puzzle.rowCount + 4;
   const scale = useSharedValue(1);
@@ -463,6 +467,7 @@ export function NewspaperPreviewGrid({
                   ))}
                   {entries[cellIndex] ? (
                     <Text
+                      maxFontSizeMultiplier={GRID_TEXT_MAX_FONT_SIZE_MULTIPLIER}
                       style={[
                         styles.letter,
                         !isLocked && styles.unconfirmedLetter,

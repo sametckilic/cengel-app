@@ -8,6 +8,18 @@ export function getGridTranslationLimit(
   return Math.max(0, (gridSize * scale - viewportSize) / 2);
 }
 
+export function getPuzzleGridCellSize(
+  availableWidth: number,
+  columnCount: number,
+  minimumCellSize = 24,
+  gridBorderSize = 4,
+) {
+  return Math.max(
+    minimumCellSize,
+    Math.floor((availableWidth - gridBorderSize) / columnCount),
+  );
+}
+
 export function clampGridTranslation(value: number, limit: number) {
   'worklet';
 
